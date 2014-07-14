@@ -9,8 +9,9 @@ For enhanced data visualization tools, including optimized implementations of so
 
 Please let us know if you would like to contribute or have suggestions for content.
 
-Project Organizer: Peder Larson, University of California - San Francisco
-Project Contributors: 
+**Project Organizer**: Peder Larson, University of California - San Francisco
+
+**Project Contributors**: 
 * Jeremy Gordon, University of California - San Francisco
 * Adam Kerr, Stanford University
 * You :)
