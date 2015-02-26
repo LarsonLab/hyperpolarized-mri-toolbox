@@ -44,18 +44,18 @@ end
 % define number of acquisitions-
 N = max(floor(T/TR),1);
 
-if nargin<7 || isempty(substrate_flips)
+if nargin<6 || isempty(substrate_flips)
     % generate substrate flip angles
     substrate_flips = vfa_const_amp(N,pi/2,exp(-TR*(R1(1) + k(1))));
 end
 
-if nargin < 8
+if nargin < 7
     dbg = 0;  % don't print outputs
 end
 
 % define model parameters
 
-syms R1P R1L kPL kTRANS t0  A0 sigma_1 sigma_2 sigma_3 alpha_1 beta_1
+syms R1P R1L kPL kTRANS t0  A0 alpha_1 beta_1
 parameters_of_interest = [kPL kTRANS];
 parameters_of_interest_nominal_values = [k(1) k(2)];
 nuisance_parameters = [alpha_1 beta_1 A0];
@@ -216,9 +216,10 @@ x = zeros(n, N);
 
 % compute input and state trajectories
 u =  u_fun(TR*(1:N));
+
 x(:, 1) = Bd*u(1);
 for k=1:N-1
-    x(:, k+1) = Ad * diag(cos(thetas(k,1:n))) * x(:, k) + Bd * u(k+1); %because the third colomn is 90 degree pulses
+    x(:, k+1) = Ad * diag(cos(thetas(k,1:n))) * x(:, k) + Bd * u(k+1);
 end
 
 % concatenate state and input trajectories

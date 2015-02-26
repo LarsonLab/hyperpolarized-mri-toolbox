@@ -94,16 +94,48 @@ for Tinj_new = [2 10 20]
 end
 
 
-%% determine optimal SNR N and TR
-% not finished yet
+%% determine optimal SNR in free parameter dimensions
+% based on above results, only remaining free parameters are:
+%    total time and TR
+% and optimal results may depend on T1 of lactate.
+% Below are some brute force simulations to try and solve amongst these
+% free parameters.
+% Not finished yet, no comparison across TR:
+%  (I think the error is due to scaling of input function in 'trajectories
+%   sub-function of optimal_SNR_angles - PEZL)
 
-T = [1:60];
-TR = [1:6];
+clear S_noinj S_inj
+
+TR = 2;
+
+T = [10:2:60];
+R1L = 1./[15:5:40];
 for IT = 1:length(T)
-    for ITR = 1:length(TR)
-        [flips, Mxy, Mz] = optimal_SNR_angles(T(IT), TR(ITR), kPL, [R1P R1L], Tinj, pi/100*ones(floor(T(IT)/TR(ITR)),1));
-        S(IT, ITR) = sum(Mxy(2,:)) / sqrt(size(Mxy,2));
+    for IR1L = 1:length(R1L)
+        % using negligible pyruvate flip angles
+
+        % Tinj = 2 is like starting after injection
+        [flips, Mxy, Mz] = optimal_SNR_angles(T(IT), TR, kPL, [R1P R1L(IR1L)], 2, pi/100*ones(floor(T(IT)/TR),1));
+        S_noinj(IT, IR1L) = sum(Mxy(2,:)) / sqrt(size(Mxy,2));
+
+        % Tinj = 10 is like a typical, 10-15 s injection time
+        [flips, Mxy, Mz] = optimal_SNR_angles(T(IT), TR, kPL, [R1P R1L(IR1L)], 10, pi/100*ones(floor(T(IT)/TR),1));
+        S_inj(IT, IR1L) = sum(Mxy(2,:)) / sqrt(size(Mxy,2));
+
     end
 end
 
-mesh(TR, T, S)
+figure
+subplot(1,2,1)
+mesh(1./R1L, T, S_noinj)
+axis tight
+xlabel('T_{1.lactate}'), ylabel('Total time'), zlabel('Total SNR')
+title('Start after injection')
+view([-65 12])
+
+subplot(1,2,2)
+mesh(1./R1L, T, S_inj)
+axis tight
+xlabel('T_{1.lactate}'), ylabel('Total time'), zlabel('Total SNR')
+title('Start during injection')
+view([-65 12])
