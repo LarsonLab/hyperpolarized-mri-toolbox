@@ -2,7 +2,7 @@ function flips = mvfa_const_amp(N, TR, k12, R1, Minit);
 % flips = mvfa_const_amp(N, TR, k12, R1, Minit)
 %
 % Calculates series of flip angles for substrate and product that
-% are exchanging for a constant amplitude signal in 
+% are exchanging aiming for a constant amplitude signal in 
 % hyperpolarized MR, assuming negligible thermal magnetization and back-reaction.
 %
 % INPUTS:
@@ -36,7 +36,7 @@ end
 
 flips(1,:) = vfa_const_amp(N, pi/2, exp(-TR * (R1(1) + k12))); % substrate flip angle
 
-Sbounds = [0 Minit(2)];  % bound product signal
+Sbounds = [0 sum(Minit)];  % bound product signal
 
 mag(:,1) = Minit;
 A = [-R1(1)-k12 0;
@@ -60,3 +60,4 @@ while diff(Sbounds) > Minit(2)/1e12
 end
 
 flips(2,N) = pi/2;
+flips = real(flips);
