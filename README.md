@@ -6,14 +6,15 @@ Originally Written by: Adam B. Kerr and Peder E. Z. Larson
 (c) 2007-2015 Board of Trustees, Leland Stanford Junior University and
   The Regents of the University of California. 
 All Rights Reserved.
+
 ======================
 
 This package includes Matlab functions to design spectral-spatial RF pulses (also known as spatial-spectral RF pulses) for application to magnetic resonance spectroscopy and imaging.  See the "examples/" folder for sample code and pulse designs.
 
 Requirements:
--Signal Processing Toolbox (MathWorks)
--Optimization Toolbox (MathWorks)
--rf_tools package : This is available for download at http://rsl.stanford.edu/research/software.html
+- Signal Processing Toolbox (MathWorks)
+- Optimization Toolbox (MathWorks)
+- rf_tools package : This is included in the package, and also available for download at http://rsl.stanford.edu/research/software.html
 
 ======================
 
