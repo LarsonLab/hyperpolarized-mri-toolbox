@@ -361,9 +361,9 @@ function [rf,g,isodelay] = ss_flyback_phs(ang, z_thk, z_tb, z_d, f, a, d, fs, pt
 		    fprintf(1,'No SLR.. spectral correction...\n');
 		end;
 %		s_rfm = ss_spect_correct(s_b, bsf, Nper, Noff, (f-f_off)/(fs/2), ...
-%					 ptype, 'Flyback', SS_SLR_FLAG, dbg);
+%					 ptype, 'Flyback', SS_SLR_FLAG, SS_SPECT_CORRECT_REGULARIZATION, dbg);
 		s_rfm = ss_spect_correct(s_b, bsf, Nper, Noff, f, ...
-					 ptype, 'Flyback', SS_SLR_FLAG, dbg);
+					 ptype, 'Flyback', SS_SLR_FLAG, SS_SPECT_CORRECT_REGULARIZATION, dbg);
 	    else
 		s_rfm = ang * conj(s_b(:)) * ones(1,ng2); % Intentional conjugation
 							  % here -- needed because of 

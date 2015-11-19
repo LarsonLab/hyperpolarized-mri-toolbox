@@ -325,7 +325,7 @@ function [rf,g] = ss_ep(ang, z_thk, z_tb, z_d, f, a, d, fs, ptype, z_ftype, ...
         %	    s_b = [0; s_b];	% Can pad to keep from blowing up
 
             s_rfm = ss_spect_correct(s_b, bsf, Nper, Noff, (f-f_off)/(fs/2), ...
-                         ptype, 'EP', SS_SLR_FLAG, dbg);
+                         ptype, 'EP', SS_SLR_FLAG, SS_SPECT_CORRECT_REGULARIZATION, dbg);
             s_rfm = conj(s_rfm);
         else
             s_rfm = ang * conj(s_b(:)) * ones(1,ng2); % Intentional conjugation

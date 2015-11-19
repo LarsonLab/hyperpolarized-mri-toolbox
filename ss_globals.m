@@ -19,6 +19,7 @@
 %   'Verse Fraction' Fraction of ramps to use with VERSE                            0.8
 %   'Num Fs Test'    Spectral aliasing frequencys to test                           100
 %   'Spect Correct'  Spectral Correction with actual sampling                       0
+%   'Spect Correct Reg' Regularization factor for spectral correction inversion 	    0
 %   'SLR'            Shinnar-Le Roux Correction for large tip pulses                0
 %   'Min Order'      Find minimum order FIR filter                                  1
 %   'B1 Verse'       Apply B1-VERSE'ing for reduced peak power                      0
@@ -73,7 +74,7 @@ global SS_MAX_B1 SS_MAX_DURATION;
 % Design tolerances, parameters
 %
 global SS_NUM_LOBE_ITERS SS_EQUAL_LOBES SS_VERSE_FRAC SS_NUM_FS_TEST;
-global SS_SPECT_CORRECT_FLAG SS_SLR_FLAG;
+global SS_SPECT_CORRECT_FLAG SS_SPECT_CORRECT_REGULARIZATION SS_SLR_FLAG;
 global SS_VERSE_B1 SS_SLEW_PENALTY SS_MIN_ORDER;
 
 % Define globals if not already defined
@@ -107,6 +108,7 @@ if isempty(SS_INIT_DONE),
     SS_VERSE_FRAC = 0.8;
     SS_NUM_FS_TEST = 100;
     SS_SPECT_CORRECT_FLAG = 0;
+    SS_SPECT_CORRECT_REGULARIZATION = 0;
     SS_SLR_FLAG = 0;
     SS_MIN_ORDER = 1;
     SS_VERSE_B1 = 0;

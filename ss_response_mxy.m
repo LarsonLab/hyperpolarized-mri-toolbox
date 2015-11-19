@@ -1,7 +1,7 @@
-function mxy = ss_response_mxy(g,rf,z,f,ts,gamma, isodelay)
+function [mxy mz] = ss_response_mxy(g,rf,z,f,ts,gamma, isodelay)
 % SS_RESPONSE_MXY - Get Mxy response at given z, f position/frequency
 %
-% mxy = ss_response_mxy(g,rf,z,f,ts,gamma)
+% [mxy mz] = ss_response_mxy(g,rf,z,f,ts,gamma)
 %
 % Input
 %    g - gradient, G/cm
@@ -60,7 +60,7 @@ function mxy = ss_response_mxy(g,rf,z,f,ts,gamma, isodelay)
     %
     [a b] = abr(rf_rot, gz_rot+i*gf_rot, z, f);
     mxy = ab2ex(a, b);
-    
+    mz = ab2sat(a, b);
 
     
     

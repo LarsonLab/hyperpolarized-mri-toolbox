@@ -1,8 +1,8 @@
 function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
-				dbg)
+				reg_factor, dbg)
 % SS_SPECT_CORRECT - Correct spectral filter for irregular sampling
 %   
-% function rf = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, dbg)
+% function rf = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, reg_factor, dbg)
 %    
 % Inputs: 
 %   b - spectral filter design, normalized so that passband has value of 1
@@ -13,6 +13,8 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 %   ptype - type of pulse, 'ex', 'se', 'sat, 'inv'
 %   ss_type - 'Flyback' or 'EP'
 %   slr - SLR flag
+%   reg_factor - regularization factor to reduce peak amplitude increases
+%      from matrix inversion in EP designs
 %
 % Outputs: 
 %   rf - rf taps to give desired tip    
@@ -58,10 +60,14 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 % Error checking on inputs
     %
     if nargin < 7, 
-	error('Usage: ss_spect_correct(b, bsf, N, n, f, ptype, ss_type, dbg)');
+	error('Usage: ss_spect_correct(b, bsf, N, n, f, ptype, ss_type, reg_factor, dbg)');
     end;
     
     if nargin < 8, 
+	reg_factor = 0;
+    end;
+    
+    if nargin < 9, 
 	dbg = 0;
     end;
     
@@ -167,7 +173,8 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 	  type = 0;
 	  switch(type)
 	   case 0
-	    % Add regularization to this problem
+	    % Least-squares solution with pseudo-inversion
+	    % no regularization in this problem, typically not needed for Flyback designs
 	    %
 	    Wact_pinv = pinv(Wact);
 	    bm(:,idx) = Wact_pinv * Fref;
@@ -215,8 +222,15 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 	
 	  % Get least-squares fit to filter 
 	  %
-	  Wact_pinv = pinv(Wact);
-	  bm(:,idx) = Wact_pinv * Fref;
+	  %  Wact_pinv = pinv(Wact);
+	  % bm(:,idx) = Wact_pinv * Fref;
+
+      	  % Changed to regularized least-squares, works pretty well to keep peak B1 from
+      	  % getting too large
+	  bm(:,idx) = inv(Wact'*Wact + reg_factor*eye(size(Wact,2)))*Wact'*Fref;
+
+	  % not very successful with constrained least-squares for keeping peak from getting large
+      	  %   bm(:,idx) = lsqlin(Wact, Fref(:), [], [], [], [], zeros(size(b)), 2*max(abs(b))*ones(size(b)), b(:));
 	  
 	  % Can't do SLR yet
 	  %

@@ -242,15 +242,15 @@ function [h, status] = fir_linprog(n, f, a, d, h0, dbg)
     
     % Call minimization routine
     %
+    options = optimoptions(@linprog, 'Algorithm', 'dual-simplex', 'Display', 'off');
+    %optimset('LargeScale', 'off', 'Algorithm', 'active-set', 'Display','off')
+    
     if real_filter, 
 	[x,fval,exitflag,output] = ...
-            linprog(fmin, A_b, b, [],[],[],[],x0,...
-                    optimset('LargeScale', 'off', 'Algorithm', 'active-set', ...
-                             'Display','off'));
+            linprog(fmin, A_b, b, [],[],[],[],x0,options);
     else
 	[x,fval,exitflag,output] = ...
-            linprog(fmin, A_b, b, [],[],[],[],x0,...
-                    optimset('LargeScale','off', 'Algorithm', 'active-set', 'Display','off'));
+            linprog(fmin, A_b, b, [],[],[],[],x0,options);
     end;
 
     if dbg >= 3,

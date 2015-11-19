@@ -88,10 +88,11 @@ function [hn,status] = fir_minphase_power(n, f, a, d, use_max, dbg)
     end
 
     Rok = 0;
+    ncurrent = length(r);
     while ~Rok, 
 	% Get min power filter
 	%
-	[rn,status] = fir_pm_minpow(length(r), f, a_sqr, d_sqr, ztol, dbg);
+	[rn,status] = fir_pm_minpow(ncurrent, f, a_sqr, d_sqr, ztol, dbg);
 	
 	oversamp = 15;
 	m = 2 * oversamp * length(rn);
@@ -162,8 +163,7 @@ function [hn,status] = fir_minphase_power(n, f, a, d, use_max, dbg)
 			pause;
             end
 			fprintf(1,'\r          \r');
-			[r, stat] = fir_pm_minpow(length(r)+2, f, a_sqr, d_sqr, ztol, ...
-					   dbg);
+            ncurrent = ncurrent + 2;
 			Rok = 0;
 			break;
 		    end;
@@ -177,9 +177,8 @@ function [hn,status] = fir_minphase_power(n, f, a, d, use_max, dbg)
 	    end;
     elseif strcmp(status, 'Failed')
         fprintf(1,'\r          \r');
-			[r, stat] = fir_pm_minpow(length(r)+2, f, a_sqr, d_sqr, ztol, ...
-					   dbg);
-		Rok = 0;
+        ncurrent = ncurrent + 2;
+        Rok = 0;
 
     else
 	    if dbg, 

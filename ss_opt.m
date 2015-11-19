@@ -100,6 +100,9 @@ function options = ss_opt(new_options)
 	 case 'Spect Correct', 
 	  SS_SPECT_CORRECT_FLAG = optparm;
 	  
+	 case 'Spect Correct Reg',
+	  SS_SPECT_CORRECT_REGULARIZATION = optparm;
+
 	 case 'SLR', 
 	  SS_SLR_FLAG = optparm;
 	  
@@ -165,6 +168,10 @@ function options = ss_opt(new_options)
 
     options{idx, 1} = 'Spect Correct'; 
     options{idx, 2} = SS_SPECT_CORRECT_FLAG; 
+    idx = idx+1;
+
+    options{idx, 1} = 'Spect Correct Reg'; 
+    options{idx, 2} = SS_SPECT_CORRECT_REGULARIZATION; 
     idx = idx+1;
 
     options{idx, 1} = 'SLR'; 
