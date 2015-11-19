@@ -14,7 +14,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-% Reset SS package globals
+%% Reset SS package globals
 %
 ss_globals;
 fprintf(1, '************************************************************\n')
@@ -29,7 +29,7 @@ pause;
 
 clc;
 
-% Set up small-tip water/fat spectral/spatial
+%% Set up small-tip water/fat spectral/spatial
 %
 
 % Water/fat chemical shifts
@@ -98,7 +98,7 @@ set(gcf,'Name', 'Water/Fat Flyback Half');
 
 fprintf(1,'Hit any key to continue:\n');
 pause;
-
+%%
 clc
 fprintf(1, '************************************************************\n')
 fprintf(1, 'By default the spectral-spatial package uses the shortest possible\n');
@@ -118,7 +118,7 @@ set(gcf,'Name', 'Water/Fat Flyback Half');
 
 fprintf(1,'Hit any key to continue:\n');
 pause;
-
+%%
 clc
 fprintf(1, '************************************************************\n')
 fprintf(1, 'The pulse design will fail if the specifications are too aggressive\n');
@@ -138,7 +138,7 @@ set(gcf,'Name', 'Water/Fat Flyback Half - Increased ripple');
 
 fprintf(1,'Hit any key to continue:\n');
 pause;
-
+%%
 clc
 fprintf(1, '************************************************************\n')
 fprintf(1, 'Here''s an example of how we can verse the gradient lobes\n');
@@ -171,6 +171,7 @@ opt = ss_opt({'Max Duration', 16e-3, ...
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+%%
 clc;
 fprintf(1, '************************************************************\n')
 fprintf(1, 'In contrast, here''s a Flyback Half pulse with symmetric response\n');
@@ -189,6 +190,7 @@ set(gcf,'Name', 'Water/Fat Flyback Half - Fat Center');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+%%
 clc;
 fprintf(1, '************************************************************\n')
 fprintf(1, 'We can also emulate a conventional LP design as a comparison\n');
@@ -236,6 +238,7 @@ legend('Multiband', 'LP');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+%%
 clc;
 fprintf(1, '************************************************************\n')
 fprintf(1, 'What happens if we do not require a symmetric frequency\n');
@@ -254,6 +257,7 @@ set(gcf,'Name', 'Water/Fat Flyback Whole');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+%%
 clc;
 fprintf(1, '************************************************************\n');
 fprintf(1, 'What about if we design a pulse based on the EP trajectory?\n');
@@ -269,6 +273,7 @@ set(gcf,'Name', 'Water/Fat EP Whole');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+%%
 clc;
 fprintf(1, '************************************************************\n');
 fprintf(1, 'We can design the same pulse centered on the stopband\n');
@@ -288,6 +293,7 @@ pause;
 
 end;
 
+%%
 clc;
 fprintf(1, '************************************************************\n');
 fprintf(1, 'There is a more sophisticated solution....\n');
@@ -306,7 +312,7 @@ set(gcf,'Name', 'Water/Fat EP Whole - Spect Correct');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
-
+%%
 clc
 fprintf(1, '************************************************************\n');
 fprintf(1, 'Here''s a C13 spectral-spatial pulse, symmetric EP,\n');
