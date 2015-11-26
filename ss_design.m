@@ -227,7 +227,7 @@ function [g, rf, fs_best, z_plot, f_plot, m_plot] = ...
 	% Test aliasing of frequencies into operating BW
 	%
 	[f_a, a_a, d_a, fo] = ss_alias(f,a,d,f_off,fs_test(idx)*fs_scale,sym_flag);
-	if (isempty(f_a)), 
+    if (isempty(f_a)), 
 	    fs_ok(idx) = 0;
 	else
 	    fs_ok(idx) = 1;
