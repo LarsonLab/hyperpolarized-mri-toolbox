@@ -55,12 +55,12 @@ function [f_a, a_a, d_a, f_off] = ss_alias(f, a, d, f_off, fs, sym, fig, thresho
     if nargin < 6, 
         error('Usage: [f_a, a_a, d_a, f_off] = ss_alias(f, a, d, f_off, fs, sym)\n');
     elseif nargin == 6
-        threshold_edge = 0.15;
+        threshold_edge = 0.03;
         display_flag = 0;
     elseif nargin == 7
         if ishandle(fig)
             display_flag = 1;
-            threshold_edge = 0.15;
+            threshold_edge = 0.03;
         else
             display_flag = 0;
             threshold_edge = fig;
@@ -170,7 +170,9 @@ function [f_a, a_a, d_a, f_off] = ss_alias(f, a, d, f_off, fs, sym, fig, thresho
                 
                 % find the optimal f_off
                 idx_1 = find( split_flag < 0.5 );
-                f_off_test = f_off_test(idx_1); edge_distance = edge_distance(idx_1); nband = nband(idx_1);
+                %f_off_test = f_off_test(idx_1); 
+                %edge_distance = edge_distance(idx_1); 
+                %nband = nband(idx_1);
                 idx_2 = find( nband == max(nband) );               
                 [value_3,idx_3] = max(edge_distance(idx_2));       
                 if value_3 > threshold_edge
