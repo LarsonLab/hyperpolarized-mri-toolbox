@@ -21,10 +21,16 @@ ss_globals;
 
 
 %%
+clc
 fprintf(1, '\nHere''s a multiband spin-echo pulse for MR spectroscopy at 1.5T\n');
-fprintf(1, 'to not refocus fat, fully-refocus choline, and partially refocus water\n');
+fprintf(1, 'It includes fat suppression and partial water suppression\n');
+fprintf(1, 'The specification includes: \n');
+fprintf(1, '\t-no refocusing of fat (0-degree flip at ~ -220 Hz)\n');
+fprintf(1, '\t-full refocusing of choline and citrate (180-degree flip from -75 to -140 Hz)\n');
+fprintf(1, '\t-partial refocusing of water (~37-degree flip at 0 Hz)\n');
 fprintf(1, '(similar to Schricker et al, Magn Reson Med 46: 1079-1087 (2001), DOI: 10.1002/mrm.1302 )\n');
-
+fprintf(1,'Hit any key to continue:\n');
+pause
 
 % Water/fat chemical shifts (ppm)
 %
@@ -70,11 +76,10 @@ dbg = 0;				% dbg level: 0 -none, 1 - little, 2 -lots, ...
 ss_opt([]);
 opt = ss_opt({'Max Duration', 30e-3, ...  % ms
 	      'Num Lobe Iters', 5, ...
-	      'Max B1', 0.15, ...
 	      'Spect Correct', 0, ...
 	      'SLR', 1, ...
 	      'Verse Fraction', 0.8, ...
-	      'Max Grad', 4, ...
+	      'Max Grad', 4, ...  % these gradient specifications could be updated for modern systems
 	      'Max Slew', 15, ...
           'Min Order', 1})
 

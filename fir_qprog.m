@@ -242,7 +242,7 @@ function [h, status] = fir_qprog(n, f, a, d, dbg)
     else
 	[x,fval,exitflag,output] = ...
             quadprog(H, fmin, A_b, b, [],[],[],[],x0,...
-                    optimset('LargeScale','off', 'Algorithm', 'active-set', 'Display','off'));
+                    optimset('LargeScale','off', 'Algorithm', 'interior-point-convex', 'Display','off'));
     end;
 
     if dbg >= 2,

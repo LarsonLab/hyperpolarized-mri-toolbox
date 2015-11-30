@@ -21,7 +21,15 @@ ss_globals;
 
 
 %%
-fprintf(1, '\nHere''s a C13 multiband slab (6cm) excitation pulse, for pyr+urea dynamic imaging\n');
+clc
+
+fprintf(1, '\nHere is a demo of the multiband phase specification capability of the toolbox\n');
+fprintf(1, '\nCurrently not working, check back later!\n');
+return
+fprintf(1, 'This example is a C13 multiband excitation pulse example, for [1-13C]pyr+13C-urea\n');
+fprintf(1, 'dynamic MR spectroscopic or chemical shift imaging on a 3T clinical system\n');
+fprintf(1, 'Pyruvate-hydrate and alanine are specified to have a 90-degree phase shift\n');
+fprintf(1, '(Be patient since this filter design is much slower)\n\n');
 
 % setup flip angles and bandwidths, and ripple
 df = 0.5e-6 * 30000 * 1070;% 0.5 ppm = gamma_C13 * 30000 * 0.5e-6
@@ -56,7 +64,7 @@ for n = 1:length(mets)
     d_phs(n) = mets(n).dphs;
     fspec(2*n-1) = mets(n).f - mets(n).df;
     fspec(2*n) = mets(n).f + mets(n).df;
-    disp([mets(n).name ' metab fraction remaining after Npe = ' int2str(Npe) ' encodes: ' num2str(cos(a_angs(n))^Npe)])
+%    disp([mets(n).name ' metab fraction remaining after Npe = ' int2str(Npe) ' encodes: ' num2str(cos(a_angs(n))^Npe)])
 end
 disp('');
 
@@ -78,22 +86,22 @@ s_ftype = 'lin';
 ss_opt([]);				% Reset all options
 opt = ss_opt({'Nucleus', 'Carbon', ...
 	      'Max Duration', 24e-3, ...
-	      'Num Lobe Iters', 15, ...
-	      'Max B1', 1.6, ...
+	      'Num Lobe Iters', 5, ...
 	      'Num Fs Test', 100, ...
 	      'Verse Fraction', 0.2, ...
-	      'SLR', 0, ...
-	      'B1 Verse', 0, ...
 	      'Min Order', 1,...
 	      'Spect Correct', 1});
 
 [g,rf,fs,z,f,mxy,isodelay] = ...
     ss_design_phs(z_thk, z_tb, [z_d1 z_d2], fspec, a_angs, d, a_phs, d_phs, ptype, ...
 	      z_ftype, s_ftype, ss_type, fctr, 0);
+set(gcf,'Name', '[1-13C]pyr+13C-urea Multiband - defined phase');
 
 g_opt = g;
 rf_opt = rf;
 
+return
+%% Extra plots and pulse saving
 % Now compare spectral profiles at z = 0
 ftest = [min([fspec -fs/2]):max([fs/2 fspec])];
 mxy_new = ss_response_mxy(g_opt, rf_opt, 0, ftest, SS_TS, SS_GAMMA);

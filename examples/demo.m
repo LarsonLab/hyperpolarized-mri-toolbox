@@ -70,21 +70,23 @@ ss_type = 'Flyback Half'; 	        % Flyback, symmetric frequency
 dbg = 0;				% dbg level
                                         % 0 -none, 1 - little, 2 -lots, ...
 
-opt = ss_opt({'Max Duration', 16e-3, ...
+default_opt = {'Max Duration', 16e-3, ...
 	      'Num Lobe Iters', 5, ...
-              'Min Order', 1, ...
+          'Min Order', 1, ...
 	      'Max B1', 0.2, ...
 	      'Spect Correct', 0, ...
 	      'SLR', 0, ...
 	      'Verse Fraction', 0.9, ...
-	      'B1 Verse', 0});
+	      'B1 Verse', 0};
 
+opt = ss_opt(default_opt);
+      
 if 1  % set to 0 to skip to ss-spect-correct demo
     
 fprintf(1, '************************************************************\n')
 fprintf(1, 'Here''s an example of a water/fat spectral spatial pulse for 1.5T\n\n');
 fprintf(1, 'The pulse is a ''Flyback Half'' type, meaning that it\n');
-fprintf(1, 'uses a flyback trajectory, and has a symmetric frequency\n');
+fprintf(1, 'uses a flyback trajectory, and has a asymmetric frequency\n');
 fprintf(1, 'response.\n');
 fprintf(1, 'The frequency spec includes a passband at [%3f,%3f]\n',fspec(3),fspec(4));
 fprintf(1, 'and stopbands at [%3f,%3f]\n',fspec(1),fspec(2));
@@ -98,6 +100,26 @@ set(gcf,'Name', 'Water/Fat Flyback Half');
 
 fprintf(1,'Hit any key to continue:\n');
 pause;
+%%
+clc;
+fprintf(1, '************************************************************\n')
+fprintf(1, 'In contrast, here''s a Flyback Half pulse with symmetric response\n');
+fprintf(1, 'but with the response specified to be centered on water.\n');
+fprintf(1, 'Note that the pulse has a much different response from the\n');
+fprintf(1, 'previous design in which the center frequency was not specified.\n');
+fprintf(1, '************************************************************\n')
+fprintf(1, '\n');
+
+f_ctr = water_ctr;
+[g_water,rf_water,fs,z,f,mxy] = ...
+    ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
+	      z_ftype, s_ftype, ss_type, f_ctr, dbg);
+set(gcf,'Name', 'Water/Fat Flyback Half - Fat Center');
+
+fprintf(1,'Hit any key to continue:\n');
+pause;
+
+f_ctr = [];
 %%
 clc
 fprintf(1, '************************************************************\n')
@@ -146,55 +168,23 @@ fprintf(1, 'to reduce the peak B1\n');
 fprintf(1, '************************************************************\n')
 fprintf(1, '\n');
 
-
-opt = ss_opt({'Max Duration', 16e-3, ...
-	      'Num Lobe Iters', 5, ...
-	      'Max B1', 0.03, ...
-	      'Spect Correct', 0, ...
-	      'SLR', 0, ...
-	      'Verse Fraction', 0.9, ...
-	      'B1 Verse', 1});
+opt = ss_opt(default_opt);
+opt = ss_opt({'B1 Verse', 1, ...
+	      'Max B1', 0.02});
 
 [g,rf,fs,z,f,mxy] = ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
 			    z_ftype, s_ftype, ss_type, f_ctr, dbg);
 
 set(gcf,'Name', 'Water/Fat Flyback Half - B1 Min');
 
-opt = ss_opt({'Max Duration', 16e-3, ...
-	      'Num Lobe Iters', 5, ...
-	      'Max B1', 0.2, ...
-	      'Spect Correct', 0, ...
-	      'SLR', 0, ...
-	      'Verse Fraction', 0.9, ...
-	      'B1 Verse', 0});
-
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
 %%
 clc;
 fprintf(1, '************************************************************\n')
-fprintf(1, 'In contrast, here''s a Flyback Half pulse with symmetric response\n');
-fprintf(1, 'but with the response specified to be centered on water.\n');
-fprintf(1, 'Note that the pulse has a much different response from the\n');
-fprintf(1, 'previous design in which the center was not specified.\n');
-fprintf(1, '************************************************************\n')
-fprintf(1, '\n');
-
-f_ctr = water_ctr;
-[g_water,rf_water,fs,z,f,mxy] = ...
-    ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
-	      z_ftype, s_ftype, ss_type, f_ctr, dbg);
-set(gcf,'Name', 'Water/Fat Flyback Half - Fat Center');
-
-fprintf(1,'Hit any key to continue:\n');
-pause;
-
-%%
-clc;
-fprintf(1, '************************************************************\n')
-fprintf(1, 'We can also emulate a conventional LP design as a comparison\n');
-fprintf(1, 'to our multiband specification\n');
+fprintf(1, 'We can also emulate a conventional low-pass spectral filter design\n');
+fprintf(1, 'as a comparison to our multiband specification\n');
 fprintf(1, 'Note that the transition region on the multiband is narrower\n');
 
 f_ctr = water_ctr;
@@ -245,7 +235,7 @@ fprintf(1, 'What happens if we do not require a symmetric frequency\n');
 fprintf(1, 'response?  Good question.  We get a shorter pulse still!!\n');
 fprintf(1, '************************************************************\n')
 
-ss_opt({'Max Duration', 16e-3});
+ss_opt(default_opt);
 ss_type = 'Flyback Whole';
 f_ctr = [];
 
@@ -261,7 +251,8 @@ pause;
 clc;
 fprintf(1, '************************************************************\n');
 fprintf(1, 'What about if we design a pulse based on the EP trajectory?\n');
-fprintf(1, 'Shorter still... but there is some more ripple in the stopband\n');
+fprintf(1, 'Shorter still...there is some more ripple in the stopband\n');
+fprintf(1, 'There is some more ripple in the stopband, but it still meets the spec\n');
 fprintf(1, '************************************************************\n');
 
 ss_type = 'EP Whole';
@@ -312,62 +303,3 @@ set(gcf,'Name', 'Water/Fat EP Whole - Spect Correct');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
-%%
-clc
-fprintf(1, '************************************************************\n');
-fprintf(1, 'Here''s a C13 spectral-spatial pulse, symmetric EP,\n');
-fprintf(1, 'for lactate excitation only\n');
-fprintf(1, '(not exciting pyruvate or alanine)\n');
-fprintf(1, '************************************************************\n');
-
-% Reset SS package globals
-%
-ss_opt([]);
-ss_globals;
-
-lac = 165;
-pyr_hyd = 40;
-ala = -45;
-pyr = -230;
-
-df_stop = 50/2;
-df_pass = 50/2;
-
-fspec = [(pyr-df_stop) (pyr+df_stop) (ala-df_stop) (ala+df_stop)...
-	 (pyr_hyd-df_stop) (pyr_hyd+12) (lac-12) (lac+df_pass)];
-fspec = [(pyr-df_stop) (pyr+df_stop) (ala-df_stop) (ala+df_stop)...
-	 (lac-df_pass) (lac+df_pass)];
-
-fspec = fspec - lac;
-a = [0 0 1];
-d = [5e-4 5e-4 1e-2];
-fctr = (pyr + ala)/2 - lac;
-fctr = [];
-
-ang = asin(0.1);
-z_thk = 9.4;
-z_tb = 8;
-
-ptype = 'ex';
-z_ftype='ls';
-z_d1 = 0.005;
-z_d2 = 0.01;
-
-s_ftype = 'min';
-ss_type = 'EP Whole';
-
-opt = ss_opt({'Nucleus', 'Carbon', ...
-	      'Max Duration', 16e-3, ...
-	      'Num Lobe Iters', 5, ...
-	      'Max B1', 0.45, ...
-	      'Num Fs Test', 100, ...
-	      'Verse Fraction', 0, ...
-	      'SLR', 0, ...
-	      'B1 Verse', 0, ...
-	      'Spect Correct', 1});
-
-[g,rf,fs,z,f,mxy] = ...
-    ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
-	      z_ftype, s_ftype, ss_type, fctr, 0);
-
-set(gcf,'Name', '13C-Lactate only Excitation');
