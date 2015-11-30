@@ -37,13 +37,13 @@ df = 0.5e-6 * 30000 * 1070;% 0.5 ppm = gamma_C13 * 30000 * 0.5e-6
 phs_spec = 1 * pi / 180;
 
 mets(5).name = 'lac'; mets(5).f = 165; mets(5).df = 1.5*df; mets(5).ang = 12;mets(5).d = .005;
-mets(5).phs = 0;mets(5).dphs=phs_spec;
+mets(5).phs = pi/2;mets(5).dphs=phs_spec;
 
 mets(4).name = 'pyrh'; mets(4).f = 40; mets(4).df = 1*df; mets(4).ang = 2.5; mets(4).d = .015;
-mets(4).phs = pi/2;mets(4).dphs=phs_spec;
+mets(4).phs = 0;mets(4).dphs=phs_spec;
 
 mets(3).name = 'ala'; mets(3).f = -45; mets(3).df = 1.5*df; mets(3).ang = 12; mets(3).d = .005;
-mets(3).phs = pi/2;mets(3).dphs=phs_spec;
+mets(3).phs = 0;mets(3).dphs=phs_spec;
 
 mets(2).name = 'pyr'; mets(2).f = -230; mets(2).df = 2*df; mets(2).ang = 6; mets(2).d = .002;
 mets(2).phs = 0;mets(2).dphs=phs_spec;
