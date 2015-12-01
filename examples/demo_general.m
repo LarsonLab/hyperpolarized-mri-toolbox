@@ -83,7 +83,7 @@ opt = ss_opt(default_opt);
 fprintf(1, '\n************************************************************\n')
 fprintf(1, 'Here''s an example of a water/fat spectral spatial pulse for 1.5T\n\n');
 fprintf(1, 'The pulse is a ''Flyback Half'' type, meaning that it\n');
-fprintf(1, 'uses a flyback trajectory, and has a asymmetric frequency\n');
+fprintf(1, 'uses a flyback trajectory, and has a symmetric frequency\n');
 fprintf(1, 'response.\n');
 fprintf(1, 'The frequency spec includes a passband at [%3f,%3f]\n',fspec(3),fspec(4));
 fprintf(1, 'and stopbands at [%3f,%3f]\n',fspec(1),fspec(2));
@@ -226,7 +226,8 @@ set(gcf,'Name', 'Water/Fat Flyback Half - B1 Min');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
-opt = ss_opt({'B1 Verse', 0});
+opt = ss_opt({'B1 Verse', 0, ...
+	      'Max B1', 0.2});
 
 %%
 
@@ -252,17 +253,17 @@ fprintf(1, '\n************************************************************\n');
 fprintf(1, 'The package also allows for echo-planar (''EP'') trajectory designs\n');
 fprintf(1, 'which can reduce the pulse duration and allow for thinner slices\n');
 fprintf(1, 'but are more sensitive to eddy currents and timing errors.\n');
-fprintf(1, 'Here is an example of the original design using a EP trajectory\n');
-fprintf(1, 'There is some more ripple in the stopband, but it still meets the spec\n');
+fprintf(1, 'Here is an example of a fat-water EP trajectory design\n');
+fprintf(1, 'The slice is thinner with less stopband ripple, which the EP trajectory can achieve.\n');
+fprintf(1, 'However, with this initial design the ripple specification is not met in the stopband...\n');
 fprintf(1, '************************************************************\n');
 
 ss_opt(default_opt);
-%opt = ss_opt({'Max B1', 0.4});
 ss_type = 'EP Whole';
 f_ctr = [];
-z_thk = .5;
 
-%d = [0.01 0.005];
+z_thk = .5;
+d = [0.005 0.005];
 
 [g_ew,rf_ew,fs,z,f,mxy] = ...
     ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
@@ -298,17 +299,19 @@ pause;
 fprintf(1, '\n************************************************************\n');
 fprintf(1, 'There is a more sophisticated solution....\n');
 fprintf(1, 'The ripple arises from the nonuniform sampling in time\n');
-fprintf(1, 'that occurs for EP trajectories\n');
+fprintf(1, 'that occurs for EP trajectories.\n');
+fprintf(1, 'This can be corrected for by using the ''Spect Correct'' option.\n');
 fprintf(1, '************************************************************\n');
 
 ss_type = 'EP Whole';
 f_ctr = [];
-ss_opt({'Spect Correct', 1});
+ss_opt({'Spect Correct', 1, ...
+    'Spect Correct Reg', 0.001});  % small amount of regularization added to better condition spectral correction inversion
+
 [g_fw,rf_fw,fs,z,f,mxy] = ...
     ss_design(z_thk, z_tb, [z_d1 z_d2], fspec, a*ang, d, ptype, ...
 	      z_ftype, s_ftype, ss_type, f_ctr, dbg);
 set(gcf,'Name', 'Water/Fat EP Whole - Spect Correct');
 
-fprintf(1,'Hit any key to continue:\n');
-pause;
+
 

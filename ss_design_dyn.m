@@ -543,6 +543,7 @@ if (no_plot==0)
     for t = [1, round(Nt/2) Nt]
         [f_plot,z_plot,m_plot] = ss_plot(g(:,t),rf(:,t),SS_TS, ptype,z_thk*2,bw,...
             SS_GAMMA, fmid);
+        set(gcf, 'Name', ['Pulse #' int2str(t)])
     end
 end
 
