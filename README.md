@@ -7,14 +7,14 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 ## Additional Resources
 
 This includes, as a subtree, the
-[Spectral-Spatial-RF-Pulse-Design toolbox](../Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.
+[Spectral-Spatial-RF-Pulse-Design toolbox](https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.
 <!-- 
 git subtree add --prefix RF_pulses/spectral_spatial https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design.git master --squash
 git subtree pull --prefix RF_pulses/spectral_spatial https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design.git master --squash
 
  -->
 
-For enhanced data visualization tools, including optimized implementations of some data processing and reconstruction algorithms, see the Spectrscopic Imaging VIsualization and Computing (SIVIC) framework (https://sourceforge.net/projects/sivic/), which is also hosted on [github](../../SIVICLab/sivic)
+For enhanced data visualization tools, including optimized implementations of some data processing and reconstruction algorithms, see the Spectrscopic Imaging VIsualization and Computing (SIVIC) framework (https://sourceforge.net/projects/sivic/), which is also hosted on [github](https://github.com/SIVICLab/sivic)
 
 ## Support
 
