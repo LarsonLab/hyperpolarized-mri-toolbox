@@ -1,16 +1,23 @@
 %
-% cplot(x) - plot complex function;
+% cplot([x,] y) - plot complex function; optional specification of x-axis
 %
 
 %  written by John Pauly, 1989
+%  modified by Peder Larson, 2006
 %  (c) Board of Trustees, Leland Stanford Junior University
 
-function  cplot(x)
+function  cplot(x,y,s)
 
-l = length(x);
-t = [1:l]/(l+1);
-plot(t,real(x),t,imag(x));
-
-
+if nargin == 1
+  y = x;
+  l = length(x);
+  x = [1:l]/(l+1);
+end
+  
+if nargin < 3
+    plot(x,real(y),x,imag(y));
+elseif nargin == 3
+    plot(x,real(y),s,x,imag(y),s);
+end
 
 
