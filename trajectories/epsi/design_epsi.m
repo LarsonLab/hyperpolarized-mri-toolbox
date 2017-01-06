@@ -8,9 +8,9 @@ function [g, ktraj_g, gparams, opts] = design_epsi(epsi_type, ramp_sampling, spa
 %	ramp_sampling - 1=on, 0=off (partial ramp sampling also supported by
 %       values between 0-1)
 %   spatial_res - Spatial resolution (cm)
-%   spatial_fov - Spatial FOV (cm)
+%   spatial_fov - Spatial FOV (cm), maybe increased by design
 %   spec_res - Spectral resolution (Hz), assumes half-echo (half-Fourier) time sampling
-%   spec_bw - Spectral bandwidth (Hz)
+%   spec_bw - Spectral bandwidth (Hz).  maybe increased design
 %	opts (optional) - structure defining options for the EPSI design.  This includes:
 %       'max_slew' (default = 20 G/cm/ms), 'max_g' (default = 5 G/cm/ms),
 %       'samp_rate' - waveform sampling rate (default = 4e-6 s),
@@ -29,11 +29,16 @@ function [g, ktraj_g, gparams, opts] = design_epsi(epsi_type, ramp_sampling, spa
 %       'spatial_res' - actual spatial resolution (cm)
 %       'spec_res' - actual spectral resolution (Hz)
 %       'spec_bw' - actual spectral bandwidth (Hz)
+%       'epsi_type' - 'flyback', 'symmetric'
+%       'ramp_sampling' - fraction of the ramps used for recon
+%       'samp_rate' - waveform sampling rate
+%       'GAMMA' - gyromagnetic ratio
+
 
 %
 % Author: Peder E. Z. Larson
 %
-% (c)2014 The Regents of the University of California.
+% (c)2014-2017 The Regents of the University of California.
 % All Rights Reserved.
 
 % Note that 'symmetric' is Nyquist-sampled symmetric, meaning nowhere in k-space is
@@ -62,12 +67,14 @@ end
 % feasible
 switch epsi_type
     case 'symmetric'
-        [g_readlobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read] = ...
+        [g_readlobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read, n_plateau_out, n_ramp_out] = ...
             dzg_read(floor(1/(2*spec_bw)/opts.samp_rate)*opts.samp_rate, 1/spatial_res, ramp_sampling);
         g_dephase = dzg_short(sum(g_readlobe)/2 * opts.samp_rate * opts.GAMMA);
         Nlobes = ceil(1/(2*spec_res * 2*length(g_readlobe)* opts.samp_rate));
         g = [-g_dephase, kron(ones(1,Nlobes),[g_readlobe -g_readlobe])];
         
+        gparams.pw_read_plateau = n_plateau_out*opts.samp_rate;
+        gparams.pw_read_ramp = n_ramp_out*opts.samp_rate;
         gparams.Nlobes = 2*Nlobes;
         gparams.spec_res = 1/(2*Nlobes*2*length(g_readlobe)* opts.samp_rate);
         gparams.spec_bw = 1 / (2*length(g_readlobe)*opts.samp_rate);
@@ -79,13 +86,17 @@ switch epsi_type
         %       dzg_read(1/spec_bw - length(g_fblobe)*opts.samp_rate, 1/spatial_res, ramp_sampling);
         
         % prioritizes spatial_res
-        [g_readlobe, g_fblobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read] = ...
+        [g_readlobe, g_fblobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read, n_plateau1_out, n_plateau2_out, n_ramp1_out, n_ramp2_out] = ...
             dzg_flyback(floor(1/spec_bw/opts.samp_rate)*opts.samp_rate, 1/spatial_res, ramp_sampling,opts, spatial_fov);
         
         g_dephase = dzg_short(sum(g_readlobe)/2 * opts.samp_rate * opts.GAMMA);
         Nlobes = ceil(1/(2*spec_res * (length(g_readlobe)+length(g_fblobe))* opts.samp_rate));
         g = [-g_dephase, kron(ones(1,Nlobes),[g_readlobe -g_fblobe])];
         
+        gparams.pw_read_plateau = n_plateau1_out*opts.samp_rate;
+        gparams.pw_read_ramp = n_ramp1_out*opts.samp_rate;
+        gparams.pw_fb_plateau = n_plateau2_out*opts.samp_rate;
+        gparams.pw_fb_ramp = n_ramp2_out*opts.samp_rate;
         gparams.Nlobes = Nlobes;
         gparams.spec_res = 1/(2*Nlobes*(length(g_readlobe)+length(g_fblobe))* opts.samp_rate);
         gparams.spec_bw = 1 / ((length(g_readlobe)+length(g_fblobe))*opts.samp_rate);
@@ -93,9 +104,15 @@ switch epsi_type
         
 end
 
+
 gparams.sampling_delay = (length(g_dephase) + n_samp_delay) * opts.samp_rate;
 gparams.spatial_fov = 1/ (opts.GAMMA * max(g_readlobe) * gparams.data_samp_rate);
 gparams.spatial_res = spatial_res;
+gparams.epsi_type = epsi_type;
+gparams.ramp_sampling = ramp_sampling;
+gparams.samp_rate = opts.samp_rate;
+gparams.GAMMA = opts.GAMMA;
+% Add SNR efficiency estimate?
 
 ktraj_g = opts.GAMMA*opts.samp_rate*cumsum(g);
 
@@ -104,7 +121,7 @@ ktraj_g = opts.GAMMA*opts.samp_rate*cumsum(g);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % nested functions:
 
-    function [g, n_samp_delay, data_samp_rate, n_skip, n_read] = dzg_read(T, Ak, framp)
+    function [g, n_samp_delay, data_samp_rate, n_skip, n_read, n_plateau, n_ramp] = dzg_read(T, Ak, framp)
         % T - gradient duration (s)
         % Ak - total gradient area for data sampling (1/cm)
         % framp - fraction of ramp samples to use, [0,1]
@@ -137,22 +154,48 @@ ktraj_g = opts.GAMMA*opts.samp_rate*cumsum(g);
         end
         
         n_samp_delay = floor(n_ramp * (1-framp));
-
+        
         % in units of data_samp_rate
         n_read = (n_plateau+2*(n_ramp-n_samp_delay)) / data_samp_rate_factor;
         n_skip = 2*n_samp_delay / data_samp_rate_factor;
         
         g_max = A / ( (n_plateau+(n_ramp-n_samp_delay))*opts.samp_rate);
         
+        g = [ [0.5:n_ramp-.5]/n_ramp ones(1, n_plateau) [n_ramp-0.5:-1:0.5]/n_ramp ] * g_max;
+        
+        while max(abs(diff(g))/opts.samp_rate) > S
+            % error('Slew rate exceeded')
+            % if slew rate violated, increase ramp time, but keep total
+            % duration the same (not sure this will work in all conditions
+            % though)
+            if framp == 0
+                n_ramp = n_ramp + data_samp_rate_factor ;
+                n_plateau = floor( (T - 2*n_ramp*opts.samp_rate)/data_samp_rate ) * data_samp_rate_factor ;
+                
+            else
+                n_ramp = n_ramp+1;
+                n_plateau = floor( T/data_samp_rate)* data_samp_rate_factor  - 2*n_ramp ;
+                
+            end
+            n_samp_delay = floor(n_ramp * (1-framp));
+            
+            % in units of data_samp_rate
+            n_read = (n_plateau+2*(n_ramp-n_samp_delay)) / data_samp_rate_factor;
+            n_skip = 2*n_samp_delay / data_samp_rate_factor;
+            
+            g_max = A / ( (n_plateau+(n_ramp-n_samp_delay))*opts.samp_rate);
+            % need to recheck slew here, if g_max> g_ideal?
+            
+            
+            g = [ [0.5:n_ramp-.5]/n_ramp ones(1, n_plateau) [n_ramp-0.5:-1:0.5]/n_ramp ] * g_max;
+        end
+        
         if g_max > opts.max_g
             error('Cannot design EPSI for chosen spatial_res, spec_bw & ramp_sampling.  Try relaxing these contraints.')
         end
         
-        g = [ [0.5:n_ramp-.5]/n_ramp ones(1, n_plateau) [n_ramp-0.5:-1:0.5]/n_ramp ] * g_max;
         
-        if max(abs(diff(g))/opts.samp_rate) > S
-            error('Slew rate exceeded')
-        end
+        
     end
 
     function g = dzg_short(Ak)
@@ -179,7 +222,7 @@ ktraj_g = opts.GAMMA*opts.samp_rate*cumsum(g);
     end
 end
 
-function [gread, gfb, n_samp_delay, data_samp_rate, n_skip, n_read] = dzg_flyback(T, Ak, framp,opts,spatial_fov)
+function [gread, gfb, n_samp_delay, data_samp_rate, n_skip, n_read, n_plateau1, n_plateau2, n_ramp1, n_ramp2] = dzg_flyback(T, Ak, framp,opts,spatial_fov)
 % T - total gradient duration (s)
 % Ak - total gradient area for data sampling (1/cm)
 % framp - fraction of ramp samples to use, [0,1]
@@ -195,7 +238,7 @@ solns = solve(A == (D1 + framp*d1)*S*d1, T == D1 + 2*(d1+d2), S*d1*(D1+d1) == S*
 if isempty(solns)
     error('Cannot design EPSI for chosen spatial_res, spec_bw & ramp_sampling.  Try relaxing these contraints.')
 end
-SD1 = eval(solns.D1); SD2 = zeros(size(SD1)); Sd1 = eval(solns.d1); Sd2 = eval(solns.d2);
+SD1 = eval(solns.D1); SD2 = zeros(size(SD1)); Sd1 = eval(solns.d1); Sd2 = eval(solns.d2);  % This may require Simulink toolbox, use 'float' instead?
 
 n_ramp1 = ceil(Sd1 / opts.samp_rate);
 n_ramp2 = ceil(Sd2 / opts.samp_rate);
