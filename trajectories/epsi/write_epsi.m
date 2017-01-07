@@ -65,14 +65,14 @@ if fid == -1,
 end;
 
 fprintf(fid, 'EPSI waveform %s, flyback = %d\n', filename, strcmp(gparams.epsi_type,'flyback'));
-fprintf(fid, '%d #pw(us)\n', length(g)*gparams.samp_rate*1e6);
+fprintf(fid, '%d #pw(us)\n', round(length(g)*gparams.samp_rate*1e6));
 fprintf(fid, '%d #res\n', length(g));
 fprintf(fid, '%f #spectral_width(Hz)\n', gparams.spec_bw);
 fprintf(fid, '%d #filter_bandwidth(Hz)\n', round(1/gparams.data_samp_rate));
 
 fprintf(fid, '%6d #filter_points\n', ceil(gparams.Nlobes * (gparams.n_read + gparams.n_skip) /2)*2); %must be even
 
-fprintf(fid, '%f #nom_gradient(G/cm)\n', -max(abs(g)));
+fprintf(fid, '%f #nom_gradient(G/cm)\n', max(abs(g)));
 
 fprintf(fid, '%f #nom_res(mm)\n', gparams.spatial_res*10);
 fprintf(fid, '%d #sampling_delay(us)\n', gparams.sampling_delay*1e6);
@@ -103,7 +103,7 @@ switch (format)
     case 'GE'
         
         % write out gradient file
-        signa(g,[filename '.wav'],1);
+        signa(g,[filename '.wav']);
         
     case 'Varian'
         
