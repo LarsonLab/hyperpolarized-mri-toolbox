@@ -17,20 +17,12 @@ function write_epsi(g, gparams, filename, format)
 %       'spatial_res' - actual spatial resolution (cm)
 %       'spec_res' - actual spectral resolution (Hz)
 %       'spec_bw' - actual spectral bandwidth (Hz)
-%
-%
-%	epsi_type - 'flyback' (default), 'symmetric'
-%	ramp_sampling - 1=on, 0=off (partial ramp sampling also supported by
-%       values between 0-1)
-%   spatial_res - Spatial resolution (cm)
-%   spatial_fov - Spatial FOV (cm), maybe increased by design
-%   spec_res - Spectral resolution (Hz), assumes half-echo (half-Fourier) time sampling
-%   spec_bw - Spectral bandwidth (Hz).  maybe increased design
-%	opts (optional) - structure defining options for the EPSI design.  This includes:
-%       'max_slew' (default = 20 G/cm/ms), 'max_g' (default = 5 G/cm/ms),
-%       'samp_rate' - waveform sampling rate (default = 4e-6 s),
-%       'GAMMA' (13C is default = 1071 Hz/G)
-% OUTPUTS
+%       'epsi_type' - 'flyback', 'symmetric'
+%       'ramp_sampling' - fraction of the ramps used for recon
+%       'samp_rate' - waveform sampling rate
+%       'GAMMA' - gyromagnetic ratio
+%   filename - for writing.  Leave blank to be prompted for name
+%   format (optional) - 'GE' (default), 'Varian'  
 
 %
 % Author: Peder E. Z. Larson
@@ -64,7 +56,7 @@ if fid == -1,
     return;
 end;
 
-fprintf(fid, 'EPSI waveform %s, flyback = %d\n', filename, strcmp(gparams.epsi_type,'flyback'));
+fprintf(fid, 'EPSI waveform\n');
 fprintf(fid, '%d #pw(us)\n', round(length(g)*gparams.samp_rate*1e6));
 fprintf(fid, '%d #res\n', length(g));
 fprintf(fid, '%f #spectral_width(Hz)\n', gparams.spec_bw);
@@ -83,16 +75,18 @@ fprintf(fid, '%d #offset_pts(ramp_points)\n', round(gparams.pw_read_ramp/gparams
 fprintf(fid, '%d #nspatial\n', floor(gparams.spatial_fov / gparams.spatial_res));
 fprintf(fid, '%d #nskip\n', gparams.n_skip);
 % change below to integers?
-fprintf(fid, '%f #dwell_time(us)\n', gparams.data_samp_rate*1e6);
-fprintf(fid, '%f #pw_read_ramp(us)\n', gparams.pw_read_ramp*1e6);
-fprintf(fid, '%f #pw_read_plateau(us)\n', gparams.pw_read_plateau*1e6);
+fprintf(fid, '%d #dwell_time(us)\n', round(gparams.data_samp_rate*1e6));
+fprintf(fid, '%d #pw_read_ramp(us)\n', round(gparams.pw_read_ramp*1e6));
+fprintf(fid, '%d #pw_read_plateau(us)\n', round(gparams.pw_read_plateau*1e6));
 if strcmp(gparams.epsi_type, 'flyback')
-    fprintf(fid, '%f #pw_fb_ramp(us)\n', gparams.pw_fb_ramp*1e6);
-    fprintf(fid, '%f #pw_fb_plateau(us)\n', gparams.pw_fb_plateau*1e6);
+    fprintf(fid, '%d #pw_fb_ramp(us)\n', round(gparams.pw_fb_ramp*1e6));
+    fprintf(fid, '%d #pw_fb_plateau(us)\n', round(gparams.pw_fb_plateau*1e6));
 else
-    fprintf(fid, '%f #pw_read_ramp(us)\n', gparams.pw_read_ramp*1e6); % for positive and negative lobe durations
-    fprintf(fid, '%f #pw_read_plateau(us)\n', gparams.pw_read_plateau*1e6);
+    fprintf(fid, '%d #pw_read_ramp(us)\n', round(gparams.pw_read_ramp*1e6)); % for positive and negative lobe durations
+    fprintf(fid, '%d #pw_read_plateau(us)\n', round(gparams.pw_read_plateau*1e6));
 end
+
+fprintf(fid, 'Description: %s, epsi_type = %s, ramp_sampling = %d, GAMMA = %f\n', filename, gparams.epsi_type, gparams.ramp_sampling, gparams.GAMMA);
 
 
 fclose(fid);
