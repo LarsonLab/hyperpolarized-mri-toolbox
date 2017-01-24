@@ -5,7 +5,12 @@ clear all
 % Test values
 Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
 R1 = [1/25 1/25]; KPL = 0.05; std_noise = 0.01;
-k12 = 0.05; Minit = [1; 0];
+k12 = 0.05; % for variable flip angle designs
+input_function = zeros(1,N); 
+Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
+%Mz0 = [0,0]; input_function(1:4) =  1; % boxcar input function
+%Mz0 = [1,0]; % no input function
+
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*30*pi/180;  % constant, single-band
@@ -30,7 +35,7 @@ legend('constant','multiband', 'vfa', 'T1-effective vfa', 'max lactate SNR vfa',
 %% Test fitting
 
 for Iflips = 1:size(flips,3)
-     [Mxy Mz] = simulate_2site_model(Tin, R1, [KPL 0], flips(:,:,Iflips), TR);
+     [Mxy Mz] = simulate_2site_model(Mz0, R1, [KPL 0], flips(:,:,Iflips), TR, input_function);
      % no noise
     [KPLfit(Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy, TR, flips(:,:,Iflips), R1);
     % add noise

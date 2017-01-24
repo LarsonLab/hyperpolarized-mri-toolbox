@@ -81,9 +81,9 @@ if length(Nx) > 1
     disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
 end
     % observed magnetization
-    y1 = reshape(S(i, 1, :), [1, Nt]);
-    y2 = reshape(S(i, 2, :), [1, Nt]);
-    if y1 ~= 0
+    y1 = reshape(S(i, 1, :), [1, Nt]); % pyr
+    y2 = reshape(S(i, 2, :), [1, Nt]); % lac
+    if any(y1 ~= 0)
         % % plot of observed data for debugging
         % figure(1)
         % plot(t, y1, t, y2)
@@ -91,7 +91,7 @@ end
         % ylabel('measured magnetization (au)')
         % legend('pyruvate', 'lactate')
         
-        % estimate state magnetization
+        % estimate state magnetization (MZ) based on scaling from RF pulses
         x1 = y1./Sscale(1, :);
         x2 = y2./Sscale(2, :);
         
