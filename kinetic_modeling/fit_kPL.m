@@ -74,7 +74,7 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 kPLfit = zeros([1,prod(Nx)]);  objective_val = kPLfit;
-Sfit = zeros([prod(Nx),Nt]);
+Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
 
 for i=1:size(S, 1)
 if length(Nx) > 1
@@ -106,16 +106,17 @@ end
                 
         end
         [kPLfit(i), objective_val(i)] = fminunc(obj, kPL_est, options);
-        Sfit(i,:) = trajectories(kPLfit(i), x1, Mzscale, R1P_fixed, R1L_fixed, TR) .* Sscale(2, :);
+        [Sfit(i,:), ufit(i,:)] = trajectories(kPLfit(i), x1, Mzscale, R1P_fixed, R1L_fixed, TR);
+        Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
-            plot(t, x1/10, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--')
+            plot(t, x1/10, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
             ylabel('estimated state magnetization (au)')
             title(num2str(kPLfit(i)))
-            legend('pyruvate', 'lactate', 'lactate fit')
+            legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.2)
         end
     end

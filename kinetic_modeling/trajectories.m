@@ -1,4 +1,4 @@
-function [x2,u] = trajectories( kPL, x1, Mzscale, R1P, R1L , TR )
+function [x2, u] = trajectories( kPL, x1, Mzscale, R1P, R1L , TR )
 % Compute product magnetization (e.g. lactate) using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
