@@ -102,7 +102,7 @@ end
                 obj = @(kPL) norm(x2 - trajectories(kPL, x1, Mzscale, R1P_fixed, R1L_fixed, TR));
                 
             case 'ml'
-                obj = @(kPL) negative_log_likelihood_rician(kPL, x1, x2, Mzscale, R1P_fixed, R1L_fixed, TR, noise_level./Sscale(2,:));
+                obj = @(kPL) negative_log_likelihood_rician(kPL, x1, x2, Mzscale, R1P_fixed, R1L_fixed, TR, noise_level.*(Sscale(2,:).^2));
                 
         end
         [kPLfit(i), objective_val(i)] = fminunc(obj, kPL_est, options);

@@ -42,7 +42,7 @@ for Iflips = 1:size(flips,3)
     Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy + randn(size(Mxy))*std_noise;
     [KPLfitn_complex(Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips),R1);
     % magnitude fitting with noise
-    [KPLfitn_mag(Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),R1,[],std_noise/10);
+    [KPLfitn_mag(Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),R1,[],std_noise);
  end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1(1), R1(2), KPL))
