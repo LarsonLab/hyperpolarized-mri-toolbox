@@ -1,4 +1,4 @@
-function [x2, u] = trajectories( kPL, x1, Mzscale, R1P, R1L , TR )
+function [x2, u] = trajectories_frompyr( params_fit, x1, Mzscale, params_fixed , TR )
 % Compute product magnetization (e.g. lactate) using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
@@ -8,7 +8,16 @@ N = length(x1);
 
 x2 = zeros(1, N); u = zeros(1,N);
 
-A = [-R1P 0; kPL -R1L];
+params_all = {'kPL', 'R1L', 'R1P'};
+nfit = 0;
+for n = 1:length(params_all)
+    if isfield(params_fixed, params_all(n))
+        eval([params_all{n} '= params_fixed.(params_all{n});']);
+    else
+        nfit = nfit+1;
+        eval([params_all{n} '= params_fit(nfit);']);
+    end
+end
 
 for t=1:N-1
     
