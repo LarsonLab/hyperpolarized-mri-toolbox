@@ -133,7 +133,7 @@ for i=1:size(S, 1)
             ylabel('estimated state magnetization (au)')
             title(num2str(params_fit_vec(i,:)))
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
-            drawnow, pause(0.2)
+            drawnow, pause(0.5)
         end
     end
 end
