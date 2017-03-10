@@ -1,50 +1,65 @@
-function [kPLfit, Sfit, objective_val] = fit_kPL(S, TR, flips, R1_fixed, kPL_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
-% need to fit input function. This uses the following assumptions:
+% need to make any assumptions about the input function.
+% This uses the following assumptions:
 %   - uni-directional conversion from substrate to metabolic products (i.e.
 %   pyruvate to lactate)
 %   - initial lactate magnetization is zero (need to add)
-%   - Fixed T1 relaxation rates for  metabolites
+% It also allows for fixing of parameters. Based on simulations, our
+% current recommendation is to fix pyruvate T1, as it doesn't impact kPL substantially.
 %
-% [kPL_hat, objective_val] = fit_kPL(S, TR, flips, R1_fixed, kPL_est, noise_level, plot_flag)
+% [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
+% All params_* values are structures, with possible fields of 'kPL', 'R1L',
+% and 'R1P', and units of 1/s.
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
 %   TR - repetition time per time point flips - all flip angles [# of
 %   metabolites, # of time points x # of phase encodes]
-%	R1_fixed (optional) - fixed relaxation rates (1/s) 
-%   kPL_est (optional) - pyruvate to metabolites conversion rate initial guess (1/s)
-%   noise_level (optional) - estimate standard deviation of noise at each time point to use
-%   maximum likelihood fit of magnitude data (with Rician noise
-%   distribution)
+%	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
+%       this structure will be fit
+%   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
+%   noise_level (optional) - estimate standard deviation of noise in data
+%       to use maximum likelihood fit of magnitude data (with Rician noise
+%       distribution)
 %   plot_flag (optional) - plot fits
 % OUTPUTS
-%   KPLfit - fit conversion rate (1/s)
-%   Sfit - fit conversion rate (1/s)
+%   params_fit - structure of fit parameters (1/s)
+%   Sfit - fit curve for lactate (1/s)
+%   ufit - derived input function (unitless)
 %   objective_val - measure of fit error
+%
+% EXAMPLES - see test_fit_kPL_fcn.m
 %
 % Authors: John Maidens,  Peder E. Z. Larson
 %
-% (c)2015-2016 The Regents of the University of California. All Rights
+% (c)2015-2017 The Regents of the University of California. All Rights
 % Reserved.
 
-if nargin < 4 || isempty(R1_fixed)
-    R1_fixed = [1/25 1/25];
+params_all = {'kPL', 'R1L', 'R1P'};
+params_default_est = [0.02, 1/25, 1/25];
+
+if nargin < 4 || isempty(params_fixed)
+    params_fixed = struct([]);
 end
 
-R1P_fixed = R1_fixed(1);
-if length(R1_fixed) == 1
-    R1L_fixed = R1_fixed(1);
-else
-    R1L_fixed = R1_fixed(2);
+if nargin < 5 || isempty(params_est)
+    params_est = struct([]);
 end
 
-
-if nargin < 5 || isempty(kPL_est)
-    kPL_est = 0.01;
+for n = 1:length(params_all)
+    if ~isfield(params_fixed, params_all(n)) && ~isfield(params_est, params_all(n))
+        params_est(1).(params_all{n}) = params_default_est(n);
+    end
 end
+params_est_fields = fieldnames(params_est);
+Nparams_to_fit = length(params_est_fields);
+for n = 1:Nparams_to_fit
+    params_est_vec(n) = params_est.(params_est_fields{n});
+end
+
 
 if nargin < 6 || isempty(noise_level)
     % no noise level provided, so use least-squares fit (best for Gaussian
@@ -73,14 +88,14 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
-kPLfit = zeros([1,prod(Nx)]);  objective_val = kPLfit;
-Sfit = zeros([prod(Nx),Nt]);
+params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
+Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
 
 for i=1:size(S, 1)
-if length(Nx) > 1
-    disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
-end
-    % observed magnetization
+    if length(Nx) > 1
+        disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
+    end
+    % observed magnetization (Mxy)
     y1 = reshape(S(i, 1, :), [1, Nt]); % pyr
     y2 = reshape(S(i, 2, :), [1, Nt]); % lac
     if any(y1 ~= 0)
@@ -95,40 +110,79 @@ end
         x1 = y1./Sscale(1, :);
         x2 = y2./Sscale(2, :);
         
-        % fit best kPL to data
+        % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         switch(fit_method)
             case 'ls'
-                obj = @(kPL) norm(x2 - trajectories(kPL, x1, Mzscale, R1P_fixed, R1L_fixed, TR));
+                obj = @(var) norm(x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR));
                 
             case 'ml'
-                obj = @(kPL) negative_log_likelihood_rician(kPL, x1, x2, Mzscale, R1P_fixed, R1L_fixed, TR, noise_level./Sscale(2,:));
+                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
                 
         end
-        [kPLfit(i), objective_val(i)] = fminunc(obj, kPL_est, options);
-        Sfit(i,:) = trajectories(kPLfit(i), x1, Mzscale, R1P_fixed, R1L_fixed, TR) .* Sscale(2, :);
+        [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
+        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
+        Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
+        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
-            plot(t, x1/10, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--')
+            plot(t, x1, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
             ylabel('estimated state magnetization (au)')
-            title(num2str(kPLfit(i)))
-            legend('pyruvate', 'lactate', 'lactate fit')
+            title(num2str(params_fit_vec(i,:)))
+            legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.2)
         end
     end
 end
 
+
+params_fit = struct([]);
+nfit = 0;
+for n = 1:length(params_all)
+    if ~isfield(params_fixed, params_all(n))
+        nfit = nfit+1;
+        params_fit(1).(params_all{nfit})= params_fit_vec(:,nfit);
+    end
+end
+
 if length(Nx) > 1
-    kPLfit = reshape(kPLfit, Nx);
+    for n = 1:Nparams_to_fit
+        params_fit.(params_est_fields{n}) = reshape(params_fit.(params_est_fields{n}), Nx);
+    end
+    
+    
     Sfit = reshape(Sfit, [Nx, Nt]);
+    ufit = reshape(ufit, [Nx, Nt]);
     objective_val = reshape(objective_val, Nx);
     disp('100 % complete')
 end
 
 end
 
+function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
+%FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
+%    compartmental model with Rician noise
+% noise level is scaled for state magnetization (Mz) domain
 
+N = size(x1,2);
+
+% compute trajectory of the model with parameter values
+x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR);
+
+% compute negative log likelihood
+l1 = 0;
+for t = 1:N
+    for k = 1
+        l1 = l1 - (...
+            log(x2(k, t)) - log(noise_level(t)) ...
+            - (x2(k, t)^2 + x2fit(k, t)^2)/(2*noise_level(t)) ...
+            + x2(k, t)*x2fit(k, t)/noise_level(t) ...
+            + log(besseli(0, x2(k, t)*x2fit(k, t)/noise_level(t), 1))...
+            );
+    end
+end
+end
 
