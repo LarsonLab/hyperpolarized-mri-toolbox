@@ -5,7 +5,7 @@ function [kPLfit, Sfit, objective_val] = fit_kPL(S, TR, flips, R1_fixed, kPL_est
 % need to fit input function. This uses the following assumptions:
 %   - uni-directional conversion from substrate to metabolic products (i.e.
 %   pyruvate to lactate)
-%   - initial lactate magnetization is zero
+%   - initial lactate magnetization is zero (need to add)
 %   - Fixed T1 relaxation rates for  metabolites
 %
 % [kPL_hat, objective_val] = fit_kPL(S, TR, flips, R1_fixed, kPL_est, noise_level, plot_flag)
