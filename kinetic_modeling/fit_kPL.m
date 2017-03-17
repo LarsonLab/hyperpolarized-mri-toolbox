@@ -75,8 +75,9 @@ if nargin < 7
     plot_flag = 0;
 end
 
-
-disp('==== Computing parameter map ====')
+if plot_flag
+    disp('==== Computing parameter map ====')
+end
 
 size_S = size(S);  ndimsx = length(size_S)-2;
 Nt = size_S(end); t = [0:Nt-1]*TR;
@@ -92,7 +93,7 @@ params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,pro
 Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
 
 for i=1:size(S, 1)
-    if length(Nx) > 1
+    if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end
     % observed magnetization (Mxy)
