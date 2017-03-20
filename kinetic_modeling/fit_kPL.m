@@ -21,6 +21,7 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
+%       
 %   noise_level (optional) - estimate standard deviation of noise in data
 %       to use maximum likelihood fit of magnitude data (with Rician noise
 %       distribution)
@@ -40,6 +41,10 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 
 params_all = {'kPL', 'R1L', 'R1P'};
 params_default_est = [0.02, 1/25, 1/25];
+% in progress: adding upper and lower bound capabilities
+% pass in through estimated parameters structure
+params_default_lb = [0, 1/50, 1/50];
+params_default_ub = [Inf, 1/10, 1/10];
 
 if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -58,6 +63,8 @@ params_est_fields = fieldnames(params_est);
 Nparams_to_fit = length(params_est_fields);
 for n = 1:Nparams_to_fit
     params_est_vec(n) = params_est.(params_est_fields{n});
+    params_lb(n) = params_default_lb(find(strcmp(params_all, params_est_fields{n})));
+    params_ub(n) = params_default_ub(find(strcmp(params_all, params_est_fields{n})));
 end
 
 
@@ -113,15 +120,17 @@ for i=1:size(S, 1)
         
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
+        lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) norm(x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR));
-                
+                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR));
+ [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+               
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
+        [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
         [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
