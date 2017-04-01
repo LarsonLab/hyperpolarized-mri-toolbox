@@ -28,8 +28,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %       distribution)
 %   plot_flag (optional) - plot fits
 % OUTPUTS
-%   params_fit - structure of fit parameters (1/s)
-%   Sfit - fit curve for lactate (1/s)
+%   params_fit - structure of fit parameters 
+%   Sfit - fit curve for lactate
 %   ufit - derived input function (unitless)
 %   objective_val - measure of fit error
 %

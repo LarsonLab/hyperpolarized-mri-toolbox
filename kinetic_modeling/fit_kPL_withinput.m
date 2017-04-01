@@ -1,35 +1,32 @@
 function [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
-% fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
-% product (e.g. lactate) signal at each time point.  Substrate (e.g.
-% pyruvate) signal taken as is, and not fit to any function, eliminating
-% need to make any assumptions about the input function.
-% This uses the following assumptions:
-%   - uni-directional conversion from substrate to metabolic products (i.e.
-%   pyruvate to lactate)
-%   - initial lactate magnetization is zero (need to add)
-% It also allows for fixing of parameters. Based on simulations, our
-% current recommendation is to fix pyruvate T1, as it doesn't impact kPL substantially.
+% fit_kPL_withinput - kinetic model fitting of pyruvate to lactate conversion 
+% This model requires estimation or fixing of a bolus arrival time ('Tarrival') and
+% bolus end time ('Tend').
+% It is described in Zierhut et al. J Magn Reson 202 (2010) 85–92.  
+% doi:10.1016/j.jmr.2009.10.003
 %
-% [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+% [params_fit, x1fit, x2fit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
 % All params_* values are structures, with possible fields of 'kPL', 'R1L',
-% and 'R1P', and units of 1/s.
+% 'R1P', 'Rinj' (injection rate) - units of 1/s - and 'Tarrival', 'Tend'
+% with units of s.
+%
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
 %   TR - repetition time per time point flips - all flip angles [# of
 %   metabolites, # of time points x # of phase encodes]
-%	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
+%	params_fixed - structure of fixed parameters and values.  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
-%       
+%       Also can include upper and lower bounds on parameters as *_lb and
+%       *_ub (e.g. R1L_lb, R1L_ub)
 %   noise_level (optional) - estimate standard deviation of noise in data
 %       to use maximum likelihood fit of magnitude data (with Rician noise
 %       distribution)
 %   plot_flag (optional) - plot fits
 % OUTPUTS
-%   params_fit - structure of fit parameters (1/s)
-%   Sfit - fit curve for lactate (1/s)
-%   ufit - derived input function (unitless)
+%   params_fit - structure of fit parameters
+%   x1fit, x2fit - fit curve for pyruvate and lactate, respectively
 %   objective_val - measure of fit error
 %
 % EXAMPLES - see test_fit_kPL_fcn.m
@@ -41,8 +38,6 @@ function [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, fl
 
 params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'Tend'};
 params_default_est = [0.02, 1/25, 1/25, 0.1, 0, 12];
-% in progress: adding upper and lower bound capabilities
-% pass in through estimated parameters structure
 params_default_lb = [0, 1/50, 1/50, 0, 0, 0];
 params_default_ub = [Inf, 1/10, 1/10 Inf 30 30];
 
@@ -54,20 +49,30 @@ if nargin < 5 || isempty(params_est)
     params_est = struct([]);
 end
 
+I_params_est = [];
 for n = 1:length(params_all)
-    if ~isfield(params_fixed, params_all(n)) && ~isfield(params_est, params_all(n))
-        params_est(1).(params_all{n}) = params_default_est(n);
+    if ~isfield(params_fixed, params_all(n))
+        I_params_est = [I_params_est, n];
     end
 end
-params_est_fields = fieldnames(params_est);
-Nparams_to_fit = length(params_est_fields);
-nfit = 0;
-for n = 1:length(params_all)
-    if isfield(params_est, params_all(n))
-        nfit = nfit+1;
-    params_est_vec(nfit) = params_est.(params_all{n});
-    params_lb(nfit) = params_default_lb(n);
-    params_ub(nfit) = params_default_ub(n);
+Nparams_to_fit = length(I_params_est);
+
+for n = 1:Nparams_to_fit
+    param_name = params_all{I_params_est(n)};
+    if isfield(params_est, param_name)
+        params_est_vec(n) = params_est.(param_name);
+    else
+        params_est_vec(n) = params_default_est(I_params_est(n));
+    end
+    if isfield(params_est, [param_name '_lb'])
+        params_lb(n) = params_est.([param_name '_lb']);
+    else
+        params_lb(n) = params_default_lb(I_params_est(n));
+    end
+    if isfield(params_est, [param_name '_ub'])
+        params_ub(n) = params_est.([param_name '_ub']);
+    else
+        params_ub(n) = params_default_ub(I_params_est(n));
     end
 end
 
@@ -128,11 +133,11 @@ for i=1:size(S, 1)
         switch(fit_method)
             case 'ls'
                 obj = @(var) trajectory_difference(var, x1, x2, params_fixed, TR, Mzscale);
- [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
-               
+                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
-        [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
+                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
         [x1fit(i,:), x2fit(i,:)] = trajectories_withinput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
@@ -176,9 +181,9 @@ end
 
 end
 
-function diff_all = trajectory_difference(params_fit, x1, x2,  params_fixed, TR, Mzscale) 
-    [x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
-    diff_all = [ x1(:)-x1fit(:) ; x2(:)-x2fit(:)];
+function diff_all = trajectory_difference(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+[x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
+diff_all = [ x1(:)-x1fit(:) ; x2(:)-x2fit(:)];
 end
 
 function [ l1 ] = negative_log_likelihood_rician(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
@@ -189,17 +194,19 @@ function [ l1 ] = negative_log_likelihood_rician(params_fit, x1, x2, Mzscale, pa
 N = size(x1,2);
 
 % compute trajectory of the model with parameter values
-x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR);
+[x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale);
 
-% compute negative log likelihood
+x = [x1; x2];
+xfit = [x1fit; x2fit];
+%compute negative log likelihood
 l1 = 0;
 for t = 1:N
-    for k = 1
+    for k = 1:2
         l1 = l1 - (...
-            log(x2(k, t)) - log(noise_level(t)) ...
-            - (x2(k, t)^2 + x2fit(k, t)^2)/(2*noise_level(t)) ...
-            + x2(k, t)*x2fit(k, t)/noise_level(t) ...
-            + log(besseli(0, x2(k, t)*x2fit(k, t)/noise_level(t), 1))...
+            log(x(k, t)) - log(noise_level(t)) ...
+            - (x(k, t)^2 + xfit(k, t)^2)/(2*noise_level(t)) ...
+            + x(k, t)*xfit(k, t)/noise_level(t) ...
+            + log(besseli(0, x(k, t)*xfit(k, t)/noise_level(t), 1))...
             );
     end
 end
