@@ -136,7 +136,7 @@ for i=1:size(S, 1)
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR));
+                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)).*Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
@@ -151,9 +151,14 @@ for i=1:size(S, 1)
         if plot_flag
             % plot of fit for debugging
             figure(99)
+            subplot(2,1,1)
             plot(t, x1, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
-            ylabel('estimated state magnetization (au)')
+            ylabel('state magnetization (au)')
+            subplot(2,1,2)
+            plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
+            xlabel('time (s)')
+            ylabel('signal (au)')
             title(num2str(params_fit_vec(i,:)))
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.5)
@@ -173,7 +178,8 @@ end
 
 if length(Nx) > 1
     for n = 1:Nparams_to_fit
-        params_fit.(params_est_fields{n}) = reshape(params_fit.(params_est_fields{n}), Nx);
+        param_name = params_all{I_params_est(n)};
+        params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
     end
     
     
