@@ -1,14 +1,15 @@
 function [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
-% fit_kPL_withinput - kinetic model fitting of pyruvate to lactate conversion 
-% This model requires estimation or fixing of a bolus arrival time ('Tarrival') and
-% bolus end time ('Tend').
-% It is described in Zierhut et al. J Magn Reson 202 (2010) 85–92.  
+% fit_kPL_withinput - kinetic model fitting of pyruvate to lactate conversion
+% This model approximates the bolus as a box-car input, including bolus arrival time ('Tarrival') and
+% bolus duration ('Tbolus').
+% It is described in Zierhut et al. J Magn Reson 202 (2010) 85–92.
 % doi:10.1016/j.jmr.2009.10.003
+
 %
-% [params_fit, x1fit, x2fit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+% [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
 % All params_* values are structures, with possible fields of 'kPL', 'R1L',
-% 'R1P', 'Rinj' (injection rate) - units of 1/s - and 'Tarrival', 'Tend'
+% 'R1P', 'Rinj' (injection rate) - units of 1/s - and 'Tarrival', 'Tbolus'
 % with units of s.
 %
 % INPUTS
@@ -29,17 +30,19 @@ function [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, fl
 %   x1fit, x2fit - fit curve for pyruvate and lactate, respectively
 %   objective_val - measure of fit error
 %
-% EXAMPLES - see test_fit_kPL_fcn.m
+% EXAMPLES - see test_fit_kPL_withinput.m
 %
 % Authors: John Maidens,  Peder E. Z. Larson
 %
 % (c)2015-2017 The Regents of the University of California. All Rights
 % Reserved.
 
-params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'Tend'};
+params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'Tbolus'};
 params_default_est = [0.02, 1/25, 1/25, 0.1, 0, 12];
-params_default_lb = [0, 1/50, 1/50, 0, 0, 0];
+params_default_lb = [0, 1/50, 1/50, 0, -30, 0];
 params_default_ub = [Inf, 1/10, 1/10 Inf 30 30];
+
+Iparams_pyr = [4:6]; % for only fitting input parameters
 
 if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -127,14 +130,25 @@ for i=1:size(S, 1)
         x1 = y1./Sscale(1, :);
         x2 = y2./Sscale(2, :);
         
-        % Fit Pyruvate first (Tarrive, Rinj, Tend...), then full system ??
-        
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) trajectory_difference(var, x1, x2, params_fixed, TR, Mzscale);
+                % Fit Pyruvate first (Tarrive, Rinj, Tend...) - seems to help a little
+                obj = @(var) trajectory_difference_x1(var, x1, x2, params_fixed, TR, Mzscale);
+                [params_fit_vec_temp] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                
+                % update estimates - could also fix parameters
+                for n = Iparams_pyr
+                    In = find(n==I_params_est);
+                    if ~isempty(In)
+                        params_est_vec(In) = params_fit_vec_temp(In);
+                    end
+                end
+                
+                % Fit all data
+                obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale);
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
@@ -142,7 +156,7 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [x1fit(i,:), x2fit(i,:)] = trajectories_withinput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
+        [x1fit(i,:), x2fit(i,:)] = trajectories_withinput_dev(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
         x1fit(i,:) = x1fit(i,:)  .* Sscale(1, :);
         x2fit(i,:) = x2fit(i,:)  .* Sscale(2, :);
         
@@ -183,10 +197,21 @@ end
 
 end
 
-function diff_all = trajectory_difference(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+function diff_all = trajectory_difference_all(params_fit, x1, x2,  params_fixed, TR, Mzscale)
 [x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
 diff_all = [ x1(:)-x1fit(:) ; x2(:)-x2fit(:)];
 end
+
+function diff_x1 = trajectory_difference_x1(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+[x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
+diff_x1 = [ x1(:)-x1fit(:) ];
+end
+
+function diff_x2 = trajectory_difference_x2(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+[x1fit, x2fit] = trajectories_withinput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
+diff_x2 = [ x2(:)-x2fit(:) ];
+end
+
 
 function [ l1 ] = negative_log_likelihood_rician(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
