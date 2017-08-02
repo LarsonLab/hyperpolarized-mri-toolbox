@@ -82,8 +82,8 @@ if nargin < 6 || isempty(noise_level)
     % zero-mean noise)
     fit_method = 'ls';
 else
-    % otherwise use maximum likelihood (good for Rician noise from
-    % magnitudes)
+    % otherwise use maximum likelihood estimator for Rician noise from
+    % magnitudes
     fit_method = 'ml';
 end
 
@@ -126,6 +126,8 @@ for i=1:size(S, 1)
         % estimate state magnetization (MZ) based on scaling from RF pulses
         x1 = y1./Sscale(1, :);
         x2 = y2./Sscale(2, :);
+        
+        % Fit Pyruvate first (Tarrive, Rinj, Tend...), then full system ??
         
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
