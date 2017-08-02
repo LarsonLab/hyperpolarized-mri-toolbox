@@ -9,15 +9,15 @@ k12 = 0.05; % for variable flip angle designs
 Rinj = .25;
 input_function = zeros(1,N);
 % Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
-Mz0 = [0,0]; input_function(1:4) =  Rinj; % boxcar input function
+Mz0 = [0,0]; input_function(1:4) =  Rinj; % boxcar input function - ideal for this fitting model
 %Mz0 = [1,0]; % no input function
 
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*30*pi/180;  % constant, single-band
-% flips(1:2,1:N,2) = repmat([20;35]*pi/180,[1 N]);  % constant, multi-band
-% flips(1:2,1:N,3) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % max lactate SNR variable flip angle
-%     vfa_opt_signal(N, exp(-TR * ( R1L)))];
+flips(1:2,1:N,2) = repmat([20;35]*pi/180,[1 N]);  % constant, multi-band
+flips(1:2,1:N,3) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % max lactate SNR variable flip angle
+    vfa_opt_signal(N, exp(-TR * ( R1L)))];
 % flips(1:2,1:N,4) = repmat(vfa_const_amp(N, pi/2), [2,1]);  % RF compensated variable flip angle
 % flips(1:2,1:N,5) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % T1-effective variable flip angle
 %     vfa_const_amp(N, pi/2, exp(-TR * ( - k12)))];
@@ -43,7 +43,8 @@ end
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
-Tarrive = 0; Rinj_est = 1; Tend = 15;
+Tarrive = 0; Rinj_est = 1; Tend = 20;  % difficulty fitting Tend, Tarrive ok
+
 plot_fits = 0;
 
 %% Test fitting - fit kPL only
@@ -73,9 +74,11 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL  = ']); disp(num2str((params_fit.kPL).'))
+disp(['KPL         Rinj        Tarrive     Tend    = ']); 
+disp(num2str(reshape(struct2array(params_fit), 4, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL  = ']); disp(num2str((params_fitn_complex.kPL).'))
+disp(['KPL         Rinj        Tarrive     Tend    = ']); 
+disp(num2str(reshape(struct2array(params_fitn_complex), 4, N_flip_schemes).'))
 % disp('Noisy magnitude fit results:')
 % disp(['KPL  = ']); disp(num2str((params_fitn_mag.kPL).'))
 
@@ -88,7 +91,7 @@ subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
 % plot(t, squeeze(Snfit_mag(2,:,:)),'--')
 title('kPL fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
-legend('constant','multiband', 'multiband variable flip')
+% legend('constant','multiband', 'multiband variable flip')
 
 
 disp('Press any key to continue')
@@ -128,9 +131,11 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL         R1L   = ']); disp(num2str(reshape(struct2array(params_fit), 5, N_flip_schemes).'))
+disp(['KPL         R1L         Rinj        Tarrive     Tend    = ']); 
+disp(num2str(reshape(struct2array(params_fit), 5, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL         R1L   = ']); disp(num2str(reshape(struct2array(params_fitn_complex), 5, N_flip_schemes).'))
+disp(['KPL         R1L         Rinj        Tarrive     Tend    = ']); 
+ disp(num2str(reshape(struct2array(params_fitn_complex), 5, N_flip_schemes).'))
 % disp('Noisy magnitude fit results:')
 % disp(['KPL         R1L   = ']); disp(num2str(reshape(struct2array(params_fitn_mag), 2, N_flip_schemes).'))
 
@@ -143,5 +148,5 @@ subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
 % plot(t, squeeze(Snfit_mag(2,:,:)),'--')
 title('kPL+R1L fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
-legend('constant','multiband', 'multiband variable flip')
+% legend('constant','multiband', 'multiband variable flip')
 
