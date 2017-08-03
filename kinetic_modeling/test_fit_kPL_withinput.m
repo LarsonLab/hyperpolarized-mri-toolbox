@@ -8,15 +8,15 @@ R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
 k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
 if 0
-    % gamma variate input function - more realistic
+    % gamma variate input function - more realistic, modeling does ok with
+    % this input though
     Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;
 else
     % boxcar input function - ideal for this fitting model
-    Tbolus = 12;  Tarrival = 3;
-    Ibolus = [1:Tbolus/TR] + round(Tarrival/TR);
-    Rinj = .1;
+    Tbolus = 12;  Tarrival = 0;
+    Ibolus = [1:round(Tbolus/TR)] + round(Tarrival/TR);
+    Rinj = 1/Tbolus;
     Mz0 = [0,0]; input_function(Ibolus) =  Rinj*TR;
-    %Mz0 = [1,0]; % no input function
 end
 
 % Test over multiple combinations of flip angle schemes
@@ -49,7 +49,7 @@ end
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
-Tarrival_est = 4; Rinj_est = .2; Tbolus_est = 10;
+Tarrival_est = 0; Rinj_est = .2; Tbolus_est = 10;  % magnitude fitting relatively sensitive to estimates of arrival and bolus times
 
 plot_fits = 0;
 
@@ -80,13 +80,13 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fit), 4, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fitn_complex), 4, N_flip_schemes).'))
 disp('Noisy magnitude fit results:')
-disp(['KPL         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fitn_mag), 4, N_flip_schemes).'))
 
 figure
@@ -138,13 +138,13 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL         R1L         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         R1L         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fit), 5, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL         R1L         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         R1L         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fitn_complex), 5, N_flip_schemes).'))
 disp('Noisy magnitude fit results:')
-disp(['KPL         R1L         Rinj        Tarrive     Tend    = ']);
+disp(['KPL         R1L         Rinj        Tarrive     Tbolus    = ']);
 disp(num2str(reshape(struct2array(params_fitn_mag), 5, N_flip_schemes).'))
 
 figure

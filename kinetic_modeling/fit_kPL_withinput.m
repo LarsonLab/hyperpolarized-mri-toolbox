@@ -42,7 +42,7 @@ params_default_est = [0.02, 1/25, 1/25, 0.1, 0, 12];
 params_default_lb = [0, 1/50, 1/50, 0, -30, 0];
 params_default_ub = [Inf, 1/10, 1/10 Inf 30 30];
 
-Iparams_pyr = [4:6]; % for only fitting input parameters
+Iparams_pyr = [4:6]; % for initial fit of just pyruvate to determine input parameters
 
 if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);

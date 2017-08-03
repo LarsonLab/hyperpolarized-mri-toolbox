@@ -9,7 +9,7 @@ k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
 Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
 %Mz0 = [0,0]; input_function(1:4) =  1; % boxcar input function
-%Mz0 = [1,0]; % no input function
+% Mz0 = [1.5,0]; % no input function
 
 
 % Test over multiple combinations of flip angle schemes
