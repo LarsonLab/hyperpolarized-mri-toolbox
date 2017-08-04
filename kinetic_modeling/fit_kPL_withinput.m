@@ -156,7 +156,7 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [x1fit(i,:), x2fit(i,:)] = trajectories_withinput_dev(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
+        [x1fit(i,:), x2fit(i,:)] = trajectories_withinput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
         x1fit(i,:) = x1fit(i,:)  .* Sscale(1, :);
         x2fit(i,:) = x2fit(i,:)  .* Sscale(2, :);
         
