@@ -1,4 +1,4 @@
-function [params_fit, x1fit, x2fit, objective_val] = fit_kPL_withinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, objective_val] = fit_kPL_withinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL_withinput - kinetic model fitting of pyruvate to lactate conversion
 % This model approximates the bolus as a box-car input, including bolus arrival time ('Tarrival') and
 % bolus duration ('Tbolus').
@@ -109,7 +109,7 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
-x1fit = zeros([prod(Nx),Nt]); x2fit = zeros([prod(Nx),Nt]);
+Sfit = zeros([prod(Nx),2,Nt]);
 
 for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
@@ -156,17 +156,19 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [x1fit(i,:), x2fit(i,:)] = trajectories_withinput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
-        x1fit(i,:) = x1fit(i,:)  .* Sscale(1, :);
-        x2fit(i,:) = x2fit(i,:)  .* Sscale(2, :);
+        [x1fit, x2fit] = trajectories_withinput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
+        x1fit = x1fit  .* Sscale(1, :);
+        x2fit = x2fit  .* Sscale(2, :);
+        Sfit(i,1,:) = x1fit;
+        Sfit(i,2,:) = x2fit;
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
-            plot(t, x1, t, x2, t, x1fit(i,:)./ Sscale(1, :),'--', t, x2fit(i,:)./ Sscale(2, :), 'k:')
+            plot(t, x1, t, x2, t, x1fit./ Sscale(1, :),'--', t, x2fit./ Sscale(2, :), 'k:')
             xlabel('time (s)')
             ylabel('estimated state magnetization (au)')
-            title(num2str(params_fit_vec(i,:)))
+            title(num2str(params_fit_vec(i,:),4))
             legend('pyruvate', 'lactate', 'pyruvate fit', 'lactate fit')
             drawnow, pause(0.5)
         end
@@ -183,17 +185,19 @@ for n = 1:length(params_all)
     end
 end
 
+
 if length(Nx) > 1
     for n = 1:Nparams_to_fit
-        params_fit.(params_est_fields{n}) = reshape(params_fit.(params_est_fields{n}), Nx);
+        param_name = params_all{I_params_est(n)};
+        params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
     end
     
     
-    x1fit = reshape(x1fit, [Nx, Nt]);
-    x2fit = reshape(x2fit, [Nx, Nt]);
+    Sfit = reshape(Sfit, [Nx,2, Nt]);
     objective_val = reshape(objective_val, Nx);
     disp('100 % complete')
 end
+
 
 end
 
