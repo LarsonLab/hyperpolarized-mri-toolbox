@@ -1,5 +1,5 @@
 function [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
-% HP_montecarlo_evaluation(
+% [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
 %
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
 % simulations.
@@ -8,43 +8,52 @@ function [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 % (AUCratio) derived in Hill et al. PLoS One, doi:
 % 10.1371/journal.pone.0071996 , is always computed as a reference.
 %
-% Optionally can specify experimental parameter ranges.
-%
 % INPUTS:
-% 3x structures
-% acq acquisition
-% fit fitting
-% exp experiment
+%   acq - structure containing acquisition parameters, including
+%       TR, flips, N (number of timepoints)
+%   fitting - structure containing fitting parameters, including
+%       fit_fcn, params_est, params_fixed
+%       (for use with fit_kPL* functions)    
+%   exp - structure containing experimental parameters (optional, not yet implemen)
 %
 % OUTPUTS:
+%   hdata, hsim - handles to figures from function
 %
 % (c) 2017 The Regents of the University of California
 % All Rights Reserved.
 %
 % Author: Peder E. Z. Larson
 
-
-
-% function parameters
+% simulation and plotting parameters
 NMC = 250;  % 100 maybe ok
 Nexp_values = 8;
 ratio_limits = [.8 1.2];
 
-
-
-% default parameters
-acq.Tbolus = 12;
-Tbolus = acq.Tbolus;
-
+% fitting
 fit_fcn = fitting.fit_fcn;
 params_fixed = fitting.params_fixed;
 params_est = fitting.params_est;
 
 
-% default experiment values
-%R1 = [1/25 1/25]; kPL = 0.02; std_noise = 0.002;
-R1 = exp.R1; kPL = exp.kPL; std_noise = exp.std_noise;
+% experimental parameters
+if nargin < 3 || isempty(exp)
+    exp = struct([]);
+end
+params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus'};
+params_default = [0.02, 1/25, 1/25, 0.01, 12];
 
+for n = 1:length(params_all)
+    param_name = params_all{n};
+    if ~isfield(params_fixed, param_name)
+       exp.(param_name) = params_default(n);
+    end
+end
+
+% default experiment values
+R1 = [exp.R1P, exp.R1L]; kPL = exp.kPL; std_noise = exp.std_noise;
+Tbolus = exp.Tbolus;
+
+% experiment simulation ranges
 exp.kPL_min = 0; exp.kPL_max = 0.03;    % approx kpL max in human studies
 exp.std_noise_min = 0; exp.std_noise_max = 0.02;
 exp.Tarrive_min = -5; exp.Tarrive_max = 5;
@@ -52,19 +61,12 @@ exp.Tbolus_min = 8; exp.Tbolus_max = 18;
 exp.R1L_min = 1/15; exp.R1L_max = 1/35;
 exp.R1P_min = 1/15; exp.R1P_max = 1/40;
 
-% we'll assume best case of a good initial guess, then perturb in further
-% simulations
-
 % parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P
 Nplot1 = 3; Nplot2 = 2;
 
-
-
-
 t = [0:acq.N-1]*acq.TR;
-Nbolus = round(acq.Tbolus/acq.TR);
 Mz0 = [0,0];
-input_function = gampdf(t,acq.Tbolus/2,1);
+input_function = gampdf(t,Tbolus/2,1);
 input_function = input_function/sum(input_function); % normalize so total input magnetization = 1
 
 Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
