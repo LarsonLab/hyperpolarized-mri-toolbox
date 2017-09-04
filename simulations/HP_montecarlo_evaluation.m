@@ -44,7 +44,7 @@ params_default = [0.02, 1/25, 1/25, 0.01, 12];
 
 for n = 1:length(params_all)
     param_name = params_all{n};
-    if ~isfield(params_fixed, param_name)
+    if ~isfield(exp, param_name)
        exp.(param_name) = params_default(n);
     end
 end
@@ -58,8 +58,8 @@ exp.kPL_min = 0; exp.kPL_max = 0.03;    % approx kpL max in human studies
 exp.std_noise_min = 0; exp.std_noise_max = 0.02;
 exp.Tarrive_min = -5; exp.Tarrive_max = 5;
 exp.Tbolus_min = 8; exp.Tbolus_max = 18;
-exp.R1L_min = 1/15; exp.R1L_max = 1/35;
-exp.R1P_min = 1/15; exp.R1P_max = 1/40;
+exp.R1L_min = 1/35; exp.R1L_max = 1/15;
+exp.R1P_min = 1/40; exp.R1P_max = 1/15;
 
 % parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P
 Nplot1 = 3; Nplot2 = 2;
@@ -104,7 +104,8 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC]),AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]));
-xlabel('k_{PL}'),  ylim(ratio_limits)
+xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
+ylim(ratio_limits)
 
 %% SNR
 
@@ -121,7 +122,8 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(std_noise_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
-xlabel('\sigma^2'),  ylim(ratio_limits)
+xlabel('\sigma^2'),  xlim([exp.std_noise_min, exp.std_noise_max])
+ylim(ratio_limits)
 
 
 %% bolus tests: arrival time
@@ -145,7 +147,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(Tarrive_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
-xlabel('Tarrive'), ylim(ratio_limits)
+xlabel('Tarrive'), xlim([exp.Tarrive_min, exp.Tarrive_max]), ylim(ratio_limits)
 
 
 %% bolus tests: duration
@@ -170,7 +172,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(Tbolus_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
-ylim(ratio_limits), xlabel('Tbolus')
+ylim(ratio_limits), xlim([exp.Tbolus_min, exp.Tbolus_max]), xlabel('Tbolus')
 
 
 
@@ -190,7 +192,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(R1L_test, kPL_fit/kPL, AUC_fit/AUC_predicted);
-ylim(ratio_limits), xlabel('R_{1L}')
+ylim(ratio_limits), xlim([exp.R1L_min, exp.R1L_max]), xlabel('R_{1L}')
 
 %% T1 tests
 
@@ -208,7 +210,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_with_mean_and_std(R1P_test, kPL_fit/kPL, AUC_fit/AUC_predicted);
-ylim(ratio_limits), xlabel('R_{1P}')
+ylim(ratio_limits), xlim([exp.R1P_min, exp.R1P_max]), xlabel('R_{1P}')
 
 end
 
