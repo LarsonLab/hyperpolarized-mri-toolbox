@@ -61,9 +61,12 @@ exp.Tarrive_min = -5; exp.Tarrive_max = 5;
 exp.Tbolus_min = 8; exp.Tbolus_max = 18;
 exp.R1L_min = 1/35; exp.R1L_max = 1/15;
 exp.R1P_min = 1/40; exp.R1P_max = 1/15;
+exp.B1error_min = -.2; exp.B1error_max = .2;
+exp.B1diff_min = -.2; exp.B1diff_max = .2;
 
-% parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P
-Nplot1 = 3; Nplot2 = 2;
+% parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P, B1,
+% vascular parameters?
+Nplot1 = 4; Nplot2 = 2;
 
 t = [0:acq.N-1]*acq.TR;
 Mz0 = [0,0];
@@ -266,6 +269,61 @@ results.R1P_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
 results.R1P_test.AUC_avg_error = mean(AUC_std);  % precision measurement
 results.R1P_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
 results.R1P_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
+
+
+%% B1 error tests
+    % simulate inaccurate B1, & unknown
+
+B1error_test = linspace(exp.B1error_min, exp.B1error_max, Nexp_values);
+
+kPL_fit = zeros(length(B1error_test), NMC); AUC_fit = kPL_fit;
+
+for Itest = 1:length(B1error_test)
+    Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips * (1+B1error_test(Itest)), acq.TR, input_function);
+    
+    [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
+    
+end
+
+subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(B1error_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
+ylim(ratio_limits), xlim([exp.B1error_min, exp.B1error_max]), xlabel('% B_{1} error')
+
+results.B1error_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.B1error_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.B1error_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.B1error_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.B1error_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.B1error_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
+
+
+%% B1 difference tests
+    % simulate inaccurate B1, but known
+
+B1diff_test = linspace(exp.B1diff_min, exp.B1diff_max, Nexp_values);
+
+kPL_fit = zeros(length(B1diff_test), NMC); AUC_fit = kPL_fit;
+clear AUC_predicted_test
+
+for Itest = 1:length(B1diff_test)
+    Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips * (1+B1diff_test(Itest)), acq.TR, input_function);
+    
+    [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips* (1+B1diff_test(Itest)), NMC, std_noise, params_fixed, params_est);
+    AUC_predicted_test(Itest) = sum(Mxy(2,:))/sum(Mxy(1,:));
+end
+
+subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(B1diff_test, kPL_fit/kPL-1, AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]) -1);
+ylim(ratio_limits), xlim([exp.B1diff_min, exp.B1diff_max]), xlabel('% B_{1} difference')
+
+results.B1diff_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.B1diff_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.B1diff_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.B1diff_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.B1diff_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.B1diff_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 
 end
