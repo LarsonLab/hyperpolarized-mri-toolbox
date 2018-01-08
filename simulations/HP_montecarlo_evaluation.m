@@ -1,4 +1,4 @@
-function [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
+function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 % [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
 %
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
@@ -14,9 +14,10 @@ function [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 %   fitting - structure containing fitting parameters, including
 %       fit_fcn, params_est, params_fixed
 %       (for use with fit_kPL* functions)    
-%   exp - structure containing experimental parameters (optional, not yet implemen)
+%   exp - structure containing experimental parameters (optional, not yet implemented)
 %
 % OUTPUTS:
+%   results - structure containing summary of results
 %   hdata, hsim - handles to figures from function
 %
 % (c) 2017 The Regents of the University of California
@@ -27,7 +28,7 @@ function [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 % simulation and plotting parameters
 NMC = 250;  % 100 maybe ok
 Nexp_values = 8;
-ratio_limits = [.8 1.2];
+ratio_limits = [-.2 .2];
 
 % fitting
 fit_fcn = fitting.fit_fcn;
@@ -73,15 +74,15 @@ Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 AUC_predicted = sum(Mxy(2,:))/sum(Mxy(1,:));
 
 %% sample data
-for Iflips = 1:size(acq.flips,3)
-    [Mxy Mz] = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy + randn(size(Mxy))*std_noise;
-end
+
+[Mxy Mz] = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
+results.sample_data = Mxy + randn(size(Mxy))*std_noise;
+results.sample_data_time = t;
 
 hdata = figure;
-subplot(121) , plot(t, squeeze(Sn(1,:,:))), title('sample simulated pyruvate')
+subplot(121) , plot(t, squeeze(results.sample_data(1,:))), title('sample simulated pyruvate')
 xlabel('time (s)'), ylabel('Signal')
-subplot(122) , plot(t, squeeze(Sn(2,:,:))), title('sample simulated lactate')
+subplot(122) , plot(t, squeeze(results.sample_data(2,:))), title('sample simulated lactate')
 xlabel('time (s)'), ylabel('Signal')
 
 %% setup for plots
@@ -103,9 +104,19 @@ for Itest = 1:length(kPL_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC]),AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]));
-xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
+%[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC]),AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]));
+%ylim(ratio_limits)
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, (kPL_fit - repmat(kPL_test(:),[1,NMC]))/kPL,(AUC_fit - repmat(AUC_predicted_test(:), [1, NMC]))/AUC_predicted);
 ylim(ratio_limits)
+xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
+
+results.kPL_test.avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
+results.kPL_test.avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
+results.kPL_test.std_bias = std(kPL_mean) ;  % accuracy measurement
+
+results.kPL_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.kPL_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.kPL_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% SNR
 
@@ -121,9 +132,18 @@ end
 
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(std_noise_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(std_noise_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
 xlabel('\sigma^2'),  xlim([exp.std_noise_min, exp.std_noise_max])
 ylim(ratio_limits)
+
+
+results.noise_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.noise_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.noise_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.noise_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.noise_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.noise_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 
 %% bolus tests: arrival time
@@ -146,8 +166,17 @@ for Itest = 1:length(Tarrive_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(Tarrive_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tarrive_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
 xlabel('Tarrive'), xlim([exp.Tarrive_min, exp.Tarrive_max]), ylim(ratio_limits)
+
+results.Tarrive_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.Tarrive_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.Tarrive_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.Tarrive_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.Tarrive_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.Tarrive_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
+
 
 
 %% bolus tests: duration
@@ -171,12 +200,21 @@ for Itest = 1:length(Tbolus_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(Tbolus_test, kPL_fit./kPL, AUC_fit./AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tbolus_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
 ylim(ratio_limits), xlim([exp.Tbolus_min, exp.Tbolus_max]), xlabel('Tbolus')
 
+results.Tbolus_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.Tbolus_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.Tbolus_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.Tbolus_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.Tbolus_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.Tbolus_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 
-%% T1 tests - remaining flaw...
+
+
+%% T1 lactate tests - this is hard
 
 R1L_test = linspace(exp.R1L_min, exp.R1L_max, Nexp_values);
 
@@ -191,10 +229,19 @@ for Itest = 1:length(R1L_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(R1L_test, kPL_fit/kPL, AUC_fit/AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(R1L_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
 ylim(ratio_limits), xlim([exp.R1L_min, exp.R1L_max]), xlabel('R_{1L}')
 
-%% T1 tests
+results.R1L_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.R1L_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.R1L_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.R1L_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.R1L_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.R1L_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
+
+
+%% T1 pyruvate tests
 
 R1P_test = linspace(exp.R1P_min, exp.R1P_max, Nexp_values);
 
@@ -209,12 +256,21 @@ for Itest = 1:length(R1P_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_with_mean_and_std(R1P_test, kPL_fit/kPL, AUC_fit/AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(R1P_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
 ylim(ratio_limits), xlim([exp.R1P_min, exp.R1P_max]), xlabel('R_{1P}')
+
+results.R1P_test.kPL_avg_error = mean(kPL_std);  % precision measurement
+results.R1P_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
+results.R1P_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
+
+results.R1P_test.AUC_avg_error = mean(AUC_std);  % precision measurement
+results.R1P_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
+results.R1P_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
+
 
 end
 
-function h=plot_with_mean_and_std(x, y1, y2)
+function [h,Y1,Y2,DELTA1,DELTA2]=plot_with_mean_and_std(x, y1, y2)
 
 h = gca;
 
