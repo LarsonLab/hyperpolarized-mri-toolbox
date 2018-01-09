@@ -1,5 +1,5 @@
 function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
-% [ hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
+% [ results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
 %
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
 % simulations.
@@ -14,7 +14,7 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 %   fitting - structure containing fitting parameters, including
 %       fit_fcn, params_est, params_fixed
 %       (for use with fit_kPL* functions)    
-%   exp - structure containing experimental parameters (optional, not yet implemented)
+%   exp - structure containing experimental parameters (optional)
 %
 % OUTPUTS:
 %   results - structure containing summary of results
@@ -34,6 +34,9 @@ ratio_limits = [-.2 .2];
 fit_fcn = fitting.fit_fcn;
 params_fixed = fitting.params_fixed;
 params_est = fitting.params_est;
+if isfield(fitting, 'NMC')
+    NMC = fitting.NMC;
+end
 
 
 % experimental parameters

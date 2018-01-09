@@ -40,10 +40,10 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % (c)2015-2017 The Regents of the University of California. All Rights
 % Reserved.
 
-params_all = {'kPL', 'R1L', 'R1P'};
-params_default_est = [0.02, 1/25, 1/25];
-params_default_lb = [0, 1/60, 1/60];
-params_default_ub = [Inf, 1/10, 1/10];
+params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
+params_default_est = [0.02, 1/25, 1/25, 0];
+params_default_lb = [0, 1/60, 1/60, 0];
+params_default_ub = [Inf, 1/10, 1/10, Inf];
 
 if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -136,7 +136,7 @@ for i=1:size(S, 1)
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)).*Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
@@ -169,7 +169,7 @@ end
 
 params_fit = struct([]);
 nfit = 0;
-for n = 1:length(params_all)
+for n = 1:length(params_all)-1  % don't output L0_start
     if ~isfield(params_fixed, params_all(n))
         nfit = nfit+1;
         params_fit(1).(params_all{n})= params_fit_vec(:,nfit);
@@ -177,7 +177,7 @@ for n = 1:length(params_all)
 end
 
 if length(Nx) > 1
-    for n = 1:Nparams_to_fit
+    for n = 1:Nparams_to_fit-1 % don't output L0_start
         param_name = params_all{I_params_est(n)};
         params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
     end

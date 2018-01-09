@@ -7,10 +7,18 @@ Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
 R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
 k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
-Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
-%Mz0 = [0,0]; input_function(1:4) =  1; % boxcar input function
-% Mz0 = [1.5,0]; % no input function
 
+input_condition = 4; % choose from various simulated starting conditions
+switch input_condition
+    case 1
+        Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
+    case 2
+        Mz0 = [0,0]; input_function(1:4) =  1; % boxcar input function
+    case 3
+        Mz0 = [1.5,0]; % no input function
+    case 4
+        Tin = 6; Mz0 = Tin; % no input function, delayed start
+end
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*30*pi/180;  % constant, single-band
@@ -52,15 +60,15 @@ disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
-params_est.kPL = kPL_est; 
+params_est.kPL = kPL_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
     [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
-
+    
     % add noise
     [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
-
+    
     % magnitude fitting with noise
     [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
@@ -104,10 +112,10 @@ params_est.R1L_ub = 1/15;
 for Iflips = 1:N_flip_schemes
     % no noise
     [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:, :, Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
-
+    
     % noise, complex-valued fitting
     [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
-
+    
     % magnitude fitting with noise
     [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end

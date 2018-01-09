@@ -2,13 +2,13 @@ function [x2, u] = trajectories_frompyr( params_fit, x1, Mzscale, params_fixed ,
 % Compute product magnetization (e.g. lactate) using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
-% all using MZ component so can account for variable flip angles
+% x1 and x2 are pyruvate and lactate, respectively, longitudinal magnetization (MZ) component estimates in order to account for variable flip angles
 
 N = length(x1);
 
 x2 = zeros(1, N); u = zeros(1,N);
 
-params_all = {'kPL', 'R1L', 'R1P'};
+params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
 nfit = 0;
 for n = 1:length(params_all)
     if isfield(params_fixed, params_all(n))
@@ -18,6 +18,8 @@ for n = 1:length(params_all)
         eval([params_all{n} '= params_fit(nfit);']);
     end
 end
+
+x2(1) = L0_start;
 
 for t=1:N-1
     
