@@ -8,12 +8,23 @@ R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
 k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
 
-input_condition = 4; % choose from various simulated starting conditions
+input_condition = 1; % choose from various simulated starting conditions
 switch input_condition
     case 1
-        Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function
+        % gamma variate input function - most realistic
+        t = [1:N]*TR;
+        Tarrival = 0;
+        A = 4; B = 1*TR;
+%        input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function - truncated
+        input_function = gampdf(t-Tarrival,A,B);  % gamma distribution -continued input
+        input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
+        Mz0 = [0,0]; 
     case 2
-        Mz0 = [0,0]; input_function(1:4) =  1; % boxcar input function
+        % boxcar input function
+        Tbolus = 12;  Tarrival = 0;
+        Ibolus = [1:round(Tbolus/TR)] + round(Tarrival/TR);
+        Rinj = 1/Tbolus; % normalize for a total magnetization input = 1
+        Mz0 = [0,0]; input_function(Ibolus) =  Rinj*TR;
     case 3
         Mz0 = [1.5,0]; % no input function
     case 4
