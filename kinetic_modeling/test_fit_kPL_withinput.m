@@ -7,17 +7,32 @@ Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
 R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
 k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
-if 0
-    % gamma variate input function - more realistic, modeling does ok with
-    % this input though
-    Mz0 = [0,0];  input_function(1:6) = gampdf([1:6],4,1)*3;
-else
-    % boxcar input function - ideal for this fitting model
-    Tbolus = 12;  Tarrival = 0;
-    Ibolus = [1:round(Tbolus/TR)] + round(Tarrival/TR);
-    Rinj = 1/Tbolus;
-    Mz0 = [0,0]; input_function(Ibolus) =  Rinj*TR;
+
+input_condition = 2; % choose from various simulated starting conditions
+switch input_condition
+    case 1
+        % gamma variate input function - more realistic, modeling does ok with
+        % this input though
+        t = [1:N]*TR;
+        Tarrival = 0;
+        A = 4; B = 1*TR;
+        input_function(1:6) = gampdf([1:6],4,1)*3;  % gamma variate input function - truncated, closer to boxcar
+%        input_function = gampdf(t-Tarrival,A,B);  % gamma distribution -
+%        continued input, leads to more bias
+        input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
+        Mz0 = [0,0]; 
+    case 2
+        % boxcar input function - ideal for this fitting model
+        Tbolus = 12;  Tarrival = 0;
+        Ibolus = [1:round(Tbolus/TR)] + round(Tarrival/TR);
+        Rinj = 1/Tbolus; % normalize for a total magnetization input = 1
+        Mz0 = [0,0]; input_function(Ibolus) =  Rinj*TR;
+    case 3
+        Mz0 = [1.5,0]; % no input function
+    case 4
+        Tin = 6; Mz0 = Tin; % no input function, delayed start
 end
+
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*30*pi/180;  % constant, single-band
@@ -41,15 +56,16 @@ title('Lactate flips')
 legend('constant','multiband',  'max lactate SNR vfa'); %, 'vfa', 'T1-effective vfa', 'Saturation Recovery')
 
 % generate simulated data
+noise_S = randn([2 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy(1:2, 1:N, Iflips), Mz] = simulate_2site_model(Mz0, [R1P R1L], [KPL 0], flips(:,:,Iflips), TR, input_function);
     % add noise
-    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + randn([size(Mxy,1), size(Mxy,2)])*std_noise;
+    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + noise_S;
 end
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
-Tarrival_est = 0; Rinj_est = .2; Tbolus_est = 10;  % magnitude fitting relatively sensitive to estimates of arrival and bolus times
+Tarrival_est = 0; Rinj_est = .1; Tbolus_est = 12;  % magnitude fitting relatively sensitive to estimates of arrival and bolus times
 
 plot_fits = 0;
 
@@ -66,15 +82,15 @@ params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolu
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1,1:size(Mxy,2),  Iflips) Sfit(2,1:size(Mxy,2),  Iflips)] = ...
+    [params_fit(:,Iflips) Sfit(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1,1:size(Mxy,2),  Iflips) Snfit_complex(2,1:size(Mxy,2),  Iflips)] = ...
+    [params_fitn_complex(:,Iflips) Snfit_complex(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
-    % magnitude fitting with noise - broken
-    [params_fitn_mag(:,Iflips) Snfit_mag(1,1:size(Mxy,2),  Iflips) Snfit_mag(2,1:size(Mxy,2),  Iflips)] = ...
+    % magnitude fitting with noise - BROKEN
+    [params_fitn_mag(:,Iflips) Snfit_mag(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 
@@ -124,15 +140,15 @@ params_est.R1L_ub = 1/15;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1,1:size(Mxy,2),  Iflips) Sfit(2,1:size(Mxy,2),  Iflips)] = ...
+    [params_fit(:,Iflips) Sfit(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1,1:size(Mxy,2),  Iflips) Snfit_complex(2,1:size(Mxy,2),  Iflips)] = ...
+    [params_fitn_complex(:,Iflips) Snfit_complex(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1,1:size(Mxy,2),  Iflips) Snfit_mag(2,1:size(Mxy,2),  Iflips)] = ...
+    [params_fitn_mag(:,Iflips) Snfit_mag(:,1:size(Mxy,2),  Iflips)] = ...
         fit_kPL_withinput(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 

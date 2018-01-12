@@ -26,6 +26,8 @@ for It=1:N
         if Tarrival < 0
             % account for longer period of bolus prior to imaging
             TRactual = -Tarrival;
+        else
+            TRactual = TR;
         end
         
     else

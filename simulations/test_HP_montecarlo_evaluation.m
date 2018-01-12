@@ -1,19 +1,15 @@
 clear all
-NMC = 250;  % 100 is ok
-
-ratio_limits = [.5 1.5];
-
+NMC = 100;  % less for quicker testing
 
 % default experiment values
-exp.R1 = [1/25 1/25]; exp.kPL = 0.02; exp.std_noise = 0.01;
+exp.R1P = 1/25;  exp.R1L =1/25;  exp.kPL = 0.02; exp.std_noise = 0.01;
 
-% parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P
-Nplot1 = 3; Nplot2 = 2;
-
-% default fitting parameters
 for  est_R1L = 0
     for fit_input = 0
         
+        clear params_est params_fixed acq fitting
+        
+        % default fitting parameters
         R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
         params_fixed.R1P = R1P_est;
         params_est.kPL = kPL_est;
@@ -22,6 +18,9 @@ for  est_R1L = 0
         else
             params_fixed.R1L = R1L_est;
         end
+        
+        params_fixed.L0_start = 0;  % ok to be free parameter?
+
         % allowing for fit of R1L increases variability substantially
         % R1P minimal change
         % constraining R1L to narrow range maybe reasonable compromise
@@ -36,22 +35,20 @@ for  est_R1L = 0
         end
         
         
-
-                    % 2D dynamic 10/20 flips
-                    Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
-                    Npe = 8; Nall = acq.N * Npe;
-                    acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
-                    
-%                    acq.flips = repmat([10*pi/180; 40*pi/180], [1 N]);
-
-            
-            acq.Tbolus = 12;
-            Mz0 = [0,0];
-            
-            fitting.params_est = params_est; fitting.params_fixed = params_fixed;
-            
-            HP_montecarlo_evaluation( acq, fitting, exp );
-
+        
+        % 2D dynamic 10/20 flips
+        Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
+        Npe = 8; Nall = acq.N * Npe;
+        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
+        
+        %                    acq.flips = repmat([10*pi/180; 40*pi/180], [1 N]);
+        
+        
+        fitting.params_est = params_est; fitting.params_fixed = params_fixed;
+        fitting.NMC = NMC;
+        
+        HP_montecarlo_evaluation( acq, fitting, exp );
+        
     end
 end
 
