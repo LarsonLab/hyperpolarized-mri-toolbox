@@ -227,7 +227,7 @@ function [f,z,m] = ss_plot(g, rf, samp, ptype, fov, bw, gamma, fplot, isodelay)
 	subplot(4,nplot,3*nplot + idx);
 	m_f = calc_mag(rf_rot,gz_rot+i*gf_rot, z, fplot(idx),ptype);
     plot_mag(z,m_f,ptype);
-	title(sprintf('Spatial Profile - Freq = %5.1f', fplot(idx)));
+	title(sprintf('%5.1f', fplot(idx)));
 	xlabel('Position [cm]');
     end;
 
