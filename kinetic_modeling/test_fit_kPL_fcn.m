@@ -53,10 +53,11 @@ title('Lactate flips')
 legend('constant','multiband',  'max lactate SNR vfa'); %, 'vfa', 'T1-effective vfa', 'Saturation Recovery')
 
 % generate simulated data
+noise_S = randn([2 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy(1:2, 1:N, Iflips), Mz] = simulate_2site_model(Mz0, [R1P R1L], [KPL 0], flips(:,:,Iflips), TR, input_function);
     % add noise
-    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + randn([size(Mxy,1), size(Mxy,2)])*std_noise;
+    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + noise_S;
 end
 
 % initial parameter guesses

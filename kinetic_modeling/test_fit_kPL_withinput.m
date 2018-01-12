@@ -8,7 +8,7 @@ R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
 k12 = 0.05; % for variable flip angle designs
 input_function = zeros(1,N);
 
-input_condition = 1; % choose from various simulated starting conditions
+input_condition = 2; % choose from various simulated starting conditions
 switch input_condition
     case 1
         % gamma variate input function - more realistic, modeling does ok with

@@ -63,7 +63,7 @@ end
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
 Tarrival_est = 0; Rinj_est = 1; A_est = 4;  B_est = 3;% magnitude fitting relatively sensitive to estimates of arrival and bolus times
 
-plot_fits = 1;
+plot_fits = 0;
 
 %% Test fitting - fit kPL only
 disp('Fitting kPL, with fixed relaxation rates:')
