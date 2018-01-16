@@ -1,8 +1,8 @@
-function [fspec, a_angs, d] = create_freq_specs(mets)
+function [fspec, a_angs, d] = create_freq_specs(mets, fmid)
 % CREATE_FREQ_SPECS - Helper function for creating spectral-spatial
 % frequency specifications
 %
-% [fspec, a_angs, d] = create_freq_specs(mets);
+% [fspec, a_angs, d] = create_freq_specs(mets, fmid);
 %   
 % INPUT
 %    mets - structure containing:
@@ -10,6 +10,7 @@ function [fspec, a_angs, d] = create_freq_specs(mets)
 %       mets(i).df - bandwidth of bands (Hz)
 %       mets(i).ang - flip angle of bands (degress)
 %       mets(i).d - ripple of bands (Mxy, default = .01)
+%    fmid [optional] - center frequency spec around fmid
 %      
 % OUTPUT
 %    spec, a_angs, d - inputs for ss_design()
@@ -41,6 +42,9 @@ for n = 1:length(mets)
     end
 end
 
-% by default, center frequency specification 
-fmid = (mets(1).f+mets(end).f)/2; 
+if nargin < 2 || isempty(fmid)
+    % by default, center frequency specification 
+    fmid = (min(fspec)+max(fspec))/2; 
+end
+
 fspec = fspec - fmid;
