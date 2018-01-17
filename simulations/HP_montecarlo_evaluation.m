@@ -73,8 +73,13 @@ Nplot1 = 4; Nplot2 = 2;
 
 t = [0:acq.N-1]*acq.TR;
 Mz0 = [0,0];
-input_function = gampdf(t,Tbolus/2,1);
+if isfield(exp, 'input_function')
+    input_function = exp.input_function;
+else
+    input_function = gampdf(t+acq.TR,4,Tbolus/4);  % gives a full-width half-max of the bolus of ~ Tbolus sec
+end
 input_function = input_function/sum(input_function); % normalize so total input magnetization = 1
+results.input_function = input_function;
 
 Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 AUC_predicted = sum(Mxy(2,:))/sum(Mxy(1,:));
@@ -139,7 +144,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(std_noise_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-xlabel('\sigma^2'),  xlim([exp.std_noise_min, exp.std_noise_max])
+xlabel('\sigma'),  xlim([exp.std_noise_min, exp.std_noise_max])
 ylim(ratio_limits)
 
 
@@ -347,7 +352,7 @@ end
 function [kPL_fit, AUC_fit] = fitting_simulation(fit_fcn, Mxy, TR, flips, NMC, std_noise, params_fixed, params_est);
 
 kPL_fit = zeros(1,NMC); AUC_fit = zeros(1,NMC);
-parfor n = 1:NMC
+for n = 1:NMC
     Sn = Mxy + randn(size(Mxy))*std_noise;
     
     params_fit = fit_fcn(Sn, TR, flips, params_fixed, params_est, [], 0);

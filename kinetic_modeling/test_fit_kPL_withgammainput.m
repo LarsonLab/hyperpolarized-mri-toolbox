@@ -13,9 +13,9 @@ switch input_condition
     case 1
         % gamma variate input function
         t = [1:N]*TR;
-        Tarrival = 0;
-        A = 4; B = 1*TR;
-        input_function = gampdf(t-Tarrival,A,B);  % gamma distribution
+        Tarrival = 0;  Tbolus = 12;
+        A = 4; % emperical choice to start bolus rapidly
+        input_function = gampdf(t-Tarrival,A,Tbolus/4);  % gamma distribution
         input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
         Mz0 = [0,0];
     case 2
@@ -118,18 +118,68 @@ disp('')
 pause
 
 
+%% Test fitting - fit kPL only with constraints of known bolus shape
+disp('Fitting kPL, with fixed relaxation rates, unknown bolus:')
+disp('Improve fit with known bolus shape')
+disp('')
+
+clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
+params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.A = A_est;  params_fixed.B = B_est; params_fixed.Tarrival = Tarrival_est; 
+params_est.kPL = kPL_est;
+params_est.Rinj = Rinj_est; % still fit injection rate, which is equivalent to a perfusion parameter
+
+for Iflips = 1:N_flip_schemes
+    % no noise
+    [params_fit(:,Iflips) Sfit(:,1:size(Mxy,2),  Iflips)] = ...
+        fit_kPL_withgammainput(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    
+    % add noise
+    [params_fitn_complex(:,Iflips) Snfit_complex(:,1:size(Mxy,2),  Iflips)] = ...
+        fit_kPL_withgammainput(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    
+    % magnitude fitting with noise - broken
+    [params_fitn_mag(:,Iflips) Snfit_mag(:,1:size(Mxy,2),  Iflips)] = ...
+        fit_kPL_withgammainput(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+end
+
+disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
+disp('Noiseless fit results:')
+disp(['KPL         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fit), 2, N_flip_schemes).'))
+disp('Noisy complex fit results:')
+disp(['KPL         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fitn_complex), 2, N_flip_schemes).'))
+disp('Noisy magnitude fit results:')
+disp(['KPL         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fitn_mag), 2, N_flip_schemes).'))
+
+figure
+subplot(121) , plot(t, squeeze(Sn(1,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':')
+plot(t, squeeze(Snfit_mag(1,:,:)),'--')
+title('Pyruvate signals')
+subplot(122) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+plot(t, squeeze(Snfit_mag(2,:,:)),'--')
+title('kPL fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
+legend('constant','multiband', 'multiband variable flip')
+
+
+disp('Press any key to continue')
+disp('')
+pause
+
+
 %% Test fitting - fit kPL and T1 of lactate
-disp('Fitting kPL and lactate T1:')
-disp('Fitting both parameters leads to increases in variability, which can be')
-disp('alleviated to some extent by constraints on the parameter values')
-disp('(Pyruvate T1 values have very small effect on this fitting approach)')
+disp('Fitting kPL and lactate T1, known bolus shape:')
+disp('Fitting lactate T1 leads to increases in variability')
 disp('')
 
 % Fitting both kPL and relaxation rate of lactate
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
-params_fixed.R1P = R1P_est;
+params_fixed.R1P = R1P_est; params_fixed.A = A_est;  params_fixed.B = B_est; params_fixed.Tarrival = Tarrival_est; 
 params_est.kPL = kPL_est; params_est.R1L = R1L_est;
-params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.A = A_est;  params_est.B = B_est;
+params_est.Rinj = Rinj_est; % still fit injection rate, which is equivalent to a perfusion parameter
 % set constraints on lactate T1:
 params_est.R1L_lb = 1/40;
 params_est.R1L_ub = 1/15;
@@ -150,14 +200,14 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL         R1L         Rinj        Tarrive       A           B  = ']);
-disp(num2str(reshape(struct2array(params_fit), 6, N_flip_schemes).'))
+disp(['KPL         R1L         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fit), 3, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL         R1L         Rinj        Tarrive       A           B  = ']);
-disp(num2str(reshape(struct2array(params_fitn_complex), 6, N_flip_schemes).'))
+disp(['KPL         R1L         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fitn_complex), 3, N_flip_schemes).'))
 disp('Noisy magnitude fit results:')
-disp(['KPL         R1L         Rinj        Tarrive       A           B  = ']);
-disp(num2str(reshape(struct2array(params_fitn_mag), 6, N_flip_schemes).'))
+disp(['KPL         R1L         Rinj  = ']);
+disp(num2str(reshape(struct2array(params_fitn_mag), 3, N_flip_schemes).'))
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
