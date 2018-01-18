@@ -159,7 +159,7 @@ for i=1:size(S, 1)
             plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
-            title(num2str(params_fit_vec(i,:),4))
+            title(num2str(params_fit_vec(i,1:end-1),4)) % don't display L0_start value
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.5)
         end
