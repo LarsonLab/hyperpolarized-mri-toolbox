@@ -122,9 +122,9 @@ subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 ylim(ratio_limits)
 xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
 
-results.kPL_test.avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
-results.kPL_test.avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
-results.kPL_test.std_bias = std(kPL_mean) ;  % accuracy measurement
+results.kPL_test.kPL_avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
+results.kPL_test.kPL_avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
+results.kPL_test.kPL_std_bias = std(kPL_mean) ;  % accuracy measurement
 
 results.kPL_test.AUC_avg_error = mean(AUC_std);  % precision measurement
 results.kPL_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
