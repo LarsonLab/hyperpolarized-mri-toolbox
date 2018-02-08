@@ -186,7 +186,9 @@ if length(Nx) > 1
     Sfit = reshape(Sfit, [Nx, Nt]);
     ufit = reshape(ufit, [Nx, Nt]);
     objective_val = reshape(objective_val, Nx);
-    disp('100 % complete')
+	if plot_flag
+    	disp('100 % complete')
+    end
 end
 
 end
