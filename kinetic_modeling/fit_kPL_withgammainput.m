@@ -107,8 +107,9 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),2,Nt]);
+Sfit1 = zeros([prod(Nx),Nt]); Sfit2 = zeros([prod(Nx),Nt]);
 
-for i=1:size(S, 1)
+parfor i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end
@@ -136,28 +137,29 @@ for i=1:size(S, 1)
                 obj = @(var) trajectory_difference_x1(var, x1, x2, params_fixed, TR, Mzscale);
                 [params_fit_vec_temp] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
+                params_est_vec2 = params_est_vec;
                 % update estimates - could also fix parameters
                 for n = Iparams_pyr
                     In = find(n==I_params_est);
                     if ~isempty(In)
-                        params_est_vec(In) = params_fit_vec_temp(In);
+                        params_est_vec2(In) = params_fit_vec_temp(In);
                     end
                 end
                 
                 % Fit all data
                 obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale);
-                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec2, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
-                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
+                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec2, options);
                 
         end
         [x1fit, x2fit] = trajectories_withgammainput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
         x1fit = x1fit  .* Sscale(1, :);
         x2fit = x2fit  .* Sscale(2, :);
-        Sfit(i,1,:) = x1fit;
-        Sfit(i,2,:) = x2fit;
+        Sfit1(i,:) = x1fit;
+        Sfit2(i,:) = x2fit;
         
         if plot_flag
             % plot of fit for debugging
@@ -172,6 +174,8 @@ for i=1:size(S, 1)
     end
 end
 
+Sfit(:,1,:) = Sfit1;
+Sfit(:,2,:) = Sfit2;
 
 params_fit = struct([]);
 nfit = 0;

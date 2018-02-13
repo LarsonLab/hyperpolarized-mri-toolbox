@@ -41,8 +41,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % Reserved.
 
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
-params_default_est = [0.02, 1/25, 1/25, 0];
-params_default_lb = [0, 1/60, 1/60, 0];
+params_default_est = [0.01, 1/25, 1/25, 0];
+params_default_lb = [-Inf, 1/60, 1/60, 0];
 params_default_ub = [Inf, 1/10, 1/10, Inf];
 
 if nargin < 4 || isempty(params_fixed)
@@ -112,7 +112,7 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
 
-for i=1:size(S, 1)
+parfor i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end
@@ -159,7 +159,7 @@ for i=1:size(S, 1)
             plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
-            title(num2str(params_fit_vec(i,1:end-1),4)) % don't display L0_start value
+            title(num2str(params_fit_vec(i,:),4)) % don't display L0_start value
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.5)
         end
