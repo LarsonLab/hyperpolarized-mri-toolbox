@@ -96,18 +96,19 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
     df = fsum/(mult_factor*N);
 
     nband = length(f)/2;
-    if strcmp(ss_type, 'Flyback'), 
-	w = linspace(-pi, pi, 2*mult_factor*N);
-    else
-	w = [];
+
+    % Use this definition of frequency to correct entire base bandwidth but
+    % not aliased bands:
+	% w = linspace(-pi, pi, 2*mult_factor*N);
+    
+    w = [];
 	for band = 1:nband,
 	    nf = ceil((f(band*2)-f(band*2-1))/df) + 1;
 	    df_act = (f(band*2)-f(band*2-1))/(nf-1);
 	    wband = f(band*2-1) + [0:nf-1]*df_act;
 	    w = [w pi*wband];
 	end;
-    end;
-
+    
     % Plot w sampling
     %
     if (dbg >= 2),			% Verbose
@@ -162,11 +163,12 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 	    title('Sampling Locations');
 	end;
 
-	switch (ss_type)
-	 case 'Flyback'
-	  % Get actual
+	  % Get actual desired frequency response
 	  %
 	  Wact = exp(-i*kron(w', t_act));
+      
+	switch (ss_type)
+	 case 'Flyback'
 	
 	  % Get least-squares fit to filter 
 	  %
@@ -216,9 +218,6 @@ function rfm = ss_spect_correct(b, bsf, Nper, Noff, f, ptype, ss_type, slr, ...
 	      rfm(:,idx) = 2*asin(abs(bsf(idx))) * conj(bm(:,idx));
 	  end;
 	 case 'EP'
-	  % Get actual
-	  %
-	  Wact = exp(-i*kron(w', t_act));
 	
 	  % Get least-squares fit to filter 
 	  %
