@@ -3,7 +3,7 @@ clear all;
 
 for aa = 1:1
 
-load c13_kidney_eugene.mat
+load epi_rat_kidney.mat
 
 epi_kidney = pa(:,:,[1 3 5 7 9 11 13 15 17 19 21 23 25]);
 for i = 1:13
@@ -66,7 +66,7 @@ if sparse == 0;
     param.mu = 2;
     param.hard_thresh = 0.3;
     
-    [L,S] = lps_ist_2D_LLR_plus_S_PCA_V2(param); 
+    [L,S] = LLR_plus_S_PCA(param); 
 
     LplusS(:,:,:,i)=L+S;
     end

@@ -120,7 +120,7 @@ if sparse == 0;
     param.bsize = [8,3];
     param.mu = 2;
 
-    [L,S] = lps_ist_2D_LLR_plus_S_PCA_V2(param); 
+    [L,S] = LLR_plus_S_PCA(param); 
 
     LplusS(:,:,:,i)=L+S;
    

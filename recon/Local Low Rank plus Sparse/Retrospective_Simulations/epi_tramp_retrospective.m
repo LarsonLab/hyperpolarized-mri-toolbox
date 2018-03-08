@@ -69,16 +69,10 @@ if sparse == 0;
     param.bsize = [5,5];
     param.mu = 2;
     param.hard_thresh = 0.3;
-%     [L,S] = lps_tv(param);
-%     [L,S] = lps_tv_2D_LLR_plus_S_global(param);
-%     [L,S] = lps_ist_2D_LLR_plus_S_global(param);
-%     [L,S] = lps_ist_2D_LLR_plus_S_PCA(param);
-% [L,S] = lps_ist_2D_GLR_plus_S_PCA(param);
-[L,S] = lps_ist_2D_LLR_plus_S_PCA_V2(param);
-%     [L,S] = lps_ist(param);
-%     [L,S] = lps_ist_hard_thresh(param);
+
+    [L,S] = LLR_plus_S_PCA(param); 
+
     LplusS(:,:,:,i)=L+S;
-    % LplusS = L;
     end
     
 else

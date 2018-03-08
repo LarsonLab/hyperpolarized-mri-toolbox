@@ -65,7 +65,7 @@ if sparse == 0;
     param.mu = 2;
     param.hard_thresh = 0.3;
 
-    [L,S] = lps_ist_2D_LLR_plus_S_PCA_V2(param); 
+    [L,S] = LLR_plus_S_PCA(param); 
 
     LplusS(:,:,:,i)=L+S;
     
