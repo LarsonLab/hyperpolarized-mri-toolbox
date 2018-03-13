@@ -30,7 +30,7 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
     
     if (linear_kTRANS_gradient)
         scale = 0.5*(kTRANS_low - kTRANS_high)*X + 0.5*(kTRANS_low + kTRANS_high);
-        kTRANS += scale.*rectangle_shape(X, Y, Z, 1.6, 1.6, 1.6, 0, 0, 0);
+        kTRANS = kTRANS + scale.*rectangle_shape(X, Y, Z, 1.6, 1.6, 1.6, 0, 0, 0);
     else
         kTRANS = kTRANS + kTRANS_low*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, 0.4, 0, 0);
         kTRANS = kTRANS + kTRANS_high*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, -0.4, 0, 0);
