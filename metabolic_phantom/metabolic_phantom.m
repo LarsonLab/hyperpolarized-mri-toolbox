@@ -1,4 +1,4 @@
-function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high, kPL_low, kPL_high )
+function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high, kPL_low, kPL_high, linear_kTRANS_gradient, linear_kPL_gradient)
 % METABOLIC_PHANTOM generates standardized 3-dimensional perfusion and metabolism maps for simulated experiments
 % 
 %   Parameters: 
@@ -9,6 +9,8 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
 %       kTRANS_high = perfusion rate in high perfusion region
 %       kPL_low     = metabolic rate in low metabolism regions
 %       kPL_high    = metabolic rate in high metabolism regions
+%       linear_kTRANS_gradient = boolean flag for whether kTRANS should be set to a gradient
+%       linear_kPL_gradient    = boolean flag for whether kPL should be set to a gradient
 % 
 %   Outputs: 
 %       kTRANS      = generated perfusion map
@@ -25,15 +27,28 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
     [X, Y, Z] = meshgrid(x, y, z);
     
     kTRANS = zeros(size(X)); 
-    kTRANS = kTRANS + kTRANS_low*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, 0.4, 0, 0);
-    kTRANS = kTRANS + kTRANS_high*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, -0.4, 0, 0);
+    
+    if (linear_kTRANS_gradient)
+        scale = 0.5*(kTRANS_low - kTRANS_high)*X + 0.5*(kTRANS_low + kTRANS_high);
+        kTRANS += scale.*rectangle_shape(X, Y, Z, 1.6, 1.6, 1.6, 0, 0, 0);
+    else
+        kTRANS = kTRANS + kTRANS_low*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, 0.4, 0, 0);
+        kTRANS = kTRANS + kTRANS_high*rectangle_shape(X, Y, Z, 0.8, 1.6, 1.6, -0.4, 0, 0);
+    end
     
     kPL = zeros(size(X));
-    kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
-    kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
-    kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
-    kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
-    
+    if (linear_kPL_gradient)
+        scale = 0.5*(kPL_low - kPL_high)*Y + 0.5*(kPL_low + kPL_high);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
+    else
+        kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
+        kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
+        kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
+        kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
+    end
 end
 
 
