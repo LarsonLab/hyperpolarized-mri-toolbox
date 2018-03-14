@@ -81,7 +81,11 @@ for n = 1:Nparams_to_fit
 end
 
 
-if nargin < 6 || isempty(noise_level)
+if nargin < 6 
+    noise_level = [];
+end
+
+if isempty(noise_level)
     % no noise level provided, so use least-squares fit (best for Gaussian
     % zero-mean noise)
     fit_method = 'ls';
@@ -112,7 +116,7 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
 
-parfor i=1:size(S, 1)
+for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end

@@ -22,8 +22,13 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
 
     x = linspace(-1, 1, nx);
     y = linspace(-1, 1, ny);
-    z = linspace(-1, 1, nz);
     
+    % option for 2D phantom
+    if nz > 1
+        z = linspace(-1, 1, nz);
+    else
+        z = 0;
+    end
     [X, Y, Z] = meshgrid(x, y, z);
     
     kTRANS = zeros(size(X)); 
@@ -39,8 +44,8 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
     kPL = zeros(size(X));
     if (linear_kPL_gradient)
         scale = 0.5*(kPL_low - kPL_high)*Y + 0.5*(kPL_low + kPL_high);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - scale).*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - scale).*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
         kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
         kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
     else
