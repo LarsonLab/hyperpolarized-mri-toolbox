@@ -16,8 +16,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % and 'R1P', and units of 1/s.
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
-%   TR - repetition time per time point flips - all flip angles [# of
-%   metabolites, # of time points x # of phase encodes]
+%   TR - repetition time per time point 
+%   flips (radians) - all flip angles [# of metabolites, # of time points x # of phase encodes]
 %	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)

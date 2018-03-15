@@ -2,7 +2,7 @@ function [Sscale, Mzscale] = flips_scaling_factors(flips, Nt)
 % flips_scaling_factors - compute magnetization scaling factors for each timepoint dataset from a
 % series of RF pulses.  Useful for kinetic modeling, especially with complex flip angle strategies
 % INPUTS
-%   flips - [# of metabolites, # of excitations]
+%   flips (radians) - [# of metabolites, # of excitations]
 %       If excitation is different from Nt, then it is assumed that there are Nt/# of 
 %	excitations that contribute to each resulting timepoint dataset
 %   Nt - number of timepoints across which to calculate scaling
