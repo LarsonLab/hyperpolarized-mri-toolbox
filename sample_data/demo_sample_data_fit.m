@@ -4,7 +4,7 @@ clear all
 %% Load data
 
 
-I_sample_data = 2;
+I_sample_data = 1;
 
 switch I_sample_data
     case 1

@@ -39,7 +39,7 @@ end
 
 if prewhitening_flag
     % assuming the last time point is noise
-    [Image_cc, Correlation_Matrix] = prewhitening_cc(Image_cc);
+    [Image_cc, Correlation_Matrix] = prewhitening_cc(Image_mc);
 end
 
 [Nx, Ny, Nz, Ncoil, Nmap, N_freq, Ndyn] = size(Image_mc);
