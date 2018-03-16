@@ -29,8 +29,8 @@ for i = 1:Nx
                 tmp_spectrum = Image_mc(i,j,k,:,1,:,t);
                 tmp_spectrum = squeeze(tmp_spectrum);
                 [U,S,V] = svd(tmp_spectrum,'econ');
-                S = wthresh(S,1);
-                Image_cc(i,j,k,1,1,:,t) = sum(U*S*V',2);
+                S = wthresh(S,'h',1);
+                Image_cc(i,j,k,1,1,:,t) = sum(U*S*V',1);
             end
         end
     end

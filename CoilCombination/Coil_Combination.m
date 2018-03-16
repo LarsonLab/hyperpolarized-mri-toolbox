@@ -47,8 +47,10 @@ end
 switch cc_method_flag
     case 0
         Image_cc = Sum_of_Square_cc(Image_mc);
+        Smap = [];
     case 1
         Image_cc = SVD_cc(Image_mc);
+        Smap = [];
     case 2
         [Image_cc, Smap] = RefPeak_cc(Image_mc);
 end
