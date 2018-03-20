@@ -16,8 +16,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % and 'R1P', and units of 1/s.
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
-%   TR - repetition time per time point flips - all flip angles [# of
-%   metabolites, # of time points x # of phase encodes]
+%   TR - repetition time per time point 
+%   flips (radians) - all flip angles [# of metabolites, # of time points x # of phase encodes]
 %	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
@@ -41,8 +41,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % Reserved.
 
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
-params_default_est = [0.02, 1/25, 1/25, 0];
-params_default_lb = [0, 1/60, 1/60, 0];
+params_default_est = [0.01, 1/25, 1/25, 0];
+params_default_lb = [-Inf, 1/60, 1/60, 0];
 params_default_ub = [Inf, 1/10, 1/10, Inf];
 
 if nargin < 4 || isempty(params_fixed)
@@ -81,7 +81,11 @@ for n = 1:Nparams_to_fit
 end
 
 
-if nargin < 6 || isempty(noise_level)
+if nargin < 6 
+    noise_level = [];
+end
+
+if isempty(noise_level)
     % no noise level provided, so use least-squares fit (best for Gaussian
     % zero-mean noise)
     fit_method = 'ls';
@@ -159,7 +163,7 @@ for i=1:size(S, 1)
             plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
-            title(num2str(params_fit_vec(i,1:end-1),4)) % don't display L0_start value
+            title(num2str(params_fit_vec(i,:),4)) % don't display L0_start value
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.5)
         end

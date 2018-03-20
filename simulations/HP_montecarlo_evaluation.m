@@ -4,8 +4,8 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
 % simulations.
 % Evaluation is performed considering a given set of acquisition
-% parameters and kinetic modeling method.  The Area-under-curve ratio
-% (AUCratio) derived in Hill et al. PLoS One, doi:
+% parameters and kinetic modeling method.  A calibrated Area-under-curve ratio
+% (cAUCratio) derived in Hill et al. PLoS One, doi:
 % 10.1371/journal.pone.0071996 , is always computed as a reference.
 %
 % INPUTS:
@@ -43,6 +43,8 @@ end
 if nargin < 3 || isempty(exp)
     exp = struct([]);
 end
+
+% default experiment values
 exp_params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus', 'Tarrival'};
 exp_params_default = [0.02, 1/25, 1/30, 0.005, 12, 4];
 
@@ -53,7 +55,6 @@ for n = 1:length(exp_params_all)
     end
 end
 
-% default experiment values
 R1 = [exp.R1P, exp.R1L]; kPL = exp.kPL; std_noise = exp.std_noise;
 Tbolus = exp.Tbolus;
 
@@ -67,10 +68,10 @@ exp.R1P_min = 1/40; exp.R1P_max = 1/20;
 exp.B1error_min = -.2; exp.B1error_max = .2;
 exp.B1diff_min = -.2; exp.B1diff_max = .2;
 
-% parameters to plot/fit: kPL, noise, arrival, duration, T1L, T1P, B1,
-% vascular parameters?
+
 Nplot1 = 4; Nplot2 = 2;
 
+% default input function and sample data
 t = [0:acq.N-1]*acq.TR;
 Mz0 = [0,0];
 t_input = t+acq.TR-exp.Tarrival;
@@ -101,6 +102,9 @@ xlabel('time (s)'), ylabel('Signal')
 hsim = figure;
 Iplot = 1;
 
+legh = legend; 
+
+
 %% KPL test
 
 kPL_test = linspace(exp.kPL_min, exp.kPL_max, Nexp_values).';
@@ -122,9 +126,14 @@ subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 ylim(ratio_limits)
 xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
 
+% add legend
+legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
+legh.Position = [.35 0.01 .3 .1];
+
 results.kPL_test.kPL_avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
 results.kPL_test.kPL_avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
 results.kPL_test.kPL_std_bias = std(kPL_mean) ;  % accuracy measurement
+
 
 results.kPL_test.AUC_avg_error = mean(AUC_std);  % precision measurement
 results.kPL_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
@@ -326,6 +335,8 @@ subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(B1diff_test, kPL_fit/kPL-1, AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]) -1);
 ylim(ratio_limits), xlim([exp.B1diff_min, exp.B1diff_max]), xlabel('% B_{1} difference')
 
+
+
 results.B1diff_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.B1diff_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
 results.B1diff_test.kPL_std_bias = std(kPL_mean);  % accuracy measurement
@@ -345,8 +356,9 @@ DELTA1 = std(y1, [], 2);
 DELTA2 = std(y2, [], 2);
 Y1 = mean(y1,2);
 Y2 = mean(y2,2);
-plot(x, Y1, 'b-', x, Y1+DELTA1, 'b--', x, Y1-DELTA1, 'b--', ...
-    x, Y2, 'g-', x, Y2+DELTA2, 'g--', x, Y2-DELTA2, 'g--')
+plot(x, Y1, 'b-', x, Y2, 'g-', ...  % means
+    x, Y1+DELTA1, 'b--', x, Y1-DELTA1, 'b--', ... % stds
+    x, Y2+DELTA2, 'g--', x, Y2-DELTA2, 'g--')
 end
 
 
