@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_HP_kinetics(S, TR, flips, model, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_HP_kinetics - Kinetic model fitting function for HP 13C MRI.
 %
 % Models - 'inputless' (default), 'boxcar-input', 'gamma-input'
@@ -15,10 +15,11 @@ function [params_fit, Sfit, ufit, objective_val] = fit_HP_kinetics(S, TR, flips,
 %
 % [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
-% All params_* values are structures, with possible fields of 'kPL', 'R1L',
-% and 'R1P', and units of 1/s.
+% All params_* values are structures, with possible fields of 'kPL' (1/s), 'R1L' (1/s),
+% and 'R1P', and units of 1/s.  MORE
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
+%		Substrate (e.g. Pyruvate) should be the first metabolite, followed by each product
 %   TR - repetition time per time point flips - all flip angles [# of
 %   metabolites, # of time points x # of phase encodes]
 %	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
@@ -47,10 +48,30 @@ if nargin < 4 || isempty(model)
     model = 'inputless';
 end
 
-params_all = {'kPL', 'R1L', 'R1P', 'L0_start', 'Rinj', 'Tarrival', 'Tbolus'};
-params_default_est = [0.02, 1/25, 1/25, 0 0.1 0 8];
-params_default_lb = [0, 1/60, 1/60, 0 0 -30 0];
-params_default_ub = [Inf, 1/10, 1/10, Inf Inf 30 Inf];
+size_S = size(S);  ndimsx = length(size_S)-2;
+Nt = size_S(end); t = [0:Nt-1]*TR;
+Nx = size_S(1:ndimsx);
+Nmets = size_S(end-1);
+if isempty(Nx)
+    Nx = 1;
+end
+
+params_all = {'kPL', 'kPB', 'kPA', ...
+	'R1P', 'R1L', 'R1A', 'R1B', ...
+	'S0_L', 'S0_B', 'S0_A', ...
+	'Rinj', 'Tarrival', 'Tbolus'};
+params_default_est = [0.01, 0.01, 0.01, ...
+	1/30, 1/25, 1/25, 1/15, ...
+	0, 0, 0, ...
+	0.1, 0, 8];
+params_default_lb = [-Inf, -Inf, -Inf, ...
+	 1/50, 1/50, 1/50, 1/50, ...
+	 -Inf, -Inf, -Inf, ...
+	  0, -30, 0];
+params_default_ub = [Inf, Inf, Inf, ...
+	1/10, 1/10, 1/10, 1/5 , ...
+	 Inf, Inf, Inf, ...
+	 Inf 30 Inf];
 
 if nargin < 5 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -59,6 +80,16 @@ end
 if nargin < 6 || isempty(params_est)
     params_est = struct([]);
 end
+
+% Supports up to 3 metabolic products (e.g. alanine, lactate, bicarb)
+switch Nmets
+	case 2 % assume pyruvate & lactate
+params_fixed.kPA = 0;  params_fixed.S0_A = 0;
+params_fixed.kPB = 0;  params_fixed.S0_B = 0;
+	case 3 % assume pyruvate & lactate & bicarbonate
+params_fixed.kPA = 0;   params_fixed.S0_A = 0;
+end
+
 
 I_params_est = [];
 for n = 1:length(params_all)
@@ -106,33 +137,21 @@ if plot_flag
     disp('==== Computing parameter map ====')
 end
 
-size_S = size(S);  ndimsx = length(size_S)-2;
-Nt = size_S(end); t = [0:Nt-1]*TR;
-Nx = size_S(1:ndimsx);
-if isempty(Nx)
-    Nx = 1;
-end
-S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimension
+S = reshape(S, [prod(Nx), Nmets, Nt]);  % put all spatial locations in first dimension
 
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
-Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
+Sfit = zeros([prod(Nx),Nmets,Nt]); ufit = zeros([prod(Nx),Nt]);
 
 for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end
     % observed magnetization (Mxy)
-    y1 = reshape(S(i, 1, :), [1, Nt]); % pyr
-    y2 = reshape(S(i, 2, :), [1, Nt]); % lac
+    Mxy = reshape(S(i, :, :), [Nmets, Nt]); % pyr
+
     if any(y1 ~= 0)
-        % % plot of observed data for debugging
-        % figure(1)
-        % plot(t, y1, t, y2)
-        % xlabel('time (s)')
-        % ylabel('measured magnetization (au)')
-        % legend('pyruvate', 'lactate')
         
         % estimate state magnetization (MZ) based on scaling from RF pulses
         x1 = y1./Sscale(1, :);
@@ -143,15 +162,16 @@ for i=1:size(S, 1)
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_inputless(model, var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
+                obj = @(var) negative_log_likelihood_rician_inputless(model, var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
+        
+        [Sfit(i,:), ufit(i,:)] = trajectories(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
@@ -200,7 +220,7 @@ end
 
 end
 
-function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
+function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
 %    compartmental model with Rician noise
 % noise level is scaled for state magnetization (Mz) domain
@@ -208,7 +228,7 @@ function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzs
 N = size(x1,2);
 
 % compute trajectory of the model with parameter values
-x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR);
+x2fit = trajectories_inputless(params_fit, x1, Mzscale, params_fixed, TR);
 
 % compute negative log likelihood
 l1 = 0;
@@ -224,3 +244,45 @@ for t = 1:N
 end
 end
 
+function [Mz_products, u] = trajectories_inputless( params_fit, Mz_pyr, Mzscale, params_fixed , TR )
+% Compute product magnetizations using a uni-directional two-site model
+% Uses substrate magnetization measurements, estimated relaxation and
+% conversion rates
+
+Nmets = size(Mzscale,1); N = size(Mzscale,2);
+Mz_all = zeros(Nmets, N);
+u = zeros(1,N);
+
+params_all = {'kPL', 'kPB', 'kPA', ...
+	'R1P', 'R1L', 'R1A', 'R1B', ...
+	'S0_L', 'S0_B', 'S0_A'};
+
+nfit = 0;
+for n = 1:length(params_all)
+    if isfield(params_fixed, params_all(n))
+        eval([params_all{n} '= params_fixed.(params_all{n});']);
+    else
+        nfit = nfit+1;
+        eval([params_all{n} '= params_fit(nfit);']);
+    end
+end
+
+Mz_all(1,:) = Mz_pyr;
+Mz_all(2,1) = S0_L;
+Mz_all(3,1) = S0_B;
+Mz_all(4,1) = S0_A;
+
+for It=1:N-1
+    
+    Mz_init = Mz_all(:,It) .* Mzscale(:, It);
+    
+    % estimate input, assuming this is constant during TR interval
+    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR) ) * (R1P + kPL) / (1 - exp((- R1P - kPL - kPB - kPA)*TR));
+    
+    % solve next time point under assumption of constant input during TR
+    x2(It+1) = exp(-R1L*TR)*((L0*R1L*R1P - L0*R1L^2 - kPL*u(It) + L0*R1L*kPL + P0*R1L*kPL)/(R1L*(R1P - R1L + kPL)) + (kPL*u(It)*exp(R1L*TR))/(R1L*(R1P - R1L + kPL))) - exp(-TR*(R1P + kPL))*((kPL*(P0*R1P - u(It) + P0*kPL))/((R1P + kPL)*(R1P - R1L + kPL)) + (kPL*u(It)*exp(R1P*TR + kPL*TR))/((R1P + kPL)*(R1P - R1L + kPL)));
+    
+    
+end
+
+end

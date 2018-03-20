@@ -10,6 +10,8 @@
 clear all
 plot_flag = 1;
 int_range = 25;
+    R1P_est = 1/30; R1L_est = 1/25;  R1B_est = 1/15; R1A_est = 1/25;
+    kPL_est = 0.01; kPB_est = .01; kPA_est = .01;
 
 for ratnum = 1:4;
     
@@ -54,18 +56,27 @@ for ratnum = 1:4;
     end
     
     
-    clear params_fixed params_est params_fit kPL
-    R1P_est = 1/30; R1L_est = 1/25;  kPL_est = 0.01;
+    clear params_fixed params_est params_fit kPL kPB kPA
     params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
-    params_est.kPL = kPL_est;
+    params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
+    params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
     
     for n = 1:Nshots
         load(sprintf('rat%d/shot%d',ratnum,n));
         pyr = real(sum(spectra_dynamic(pyr_center+[-int_range:int_range],:),1));
         lac = real(sum(spectra_dynamic(lac_center+[-int_range:int_range],:),1));
+        ala = real(sum(spectra_dynamic(ala+[-int_range:int_range],:),1));
+        bicarb = real(sum(spectra_dynamic(bicarb+[-int_range:int_range],:),1));
         [params_fit Sfit] = fit_kPL([pyr;lac] , TR, repmat(flip, [2 length(pyr)]), params_fixed, params_est, [], plot_flag);
         kPL(n) = params_fit.kPL;
+        
+        [params_fit Sfit] = fit_pyr_kinetics([pyr;lac;bicarb;ala] , TR, repmat(flip, [4 length(pyr)]), params_fixed, params_est, [], plot_flag);
+        kPL(n) = params_fit.kPL; kPB(n) = params_fit.kPB; kPA(n) = params_fit.kPA;
+        
     end
     
-    disp(['Rat #' int2str(ratnum) ' kPL fits: ' num2str(kPL) ' 1/s'])
+    disp(['Rat #' int2str(ratnum)]);
+    disp(['   kPL fits: ' num2str(kPL) ' 1/s'])
+    disp(['   kPB fits: ' num2str(kPB) ' 1/s'])
+    disp(['   kPA fits: ' num2str(kPA) ' 1/s'])
 end
