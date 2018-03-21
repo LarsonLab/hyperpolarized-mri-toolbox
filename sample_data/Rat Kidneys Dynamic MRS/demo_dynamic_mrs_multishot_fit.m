@@ -1,19 +1,18 @@
 % fit slab dynamic MRS data from repeated injections ("shots") in a single rat
-% as an example, does a kPL fit only (ignores alanine, bicarb)
 
 % Data and studies described in
-% Hu, Simon, Peder E Z Larson, Mark Vancriekinge, Andrew M Leach, Ilwoo Park, Christine Leon,  et al. 
-% “Rapid Sequential Injections of Hyperpolarized [1-¹³C]pyruvate in Vivo Using a Sub-Kelvin, Multi-Sample DNP Polarizer.” 
-% Magn Reson Imaging 31, no. 4 (May 2013): 490–96. 
+% Hu, Simon, Peder E Z Larson, Mark Vancriekinge, Andrew M Leach, Ilwoo Park, Christine Leon,  et al.
+% “Rapid Sequential Injections of Hyperpolarized [1-¹³C]pyruvate in Vivo Using a Sub-Kelvin, Multi-Sample DNP Polarizer.”
+% Magn Reson Imaging 31, no. 4 (May 2013): 490–96.
 % https://doi.org/10.1016/j.mri.2012.09.002.
 
 clear all
 plot_flag = 1;
 int_range = 25;
-    R1P_est = 1/30; R1L_est = 1/25;  R1B_est = 1/15; R1A_est = 1/25;
-    kPL_est = 0.01; kPB_est = .01; kPA_est = .01;
+R1P_est = 1/30; R1L_est = 1/25;  R1B_est = 1/15; R1A_est = 1/25;
+kPL_est = 0.01; kPB_est = .01; kPA_est = .01;
 
-for ratnum = 1:4;
+for ratnum = 1:5
     
     switch ratnum
         case 1
@@ -65,10 +64,12 @@ for ratnum = 1:4;
         load(sprintf('rat%d/shot%d',ratnum,n));
         pyr = real(sum(spectra_dynamic(pyr_center+[-int_range:int_range],:),1));
         lac = real(sum(spectra_dynamic(lac_center+[-int_range:int_range],:),1));
-        ala = real(sum(spectra_dynamic(ala+[-int_range:int_range],:),1));
-        bicarb = real(sum(spectra_dynamic(bicarb+[-int_range:int_range],:),1));
-        [params_fit Sfit] = fit_kPL([pyr;lac] , TR, repmat(flip, [2 length(pyr)]), params_fixed, params_est, [], plot_flag);
-        kPL(n) = params_fit.kPL;
+        ala = real(sum(spectra_dynamic(ala_center+[-int_range:int_range],:),1));
+        bicarb = real(sum(spectra_dynamic(bicarb_center+[-int_range:int_range],:),1));
+        
+        % only fit kPL - gives similar results
+        %         [params_fit Sfit] = fit_kPL([pyr;lac] , TR, repmat(flip, [2 length(pyr)]), params_fixed, params_est, [], plot_flag);
+        %         kPL_only(n) = params_fit.kPL;
         
         [params_fit Sfit] = fit_pyr_kinetics([pyr;lac;bicarb;ala] , TR, repmat(flip, [4 length(pyr)]), params_fixed, params_est, [], plot_flag);
         kPL(n) = params_fit.kPL; kPB(n) = params_fit.kPB; kPA(n) = params_fit.kPA;
@@ -76,7 +77,7 @@ for ratnum = 1:4;
     end
     
     disp(['Rat #' int2str(ratnum)]);
-    disp(['   kPL fits: ' num2str(kPL) ' 1/s'])
-    disp(['   kPB fits: ' num2str(kPB) ' 1/s'])
-    disp(['   kPA fits: ' num2str(kPA) ' 1/s'])
+    disp(['   kPL fits: ' num2str(kPL,3) ' 1/s'])
+    disp(['   kPB fits: ' num2str(kPB,3) ' 1/s'])
+    disp(['   kPA fits: ' num2str(kPA,3) ' 1/s'])
 end

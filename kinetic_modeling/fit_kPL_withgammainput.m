@@ -147,7 +147,7 @@ parfor i=1:size(S, 1)
                 end
                 
                 % Fit all data
-                obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale);
+                obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale);  % add Sscale?
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec2, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
