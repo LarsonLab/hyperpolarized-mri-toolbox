@@ -109,7 +109,7 @@ params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,pro
 Sfit = zeros([prod(Nx),2,Nt]);
 Sfit1 = zeros([prod(Nx),Nt]); Sfit2 = zeros([prod(Nx),Nt]);
 
-parfor i=1:size(S, 1)
+for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
         disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
     end
@@ -134,7 +134,7 @@ parfor i=1:size(S, 1)
         switch(fit_method)
             case 'ls'
                 % Fit Pyruvate first (Tarrive, Rinj, Tend...) - seems to help a little
-                obj = @(var) trajectory_difference_x1(var, x1, x2, params_fixed, TR, Mzscale);
+                obj = @(var) trajectory_difference_x1(var, x1, x2, params_fixed, TR, Mzscale, Sscale);
                 [params_fit_vec_temp] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
                 params_est_vec2 = params_est_vec;
@@ -147,12 +147,12 @@ parfor i=1:size(S, 1)
                 end
                 
                 % Fit all data
-                obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale);
+                obj = @(var) trajectory_difference_all(var, x1, x2, params_fixed, TR, Mzscale, Sscale);  
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec2, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
-                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec2, options);
+                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
         [x1fit, x2fit] = trajectories_withgammainput(params_fit_vec(i,:), params_fixed, TR, Nt, Mzscale);
@@ -202,19 +202,19 @@ end
 
 end
 
-function diff_all = trajectory_difference_all(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+function diff_yall = trajectory_difference_all(params_fit, x1, x2,  params_fixed, TR, Mzscale, Sscale)
 [x1fit, x2fit] = trajectories_withgammainput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
-diff_all = [ x1(:)-x1fit(:) ; x2(:)-x2fit(:)];
+diff_yall = [ (x1(:)-x1fit(:)) .* Sscale(1,:).' ; ( x2(:)-x2fit(:) ) .* Sscale(2,:).'];
 end
 
-function diff_x1 = trajectory_difference_x1(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+function diff_y1 = trajectory_difference_x1(params_fit, x1, x2,  params_fixed, TR, Mzscale, Sscale)
 [x1fit, x2fit] = trajectories_withgammainput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
-diff_x1 = [ x1(:)-x1fit(:) ];
+diff_y1 = [ (x1(:)-x1fit(:)) .* Sscale(1,:).'  ];
 end
 
-function diff_x2 = trajectory_difference_x2(params_fit, x1, x2,  params_fixed, TR, Mzscale)
+function diff_y2 = trajectory_difference_x2(params_fit, x1, x2,  params_fixed, TR, Mzscale, Sscale)
 [x1fit, x2fit] = trajectories_withgammainput(params_fit, params_fixed, TR, length(x1), Mzscale) ;
-diff_x2 = [ x2(:)-x2fit(:) ];
+diff_y2 = [ ( x2(:)-x2fit(:) ) .* Sscale(2,:).'];
 end
 
 
