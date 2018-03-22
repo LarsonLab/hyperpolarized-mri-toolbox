@@ -45,7 +45,7 @@ opt = ss_opt({'Nucleus', 'Carbon', ...
 B0 = 3e4; % G
 df = 0.5e-6 * B0 * SS_GAMMA; % 0.5 ppm = gamma_C13 * B0 * 0.5e-6
 % metabolite			frequency (Hz)		freq bandwidth (Hz)		flip angle (deg)	allowed ripple
-mets(1).name = 'urea'; 	mets(1).f = -465; 	mets(1).df = 1.5*df; 		mets(1).ang = 6; 	mets(1).d = .005;
+mets(1).name = 'urea'; 	mets(1).f = -465; 	mets(1).df = 1.5*df; 	mets(1).ang = 6; 	mets(1).d = .005;
 mets(2).name = 'pyr'; 	mets(2).f = -230; 	mets(2).df = 2*df; 		mets(2).ang = 6; 	mets(2).d = .002;
 mets(3).name = 'ala'; 	mets(3).f = -45; 	mets(3).df = 1.5*df; 	mets(3).ang = 12; 	mets(3).d = .005;
 mets(4).name = 'pyrh'; 	mets(4).f = 40; 	mets(4).df = 1*df; 		mets(4).ang = 2.5; 	mets(4).d = .015;

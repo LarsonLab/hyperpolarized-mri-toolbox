@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, slice_profile, plot_flag)
 % fit_pyr_kinetics - Kinetic model fitting function for HP 13C MRI.
 %
 % Fits product signals, assuming origination from a single substrate
@@ -53,20 +53,20 @@ end
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_L', 'S0_B', 'S0_A', ...
-    'Rinj', 'Tarrival', 'Tbolus'};
+    'Rinj', 'Tarrival', 'A','B', ...
+    'S0_L', 'S0_B', 'S0_A'};
 params_default_est = [0.01, 0.01, 0.01, ...
     1/30, 1/25, 1/25, 1/15, ...
-    0, 0, 0, ...
-    0.1, 0, 8];
+    0.1, 0, 4, 3, ...
+    0, 0, 0];
 params_default_lb = [-Inf, -Inf, -Inf, ...
     1/50, 1/50, 1/50, 1/50, ...
-    -Inf, -Inf, -Inf, ...
-    0, -30, 0];
+    0, -30, 0, 0, ...
+    -Inf, -Inf, -Inf];
 params_default_ub = [Inf, Inf, Inf, ...
     1/10, 1/10, 1/10, 1/5 , ...
-    Inf, Inf, Inf, ...
-    Inf 30 Inf];
+    Inf 30 Inf Inf, ...
+    Inf, Inf, Inf];
 
 if nargin < 5 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -125,7 +125,11 @@ else
     fit_method = 'ml';
 end
 
-if nargin < 7
+if nargin < 7 || isempty(slice_profile)
+    slice_profile = 1;
+end
+
+if nargin < 8
     plot_flag = 0;
 end
 
@@ -153,16 +157,13 @@ for i=1:size(Sreshape, 1)
     
     if any(Mxy(:) ~= 0)
         
-        % estimate state magnetization (MZ) based on scaling from RF pulses
-        Mz = Mxy./Sscale;
-        
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         
         switch(fit_method)
             case 'ls'
-                obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Nmets) ;  % perform least-squares in signal domain
+                obj = @(var) difference_inputless(var, params_fixed, TR, flips, slice_profile, Mxy, Nmets) ;  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
@@ -171,20 +172,17 @@ for i=1:size(Sreshape, 1)
                 
         end
         
-        [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:));
-        
-        Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
-        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        [Sfit(i,:,:) Mzfit ufit(i,:)] = fit_result_inputless( params_fit_vec(i,:), params_fixed, TR, flips, slice_profile, Mxy, Nmets) ;
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz, t, Mzfit,'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t, Mxy./Sscale, t, Mzfit,'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
-            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--', t, ufit(i,:), 'k:')
+            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--')
             xlabel('time (s)')
             ylabel('signal (au)')
             title(num2str(params_fit_vec(i,:),2)) % don't display L0_start value
@@ -221,12 +219,70 @@ end
 
 end
 
-function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzscale, Sscale, Mz, Nmets)
-Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:)) ;
-temp_diff = (Mz - Mzfit) .* Sscale;
-diff_products = temp_diff(2:Nmets,:);
-diff_products = diff_products(:);
+function diff_products = difference_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets)
+%Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:)) ;
+Nall = size(flips,2);
+Nt = size(Mxy,2);
+Nflips = Nall/Nt;
+TRall = TR /Nflips;
+M = length(slice_profile);
+%[Sscale, Mzscale] = flips_scaling_factors(flips,Nt);
+
+if M == 1
+Mzpyr_est = interp(Mxy(1,:),Nflips) ./ sin(flips(1,:)); % ./ Sscale(1,:);
+    Mxy_all_fit = trajectories('inputless', params_fit, params_fixed, TRall, flips, Mzpyr_est) ;
+    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt]),2) );
+else
+
+    for m = 1:M
+            % divide Mxy across slice profile 
+        Mxypyr_sliced = Mxy(1,:)* slice_profile(m) / mean(slice_profile);
+        Mzpyr_est = interp(Mxypyr_sliced,Nflips) ./ sin(flips(1,:) * slice_profile(m)); % ./ Sscale(1,:);
+        Mxy_all_fit(:,:,m) = trajectories('inputless', params_fit, params_fixed, TRall, flips*slice_profile(m), Mzpyr_est) ;
+    end
+    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt, M]),2),4) );
+    
 end
+
+temp_diff = (Mxy(2:Nmets,:) - Mxy_fit(2:Nmets,:));
+diff_products = temp_diff(:);
+end
+
+function [Mxy_fit, Mz_fit, ufit] = fit_result_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets)
+
+Nall = size(flips,2);
+Nt = size(Mxy,2);
+Nflips = Nall/Nt;
+TRall = TR /Nflips;
+M = length(slice_profile);
+
+
+if M == 1
+    Mzpyr_est = interp(Mxy(1,:),Nflips) ./ sin(flips(1,:)); % ./ Sscale(1,:);
+    [Mxy_all_fit, Mz_all_fit, u_all_fit] = trajectories('inputless', params_fit, params_fixed, TRall, flips, Mzpyr_est) ;
+    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt]),2) );
+    Mz_fit = squeeze( mean(reshape(Mz_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt]),2) );
+    ufit = squeeze( mean(reshape(u_all_fit, [1, Nflips, Nt]),2) );
+    
+else
+    
+    
+    
+    for m = 1:M
+        % divide Mxy across slice profile:
+        Mxypyr_sliced = Mxy(1,:) * slice_profile(m) / mean(slice_profile);
+        % scale for estimated z magnetization
+        Mzpyr_est = interp(Mxypyr_sliced,Nflips) ./ sin(flips(1,:) * slice_profile(m)); % ./ Sscale(1,:);
+        
+        [Mxy_all_fit(:,:,m), Mz_all_fit(:,:,m), u_all_fit(:,:,m)] = trajectories('inputless', params_fit, params_fixed, TRall, flips*slice_profile(m), Mzpyr_est) ;
+    end
+    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt, M]),2),4) );
+    Mz_fit = squeeze( mean(mean(reshape(Mz_all_fit(1:Nmets,:), [Nmets, Nflips, Nt, M]),2),4) ) * mean(slice_profile);  % missing a scaling factor here
+    ufit = squeeze( mean(mean(reshape(u_all_fit, [1, Nflips, Nt, M]),2),4) );
+end
+
+end
+
 
 function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fixed, TR, Mzscale, Mz, noise_level, Nmets)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
@@ -252,14 +308,16 @@ for t = 1:N
 end
 end
 
-function [Mz_all, u] = trajectories_inputless( params_fit, params_fixed, TR, Mzscale , Mz_pyr )
+function [Mxy_all, Mz_all, u] = trajectories_inputless( params_fit, params_fixed, TRall, flips, Mzpyr_all )
 % Compute product magnetizations using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
 
-Nmets = size(Mzscale,1); N = size(Mzscale,2);
-Mz_all = zeros(Nmets, N);
-u = zeros(1,N);
+Nmets = size(flips,1);
+Nall = size(flips,2);
+
+Mz_all = zeros(Nmets, Nall);
+u = zeros(1,Nall);
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
@@ -275,7 +333,7 @@ for n = 1:length(params_all)
     end
 end
 
-Mz_all(1,:) = Mz_pyr;
+Mz_all(1,:) = Mzpyr_all;
 Mz_all(2,1) = S0_L;
 Mz_all(3,1) = S0_B;
 Mz_all(4,1) = S0_A;
@@ -285,20 +343,171 @@ A = [-R1P-kPL-kPB-kPA, 0, 0, 0
     +kPB, 0, -R1B, 0
     +kPA, 0, 0, -R1A];
 
-for It=1:N-1
+for It=1:Nall-1
     
-    Mz_init = Mz_all(:,It) .* Mzscale(:, It);
+    Mz_init = Mz_all(:,It) .* cos(flips(:, It));
     
     % estimate input, assuming this is constant during TR interval
-    % This calculation could be improved for noise stability?
-    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR));
+    % Could this calculation be improved for noise stability?
+    u(It) = ( Mzpyr_all(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TRall) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TRall));
     
     xstar = - inv(A)*[u(It),0,0,0].';
     
     % solve next time point under assumption of constant input during TR
-    Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
+    Mz_all(:,It+1) = xstar + expm(A*TRall) * (Mz_init - xstar);
     
     
 end
 
+Mxy_all = Mz_all .* sin(flips);
+
 end
+
+function [Mxy_all, Mz_all] = trajectories_withgammainput( params_fit, params_fixed, TRall, flips)
+% Compute product magnetizations using a uni-directional two-site model
+% Uses substrate magnetization measurements, estimated relaxation and
+% conversion rates
+
+Nmets = size(flips,1);
+Nall = size(flips,2);
+
+Mz_all = zeros(Nmets, Nall);
+u = zeros(1,Nall);
+
+params_all = {'kPL', 'kPB', 'kPA', ...
+    'R1P', 'R1L', 'R1A', 'R1B', ...
+    'Rinj', 'Tarrival', 'A','B'};
+
+nfit = 0;
+for n = 1:length(params_all)
+    if isfield(params_fixed, params_all(n))
+        eval([params_all{n} '= params_fixed.(params_all{n});']);
+    else
+        nfit = nfit+1;
+        eval([params_all{n} '= params_fit(nfit);']);
+    end
+end
+
+A = [-R1P-kPL-kPB-kPA, 0, 0, 0
+    +kPL, -R1L, 0, 0
+    +kPB, 0, -R1B, 0
+    +kPA, 0, 0, -R1A];
+
+for It=1:Nall
+    
+    t = (It-1)*TRall;  % solving for Mz at time t (accounting for previous TR interval)
+    
+    if It == 1
+        Mz_init = zeros(Nmets,1);
+        
+        if Tarrival < 0
+            % account for longer period of bolus prior to imaging
+            t_preimaging = [floor(Tarrival/TRall):0]*TRall; % t = 0
+            u(It) = sum( gampdf(t_preimaging-Tarrival,A,B)*Rinj );
+        else
+            u(It) = gampdf(t-Tarrival,A,B)*Rinj;
+        end
+        
+    else
+        Mz_init = Mz_all(:,It-1) .* cos(flips(:, It-1));
+        
+        u(It) = gampdf(t-Tarrival,A,B)*Rinj;
+    end
+    
+    xstar = - inv(A)*[u(It); zeros(Nmets-1,1)];
+    
+    % solve next time point under assumption of constant input during TR
+    Mz_all(:,It) = xstar + expm(A*TRall) * (Mz_init - xstar);
+    
+    
+end
+
+Mxy_all = Mz_all .* sin(flips);
+
+end
+
+
+function [Mxy_all, Mz_all, u] = trajectories(model, params_fit, params_fixed, TRall, flips, Mzpyr_all)
+% Compute product magnetizations using a uni-directional two-site model
+% Uses substrate magnetization measurements, estimated relaxation and
+% conversion rates
+
+Nmets = size(flips,1);
+Nall = size(flips,2);
+
+Mz_all = zeros(Nmets, Nall);
+u = zeros(1,Nall);
+
+params_all = {'kPL', 'kPB', 'kPA', ...
+    'R1P', 'R1L', 'R1A', 'R1B', ...
+    'Rinj', 'Tarrival', 'A','B', ...
+    'S0_L', 'S0_B', 'S0_A'};
+
+nfit = 0;
+for n = 1:length(params_all)
+    if isfield(params_fixed, params_all(n))
+        eval([params_all{n} '= params_fixed.(params_all{n});']);
+    else
+        nfit = nfit+1;
+        eval([params_all{n} '= params_fit(nfit);']);
+    end
+end
+
+A = [-R1P-kPL-kPB-kPA, 0, 0, 0
+    +kPL, -R1L, 0, 0
+    +kPB, 0, -R1B, 0
+    +kPA, 0, 0, -R1A];
+
+for It=1:Nall
+    t = (It-1)*TRall;  % solving for Mz at time t (accounting for previous TR interval)
+    
+    switch model
+        case 'inputless'
+            if It == 1
+                Mz_all(1,1) = Mzpyr_all(1);
+                Mz_all(2,1) = S0_L;
+                Mz_all(3,1) = S0_B;
+                Mz_all(4,1) = S0_A;
+                continue;
+            end
+            Mz_all(1,It-1) = Mzpyr_all(It-1);
+            Mz_init = Mz_all(:,It-1) .* cos(flips(:, It-1));
+            
+            % estimate input, assuming this is constant during TR interval
+            % Could this calculation be improved for noise stability?
+            u(It) = ( Mzpyr_all(It) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TRall) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TRall));
+            
+            
+            
+        case 'gammainput'
+            if It == 1
+                Mz_init = zeros(Nmets,1);
+                
+                if Tarrival < 0
+                    % account for longer period of bolus prior to imaging
+                    t_preimaging = [floor(Tarrival/TRall):0]*TRall; % t = 0
+                    u(It) = sum( gampdf(t_preimaging-Tarrival,A,B)*Rinj );
+                else
+                    u(It) = gampdf(t-Tarrival,A,B)*Rinj;
+                end
+                
+            else
+                Mz_init = Mz_all(:,It-1) .* cos(flips(:, It-1));
+                
+                u(It) = gampdf(t-Tarrival,A,B)*Rinj;
+            end
+    end
+    
+    
+    xstar = - inv(A)*[u(It); zeros(Nmets-1,1)];
+    
+    % solve next time point under assumption of constant input during TR
+    Mz_all(:,It) = xstar + expm(A*TRall) * (Mz_init - xstar);
+    
+    
+end
+
+Mxy_all = Mz_all .* sin(flips);
+
+end
+

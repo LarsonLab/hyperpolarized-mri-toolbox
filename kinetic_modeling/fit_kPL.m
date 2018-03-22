@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, slice_profile, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
@@ -26,6 +26,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %   noise_level (optional) - estimate standard deviation of noise in data
 %       to use maximum likelihood fit of magnitude data (with Rician noise
 %       distribution)
+%   slice_profile (optional) - normalized slice profile to correct for
+%       slice profile artifacts
 %   plot_flag (optional) - plot fits
 % OUTPUTS
 %   params_fit - structure of fit parameters 
@@ -80,8 +82,11 @@ for n = 1:Nparams_to_fit
     end
 end
 
+if nargin < 7 || isempty(slice_profile)
+    slice_profile = 1;
+end
 
-if nargin < 6 
+if nargin < 6
     noise_level = [];
 end
 
@@ -95,7 +100,7 @@ else
     fit_method = 'ml';
 end
 
-if nargin < 7
+if nargin < 8
     plot_flag = 0;
 end
 
@@ -111,7 +116,13 @@ if isempty(Nx)
 end
 S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimension
 
-[Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
+M = length(slice_profile);
+Sscale = zeros(2,Nt,M); Mzscale = zeros(2,Nt,M); 
+for m = 1:M
+	[Sscale(:,:,m), Mzscale(:,:,m)] = flips_scaling_factors(flips*slice_profile(m), Nt);
+end
+% average signal across slice
+Sscale = mean(Sscale,3);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
@@ -123,7 +134,7 @@ for i=1:size(S, 1)
     % observed magnetization (Mxy)
     y1 = reshape(S(i, 1, :), [1, Nt]); % pyr
     y2 = reshape(S(i, 2, :), [1, Nt]); % lac
-    if any(y1 ~= 0)
+    if any(y1(:) ~= 0)
         % % plot of observed data for debugging
         % figure(1)
         % plot(t, y1, t, y2)
@@ -140,15 +151,15 @@ for i=1:size(S, 1)
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR, slice_profile)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
+                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2), slice_profile);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
+        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR, slice_profile);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
@@ -197,7 +208,7 @@ end
 
 end
 
-function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
+function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level, slice_profile)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
 %    compartmental model with Rician noise
 % noise level is scaled for state magnetization (Mz) domain
@@ -205,7 +216,7 @@ function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzs
 N = size(x1,2);
 
 % compute trajectory of the model with parameter values
-x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR);
+x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR, slice_profile);
 
 % compute negative log likelihood
 l1 = 0;

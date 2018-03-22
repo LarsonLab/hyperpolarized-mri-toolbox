@@ -1,4 +1,4 @@
-function [Mxy, Mz] = simulate_Nsite_model(Tin, R1, k, flips, TR, input_function)
+function [Mxy, Mz] = simulate_Nsite_model(Mz0, R1, k, flips, TR, input_function)
 % [Mxy, Mz] = simulate_Nsite_model(Mz0, R1, k, flips, TR, [input_function])
 %
 % Simulates the magnetization evolution in a N-site exchange model with
@@ -36,11 +36,9 @@ if length(R1) == 1
     R1 = R1*ones(1,Nmets);
 end
 
-if nargin < 6 || isempty(input_function) || all(input_function == 0)
-    use_input_function = 0;
-else
-    use_input_function = 1;
-    Nsim = 100;
+if nargin < 6 || isempty(input_function) % || all(input_function == 0)
+    % optionally could extend to input for all metabolites
+    input_function = zeros(1,N);
 end
 
 switch Nmets
@@ -58,23 +56,15 @@ switch Nmets
             +k(3,1) 0 0 -R1(4)-k(3,2)];
 end
 
-Mz0 = Tin(:);
-
-
 Mxy(1:Nmets,1) = Mz0 .* sin(flips(:,1));
 Mz(1:Nmets,1) = Mz0 .* cos(flips(:,1));
 
 for n = 2:N
-    if use_input_function
-        Mz_m = Mz(:,n-1);
-        % more accurate to spread out input over a number of samples to
-        % avoid unrealistically large signal jumps
-        for ni = 1:Nsim
-            Mz_m = expm(A*TR/Nsim) * (Mz_m + [input_function(n-1)/Nsim;zeros(Nmets-1,1)]);
-        end
-    else
-        Mz_m = expm(A*TR) * (Mz(:,n-1));
-    end
+    xstar = - inv(A)*[input_function(n-1),0,0,0].';
+    
+    % solve next time point under assumption of constant input during TR
+    Mz_m = xstar + expm(A*TR) * (Mz(:,n-1) - xstar);
+
     Mxy(:,n) =  Mz_m .* sin(flips(:,n));
     Mz(:,n) = Mz_m .* cos(flips(:,n));
 end

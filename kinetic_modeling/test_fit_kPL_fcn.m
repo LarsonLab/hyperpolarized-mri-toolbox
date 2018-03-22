@@ -31,6 +31,14 @@ switch input_condition
         Tin = 6; Mz0 = Tin; % no input function, delayed start
 end
 
+load('correction_factors_profiles.mat', 'zloc', 'flip_profile')
+lo = find(zloc > -20, 1);
+hi = find(zloc > 20, 1);
+slice_profile = flip_profile(lo:hi); 
+M = length(slice_profile);
+% slice_profile = 1; % no slice profile correction
+
+
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*30*pi/180;  % constant, single-band
 flips(1:2,1:N,2) = repmat([20;35]*pi/180,[1 N]);  % constant, multi-band
@@ -76,13 +84,13 @@ params_est.kPL = kPL_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, slice_profile, plot_fits);
 end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
@@ -123,13 +131,13 @@ params_est.R1L_ub = 1/15;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:, :, Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:, :, Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], [], plot_fits);
     
     % noise, complex-valued fitting
-    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, [], plot_fits);
 end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
@@ -149,3 +157,73 @@ plot(t, squeeze(Snfit_mag(:,:)),'--')
 title('kPL+R1L fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 legend('constant','multiband', 'multiband variable flip')
 
+return
+%%
+
+load('correction_factors_profiles.mat', 'zloc', 'flip_profile')
+lo = find(zloc > -20, 1);
+hi = find(zloc > 20, 1);
+slice_profile = flip_profile(lo:hi); 
+M = length(slice_profile);
+% slice_profile = 1; % no slice profile correction
+
+% generate simulated data
+noise_S = randn([2 N])*std_noise;  % same noise for all flip schedules
+for Iflips = 1:N_flip_schemes
+	for m = 1:M
+    [Mxy(1:2, 1:N, Iflips, m), Mz] = simulate_2site_model(Mz0, [R1P R1L], [KPL 0], flips(:,:,Iflips)*slice_profile(m), TR, input_function);
+    end
+end
+Mxy = mean(Mxy, 4);
+
+    
+for Iflips = 1:N_flip_schemes
+    % add noise
+    Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + noise_S;
+end
+
+% initial parameter guesses
+R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
+plot_fits = 0;
+
+%% Test fitting - fit kPL only
+disp('Fitting kPL, with fixed relaxation rates:')
+disp('Fixing relaxation rates improves the precision of fitting, but potential')
+disp('for bias in fits when incorrect relaxation rate is used')
+disp('')
+
+clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
+params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
+params_est.kPL = kPL_est;
+
+for Iflips = 1:N_flip_schemes
+    % no noise
+    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
+    
+    % add noise
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
+    
+    % magnitude fitting with noise
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, slice_profile, plot_fits);
+end
+
+disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
+disp('Noiseless fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fit).'))
+disp('Noisy complex fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_complex).'))
+disp('Noisy magnitude fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_mag).'))
+
+figure
+subplot(121) , plot(t, squeeze(Sn(1,:,:)))
+title('Pyruvate signals')
+subplot(122) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(:,:)),':')
+plot(t, squeeze(Snfit_mag(:,:)),'--')
+title('kPL fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
+legend('constant','multiband', 'multiband variable flip')
+
+disp('Press any key to continue')
+disp('')
+pause

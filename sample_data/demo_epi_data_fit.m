@@ -20,6 +20,14 @@ end
 
 load(datafile)
 flips_all = [flips_pyr(:).';flips_lac(:).'] *pi/180;
+
+% load normalized slice profile
+load('correction_factors_profiles.mat', 'zloc', 'flip_profile')
+lo = find(zloc > -30, 1);
+hi = find(zloc > 30, 1);
+slice_profile = flip_profile(lo:10:hi); 
+%slice_profile = 1; % no slice profile correction
+
 size_pyr= size(pyr);
 Nx_dims = length(size_pyr)-1;
 % convert to [x,y,z,t]
@@ -63,7 +71,8 @@ params_est.kPL = kPL_est;
 SNRmask = AUC_pyr > SNR_thresh;
 It_fit = find(flips_lac > 1);
 
-[params_fit Sfit] = fit_kPL(double(data(:,:,:,:,It_fit)), TR, flips_all(:, It_fit), params_fixed, params_est);
+%[params_fit Sfit] = fit_kPL(double(data(:,:,:,:,It_fit)) , [1,1,1,2, TR, flips_all(:, It_fit), params_fixed, params_est, [], slice_profile);
+[params_fit Sfit] = fit_pyr_kinetics(double(data(:,:,:,:,It_fit)) .* repmat( SNRmask, [1 1 1 2 length(It_fit)]), TR, flips_all(:, It_fit), params_fixed, params_est, [], slice_profile);
 
 figure
 subplot(221)
