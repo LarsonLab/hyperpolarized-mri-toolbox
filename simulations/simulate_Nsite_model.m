@@ -60,7 +60,7 @@ Mxy(1:Nmets,1) = Mz0 .* sin(flips(:,1));
 Mz(1:Nmets,1) = Mz0 .* cos(flips(:,1));
 
 for n = 2:N
-    xstar = - inv(A)*[input_function(n-1),0,0,0].';
+    xstar = - inv(A)*[input_function(n-1)/TR,0,0,0].';
     
     % solve next time point under assumption of constant input during TR
     Mz_m = xstar + expm(A*TR) * (Mz(:,n-1) - xstar);

@@ -3,17 +3,17 @@
 clear all
 
 % Test values
-Tin = 0; Tacq = 48; Nflips = 1;
+Tacq = 48; Nflips = 8;
 TR = 3; TRall = TR/Nflips; Nall = Tacq/TRall; Nt = Tacq/TR;
 R1P = 1/25; R1L = 1/25; R1B = 1/15; R1A = 1/25;
 kPL = 0.05; kPB = 0.03; kPA = 0.02;
-std_noise = 0.05;
+std_noise = 0.01;
 
 % gamma variate input function - most realistic
-t = [1:Nall]*TRall;
-Tarrival = 0;
-A = 4; B = 1*TRall;
-input_function = gampdf(t-Tarrival,A,B);  % gamma distribution -continuous input
+tall = [1:Nall]*TRall;
+Tarrival = 0; Tbolus = 12;
+A = 4; B = Tbolus/4;
+input_function = gampdf(tall-Tarrival,A,B);  % gamma distribution -continuous input
 input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
 Mz0 = zeros(4,1);
 
@@ -21,13 +21,13 @@ load('correction_factors_profiles.mat', 'zloc', 'flip_profile')
 lo = find(zloc > -20, 1);
 hi = find(zloc > 20, 1);
 slice_profile = flip_profile(lo:5:hi); 
-slice_profile = 1; % no slice profile correction
+%slice_profile = 1; % no slice profile correction
 M = length(slice_profile);
 
 % Test over multiple combinations of flip angle schemes
 k12 = 0.03; % for variable flip angle designs
-flips(1:2,1:Nall,1) = ones(2,Nall)*30*pi/180  / Nflips;  % constant, single-band
-flips(1:2,1:Nall,2) = repmat([20;35]*pi/180,[1 Nall]) / Nflips;  % constant, multi-band
+flips(1:2,1:Nall,1) = ones(2,Nall)*30*pi/180  / sqrt(Nflips);  % constant, single-band
+flips(1:2,1:Nall,2) = repmat([20;35]*pi/180,[1 Nall]) / sqrt(Nflips);  % constant, multi-band
 flips(1:2,1:Nall,3) = [vfa_const_amp(Nall, pi/2, exp(-TRall * ( k12))); ... % max lactate SNR variable flip angle
     vfa_opt_signal(Nall, exp(-TRall * ( R1L)))];
 
@@ -35,12 +35,10 @@ flips = cat(1, flips, repmat( flips(2,:,:), [2 1 1]));
 
 N_flip_schemes = size(flips,3);
 
-t = [0:Nall-1]*TRall + Tin;
-
 figure
-subplot(121) , plot(t, squeeze(flips(1,:,:))*180/pi)
+subplot(121) , plot(tall, squeeze(flips(1,:,:))*180/pi)
 title('Pyruvate flips')
-subplot(122) , plot(t, squeeze(flips(2,:,:))*180/pi)
+subplot(122) , plot(tall, squeeze(flips(2,:,:))*180/pi)
 title('Product (Lactate, Alanine, Bicarbonate) flips')
 legend('constant','multiband',  'max lactate SNR vfa'); %, 'vfa', 'T1-effective vfa', 'Saturation Recovery')
 
@@ -50,6 +48,7 @@ for Iflips = 1:N_flip_schemes
 	for m = 1:M
         [Mxytemp(1:4, 1:Nall, m), Mz] = simulate_Nsite_model(Mz0, [R1P R1L R1B R1A], [kPL 0; kPB 0; kPA 0], flips(:,:,Iflips)*slice_profile(m) , TRall, input_function);
     end
+    
     if m > 1
         % average over slice profile
         Mxy(1:4, 1:Nall, Iflips) = mean(Mxytemp,3);
@@ -60,12 +59,10 @@ for Iflips = 1:N_flip_schemes
     Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + noise_S;
 end
 
-% convert to averaging multiple phase encodes
-if Nflips > 1
-	Mxy_fit = squeeze( mean(reshape(Mxy, [size(Mxy,1), Nflips, Nt, N_flip_schemes]),2) );
-    Sn = squeeze( mean(reshape(Sn, [size(Mxy,1), Nflips, Nt, N_flip_schemes]),2) );
-end
-
+    % average across Nflips per image ( multiple phase encodes )
+    Mxy = squeeze( sum(reshape(Mxy, [4, Nflips, Nt, N_flip_schemes]),2) ) ;
+    Sn = squeeze( sum(reshape(Sn, [4, Nflips, Nt, N_flip_schemes]),2) ) ;
+std_noise = std_noise * sqrt(Nflips);
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; R1B_est = 1/15; R1A_est = 1/25;
@@ -109,6 +106,8 @@ disp('Noisy magnitude fit results:')
 k_fit = struct2array(params_fitn_mag);
 k_fit = k_fit([[1:3],[1:3]+Iskip,[1:3]+2*Iskip]); 
 disp([['KPL  = ';'KPB  = ';'KPA  = '],num2str(reshape(k_fit,[3 3]),2)])
+
+t = [0:Nt-1]*TR ;
 
 figure
 subplot(221) , plot(t, squeeze(Sn(1,:,:)))

@@ -172,17 +172,17 @@ for i=1:size(Sreshape, 1)
                 
         end
         
-        [Sfit(i,:,:) Mzfit ufit(i,:)] = fit_result_inputless( params_fit_vec(i,:), params_fixed, TR, flips, slice_profile, Mxy, Nmets) ;
-        
+        [Mxy_fit Mz_fit ufit(i,:)] = fit_data_inputless( params_fit_vec(i,:), params_fixed, TR, flips, slice_profile, Mxy, Nmets) ;
+        Sfit(i,:,:) = Mxy_fit(2:Nmets,:);
         if plot_flag
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mxy./Sscale, t, Mzfit,'--', t, ufit(i,:), 'k:')
+            plot(t, Mxy./Sscale, t, Mz_fit,'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
-            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--')
+            plot(t, Mxy, t, Mxy_fit,'--')
             xlabel('time (s)')
             ylabel('signal (au)')
             title(num2str(params_fit_vec(i,:),2)) % don't display L0_start value
@@ -220,36 +220,14 @@ end
 end
 
 function diff_products = difference_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets)
-%Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:)) ;
-Nall = size(flips,2);
-Nt = size(Mxy,2);
-Nflips = Nall/Nt;
-TRall = TR /Nflips;
-M = length(slice_profile);
-%[Sscale, Mzscale] = flips_scaling_factors(flips,Nt);
 
-if M == 1
-    Mzpyr_est = interp(Mxy(1,:),Nflips) ./ sin(flips(1,:)); % ./ Sscale(1,:);
-    Mxy_all_fit = trajectories('inputless', params_fit, params_fixed, TRall, flips, Mzpyr_est) ;
-    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt]),2) );
-else
-    Mxy_all_fit = zeros([size(Mxy), M]);
-    
-    for m = 1:M
-        % divide Mxy across slice profile
-        Mxypyr_sliced = Mxy(1,:)* slice_profile(m) / mean(slice_profile);
-        Mzpyr_est = interp(Mxypyr_sliced,Nflips) ./ sin(flips(1,:) * slice_profile(m)); % ./ Sscale(1,:);
-        Mxy_all_fit(:,:,m) = trajectories('inputless', params_fit, params_fixed, TRall, flips*slice_profile(m), Mzpyr_est) ;
-    end
-    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt, M]),2),4) );
-    
-end
+Mxy_fit = fit_data_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets);
 
 temp_diff = (Mxy(2:Nmets,:) - Mxy_fit(2:Nmets,:));
 diff_products = temp_diff(:);
 end
 
-function [Mxy_fit, Mz_fit, ufit] = fit_result_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets)
+function [Mxy_fit, Mz_fit, ufit] = fit_data_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets)
 
 Nall = size(flips,2);
 Nt = size(Mxy,2);
@@ -261,16 +239,14 @@ M = length(slice_profile);
 if M == 1
     Mzpyr_est = interp(Mxy(1,:),Nflips) ./ sin(flips(1,:)); % ./ Sscale(1,:);
     [Mxy_all_fit, Mz_all_fit, u_all_fit] = trajectories('inputless', params_fit, params_fixed, TRall, flips, Mzpyr_est) ;
-    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt]),2) );
-    Mz_fit = squeeze( mean(reshape(Mz_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt]),2) );
+    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit(1:Nmets,:), [Nmets, Nflips, Nt]),2) );
+    Mz_fit = squeeze( mean(reshape(Mz_all_fit(1:Nmets,:), [Nmets, Nflips, Nt]),2) );
     ufit = squeeze( mean(reshape(u_all_fit, [1, Nflips, Nt]),2) );
     
 else
-    
-    
+    Mxy_all_fit = zeros([size(Mxy,1), Nall, M]);
     
     for m = 1:M
-        Mxy_all_fit = zeros([size(Mxy), M]);
         % divide Mxy across slice profile:
         Mxypyr_sliced = Mxy(1,:) * slice_profile(m) / mean(slice_profile);
         % scale for estimated z magnetization
@@ -278,7 +254,7 @@ else
         
         [Mxy_all_fit(:,:,m), Mz_all_fit(:,:,m), u_all_fit(:,:,m)] = trajectories('inputless', params_fit, params_fixed, TRall, flips*slice_profile(m), Mzpyr_est) ;
     end
-    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit(2:Nmets,:), [Nmets-1, Nflips, Nt, M]),2),4) );
+    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit(1:Nmets,:), [Nmets, Nflips, Nt, M]),2),4) );
     Mz_fit = squeeze( mean(mean(reshape(Mz_all_fit(1:Nmets,:), [Nmets, Nflips, Nt, M]),2),4) ) * mean(slice_profile);  % missing a scaling factor here
     ufit = squeeze( mean(mean(reshape(u_all_fit, [1, Nflips, Nt, M]),2),4) );
 end
@@ -291,27 +267,8 @@ function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fi
 %    compartmental model with Rician noise
 % noise_level is variance in signal domain (Mxy)
 
-Nall = size(flips,2);
+Mxy_fit = fit_data_inputless(params_fit, params_fixed, TR, flips, slice_profile, Mxy, Nmets);
 Nt = size(Mxy,2);
-Nflips = Nall/Nt;
-TRall = TR /Nflips;
-M = length(slice_profile);
-
-if M == 1
-    Mzpyr_est = interp(Mxy(1,:),Nflips) ./ sin(flips(1,:)); % ./ Sscale(1,:);
-    Mxy_all_fit = trajectories('inputless', params_fit, params_fixed, TRall, flips, Mzpyr_est) ;
-    Mxy_fit = squeeze( mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt]),2) );
-else
-    Mxy_all_fit = zeros([size(Mxy), M]);
-    for m = 1:M
-        % divide Mxy across slice profile
-        Mxypyr_sliced = Mxy(1,:)* slice_profile(m) / mean(slice_profile);
-        Mzpyr_est = interp(Mxypyr_sliced,Nflips) ./ sin(flips(1,:) * slice_profile(m)); % ./ Sscale(1,:);
-        Mxy_all_fit(:,:,m) = trajectories('inputless', params_fit, params_fixed, TRall, flips*slice_profile(m), Mzpyr_est) ;
-    end
-    Mxy_fit = squeeze( mean(mean(reshape(Mxy_all_fit, [size(Mxy_all_fit,1), Nflips, Nt, M]),2),4) );
-    
-end
 
 % compute negative log likelihood
 l1 = 0;
