@@ -365,7 +365,7 @@ end
 function [kPL_fit, AUC_fit] = fitting_simulation(fit_fcn, Mxy, TR, flips, NMC, std_noise, params_fixed, params_est);
 
 kPL_fit = zeros(1,NMC); AUC_fit = zeros(1,NMC);
-parfor n = 1:NMC
+for n = 1:NMC
     Sn = Mxy + randn(size(Mxy))*std_noise;
     
     params_fit = fit_fcn(Sn, TR, flips, params_fixed, params_est, [], 0);

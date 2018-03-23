@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, objective_val] = fit_kPL_noinput(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
@@ -114,7 +114,7 @@ S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimensi
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
-Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
+Sfit = zeros([prod(Nx),Nt]);
 
 for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
@@ -140,7 +140,7 @@ for i=1:size(S, 1)
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_frompyr_noinput(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
@@ -148,19 +148,18 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
+        Sfit(i,:) = trajectories_frompyr_noinput(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
-        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, x1, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t, x1, t, x2, t, Sfit(i,:)./ Sscale(2, :),'--')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
-            plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
+            plot(t, y1, t, y2, t, Sfit(i,:),'--')
             xlabel('time (s)')
             ylabel('signal (au)')
             title(num2str(params_fit_vec(i,:),4)) % don't display L0_start value
@@ -205,7 +204,7 @@ function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzs
 N = size(x1,2);
 
 % compute trajectory of the model with parameter values
-x2fit = trajectories_frompyr(params_fit, x1, Mzscale, params_fixed, TR);
+x2fit = trajectories_frompyr_noinput(params_fit, x1, Mzscale, params_fixed, TR);
 
 % compute negative log likelihood
 l1 = 0;
@@ -219,5 +218,48 @@ for t = 1:N
             );
     end
 end
+end
+
+function x2 = trajectories_frompyr_noinput( params_fit, x1, Mzscale, params_fixed , TR )
+% Compute product magnetization (e.g. lactate) using a uni-directional two-site model
+% Uses substrate magnetization measurements, estimated relaxation and
+% conversion rates
+% x1 and x2 are pyruvate and lactate, respectively, longitudinal magnetization (MZ) component estimates in order to account for variable flip angles
+
+N = length(x1);
+
+x2 = zeros(1, N);
+
+params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
+nfit = 0;
+for n = 1:length(params_all)
+    if isfield(params_fixed, params_all(n))
+        eval([params_all{n} '= params_fixed.(params_all{n});']);
+    else
+        nfit = nfit+1;
+        eval([params_all{n} '= params_fit(nfit);']);
+    end
+end
+
+x2(1) = L0_start;
+
+for t=1:N-1
+    
+    P0 = x1(t)*Mzscale(1, t);
+    L0 = x2(t)*Mzscale(2, t);
+    
+    
+    % solve next time point under assumption of constant input during TR
+     x2(t+1) = exp(-R1L*TR)*((L0*R1L*R1P - L0*R1L^2 + L0*R1L*kPL + P0*R1L*kPL)/(R1L*(R1P - R1L + kPL)) ) - exp(-TR*(R1P + kPL))*((kPL*(P0*R1P + P0*kPL))/((R1P + kPL)*(R1P - R1L + kPL)) );
+   
+    % % solution for next source (pyruvate) time point if needed:
+    % x1(t+1) = (exp(-TR*(R1P + kPL))*((kPL*(P0*R1P - u(t) + P0*kPL))/((R1P + kPL)*(R1P - R1L + kPL)) + (kPL*u(t)*exp(R1P*TR + kPL*TR))/((R1P + kPL)*(R1P - R1L + kPL)))*(R1P - R1L + kPL))/kPL;
+    
+    % % Solution without an input function:
+    %  x2(t+1) = (-(kPL*exp((- R1P - kPL)*TR) - kPL*exp(-R1L*TR))/(R1P - R1L + kPL))*Mzscale(1, t)*x1(t) ...
+    %      +  exp(-R1L*TR)*Mzscale(2, t)*x2(t);
+    
+end
+
 end
 
