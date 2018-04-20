@@ -28,6 +28,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips
 %   std_noise (optional) - estimate standard deviation of noise in data
 %       to use maximum likelihood fit of magnitude data (with Rician noise
 %       distribution)
+%   slice_profile (optional) - normalized slice profile (1=nominal flip) to
+%       compensate for varying flip across slice in 2D acquisitions
 %   plot_flag (optional) - plot fits
 % OUTPUTS
 %   params_fit - structure of fit parameters

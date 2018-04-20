@@ -7,7 +7,7 @@ Tacq = 48; Nflips = 8;
 TR = 3; TRall = TR/Nflips; Nall = Tacq/TRall; Nt = Tacq/TR;
 R1P = 1/25; R1L = 1/25; R1B = 1/15; R1A = 1/25;
 kPL = 0.05; kPB = 0.03; kPA = 0.02;
-std_noise = 0.01;
+std_noise = 0.005;
 
 % gamma variate input function - most realistic
 tall = [1:Nall]*TRall;
@@ -78,14 +78,16 @@ params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_e
 params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
 
 for Iflips = 1:N_flip_schemes
+    tic
     % no noise
     [params_fit(:,Iflips) Sfit(1:3,1:size(Mxy,2),  Iflips)] = fit_pyr_kinetics(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
-    
+    toc
     % add noise
     [params_fitn_complex(:,Iflips) Snfit_complex(1:3,1:size(Mxy,2),  Iflips)] = fit_pyr_kinetics(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], slice_profile, plot_fits);
-    
+    toc
     % magnitude fitting with noise
    [params_fitn_mag(:,Iflips) Snfit_mag(1:3,1:size(Mxy,2),  Iflips)] = fit_pyr_kinetics(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, slice_profile, plot_fits);
+    toc
 end
 
 disp('Input:')
