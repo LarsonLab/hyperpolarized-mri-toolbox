@@ -1,6 +1,6 @@
 # hyperpolarized-mri-toolbox
 
-The goal of this toolbox is to provide research-level and prototyping software tools for hyperpolarized MRI experiments. It is currently based on MATLAB code, and includes code for designing radiofrequency (RF) pulses, readout gradients, and data reconstruction.
+The goal of this toolbox is to provide research-level and prototyping software tools for hyperpolarized MRI experiments. It is currently based on MATLAB code, and includes code for designing radiofrequency (RF) pulses, readout gradients, data reconstruction, and data analysis.
 
 It is hosted on this open-source, collaborative platform in order to encourage anyone and everyone in the hyperpolarized MRI research community to contribute tools that will help our field rapidly progress.
 
@@ -27,4 +27,7 @@ Please let us know if you would like to contribute or have suggestions for conte
 **Initial Project Contributors**: 
 * Jeremy Gordon, University of California - San Francisco
 * Adam Kerr, Stanford University
+* Eugene Milshteyn, University of California - San Francisco
+* Xucheng Zhu, University of California - San Francisco
+* John Maidens, University of California - Berkeley
 * You :)
