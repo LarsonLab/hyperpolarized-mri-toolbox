@@ -11,8 +11,13 @@ Ns = size(S);
 tdim = length(Ns);
 Nt = Ns(tdim);
 
-tmat = repmat(reshape( (0:Nt-1)*dT, [ones(1,Ns-1),Nt]), size(S));
-mean_time = sum( S .* tmat,tdim) ./ sum(pyr_time_input,tdim);
+if Ns > 1
+    tmat = repmat(reshape( (0:Nt-1)*dT, [ones(1,Ns-1),Nt]), size(S));
+else
+    tmat = (0:Nt-1)*dT;
+end
+
+mean_time = sum( S .* tmat,tdim) ./ sum(S,tdim);
 
 end
 
