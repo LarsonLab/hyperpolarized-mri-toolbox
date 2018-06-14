@@ -46,7 +46,7 @@ end
 
 % default experiment values
 exp_params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus', 'Tarrival'};
-exp_params_default = [0.02, 1/25, 1/30, 0.005, 12, 4];
+exp_params_default = [0.02, 1/25, 1/30, 0.005, 8, 4];
 
 for n = 1:length(exp_params_all)
     param_name = exp_params_all{n};
@@ -59,10 +59,10 @@ R1 = [exp.R1P, exp.R1L]; kPL = exp.kPL; std_noise = exp.std_noise;
 Tbolus = exp.Tbolus;
 
 % experiment simulation ranges
-exp.kPL_min = 0; exp.kPL_max = 0.04;    % approx kpL max in human studies
+exp.kPL_min = 0.001; exp.kPL_max = 0.04;    % approx kpL max in human studies
 exp.std_noise_min = 0; exp.std_noise_max = 0.01;
 exp.Tarrival_min = 0; exp.Tarrival_max = 8;
-exp.Tbolus_min = 10; exp.Tbolus_max = 14;
+exp.Tbolus_min = 6; exp.Tbolus_max = 10;
 exp.R1L_min = 1/35; exp.R1L_max = 1/15;
 exp.R1P_min = 1/40; exp.R1P_max = 1/20;
 exp.B1error_min = -.2; exp.B1error_max = .2;
@@ -120,10 +120,10 @@ for Itest = 1:length(kPL_test)
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-%[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC]),AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]));
-%ylim(ratio_limits)
-[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, (kPL_fit - repmat(kPL_test(:),[1,NMC]))/kPL,(AUC_fit - repmat(AUC_predicted_test(:), [1, NMC]))/AUC_predicted);
+[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
 ylim(ratio_limits)
+%[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, (kPL_fit - repmat(kPL_test(:),[1,NMC]))/kPL,(AUC_fit - repmat(AUC_predicted_test(:), [1, NMC]))/AUC_predicted);
+%ylim(ratio_limits)
 xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
 
 % add legend
@@ -365,7 +365,7 @@ end
 function [kPL_fit, AUC_fit] = fitting_simulation(fit_fcn, Mxy, TR, flips, NMC, std_noise, params_fixed, params_est);
 
 kPL_fit = zeros(1,NMC); AUC_fit = zeros(1,NMC);
-for n = 1:NMC
+parfor n = 1:NMC
     Sn = Mxy + randn(size(Mxy))*std_noise;
     
     params_fit = fit_fcn(Sn, TR, flips, params_fixed, params_est, [], 0);

@@ -1,4 +1,4 @@
-function signa(wav,fn,s)
+function signa(waveform,filename,scale)
 
 %
 %  signa(waveform, filename [,scale]);
@@ -24,40 +24,40 @@ wmax = hex2dec('7ffe');
 
 % if no scale is specified, use as much dynamic range as possible
 if nargin == 2,
-  s = 1/max(max(abs(real(wav)),abs(imag(wav))));
+  scale = 1/max(max(abs(real(waveform)),abs(imag(waveform))));
 end;
 
 % scale up to fit in a short integer
-wav = wav*s*wmax;
+waveform = waveform*scale*wmax;
 
 % mask off low bit, since it would be an EOS otherwise
-wav = 2*round(wav/2);
+waveform = 2*round(waveform/2);
 
 % if the imaginary component is zero, supress it
-if sum(abs(imag(wav))) == 0,
-  wav = real(wav);
+if sum(abs(imag(waveform))) == 0,
+  waveform = real(waveform);
 end;
 
-if isreal(wav),
-  fip = fopen(fn,'wb','b');
+if isreal(waveform),
+  fip = fopen(filename,'wb','b');
   if fip == -1,
-    disp(sprintf('Error opening %s for write',fn));
+    disp(sprintf('Error opening %s for write',filename));
     return;
   end;
-  fwrite(fip,wav,'short');
+  fwrite(fip,waveform,'short');
 else
-  fip = fopen([fn,'.r'],'wb','b');
+  fip = fopen([filename,'.r'],'wb','b');
   if fip == -1,
-    disp(sprintf('Error opening %s for write',[fn,'.r']));
+    disp(sprintf('Error opening %s for write',[filename,'.r']));
     return;
   end;
-  fwrite(fip,real(wav),'short');
+  fwrite(fip,real(waveform),'short');
   fclose(fip);
-  fip = fopen([fn,'.i'],'wb','b');
+  fip = fopen([filename,'.i'],'wb','b');
   if fip == -1,
-    disp(sprintf('Error opening %s for write',[fn,'.i']));
+    disp(sprintf('Error opening %s for write',[filename,'.i']));
     return;
   end;
-  fwrite(fip,imag(wav),'short');
+  fwrite(fip,imag(waveform),'short');
   fclose(fip);
 end;
