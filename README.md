@@ -11,6 +11,8 @@ All Rights Reserved.
 
 This package includes Matlab functions to design spectral-spatial RF pulses (also known as spatial-spectral RF pulses) for application to magnetic resonance spectroscopy and imaging.  See the "examples/" folder for sample code and pulse designs.
 
+Examples include excitation and refocusing pulses, as well as pulses for hyperpolarized carbon-13 MRI.
+
 Requirements:
 - Signal Processing Toolbox (MathWorks)
 - Optimization Toolbox (MathWorks)
