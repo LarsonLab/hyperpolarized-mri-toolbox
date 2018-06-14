@@ -42,7 +42,16 @@ if (nargin < 6) || isempty(format)
     format = 'GE';
 else
     switch format,
-        case {'GE', 'Varian'}
+        case 'GE'
+            % force even number of samples due to some GE sequences having
+            % issues loading odd number of samples
+            if rem(length(rf))
+                rf = [rf(:), 0];
+                g = [g(:), 0];
+            end
+            
+        case 'Varian'
+            
         otherwise
             error(sprintf(['Format save type of: %s not' ...
                 ' recognized'], format));
