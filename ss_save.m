@@ -40,7 +40,8 @@ end
 
 if (nargin < 6) || isempty(format)
     format = 'GE';
-else
+end
+
     switch format,
         case 'GE'
             % force even number of samples due to some GE sequences having
@@ -56,7 +57,6 @@ else
             error(sprintf(['Format save type of: %s not' ...
                 ' recognized'], format));
     end;
-end
     
     maxg = max(abs(g));
     if maxg ~= 0, 
