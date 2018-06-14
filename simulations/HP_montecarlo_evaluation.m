@@ -84,7 +84,7 @@ input_function = input_function/sum(input_function); % normalize so total input 
 results.input_function = input_function;
 
 Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-AUC_predicted = sum(Mxy(2,:))/sum(Mxy(1,:));
+AUC_predicted = compute_AUCratio(Mxy);
 
 %% sample data
 
@@ -102,8 +102,6 @@ xlabel('time (s)'), ylabel('Signal')
 hsim = figure;
 Iplot = 1;
 
-legh = legend; 
-
 
 %% KPL test
 
@@ -115,16 +113,13 @@ for Itest = 1:length(kPL_test)
     Mxy = simulate_2site_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
     
-    Mxy = simulate_2site_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
-    AUC_predicted_test(Itest) = sum(Mxy(2,:))/sum(Mxy(1,:));
+    AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
 end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
 ylim(ratio_limits)
-%[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, (kPL_fit - repmat(kPL_test(:),[1,NMC]))/kPL,(AUC_fit - repmat(AUC_predicted_test(:), [1, NMC]))/AUC_predicted);
-%ylim(ratio_limits)
-xlabel('k_{PL}'),  xlim([exp.kPL_min, exp.kPL_max])
+xlabel('k_{PL} (1/s)'),  xlim([exp.kPL_min, exp.kPL_max])
 
 % add legend
 legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
@@ -188,7 +183,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tarrival_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-xlabel('Tarrival'), xlim([exp.Tarrival_min, exp.Tarrival_max]), ylim(ratio_limits)
+xlabel('Tarrival (s)'), xlim([exp.Tarrival_min, exp.Tarrival_max]), ylim(ratio_limits)
 
 results.Tarrival_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.Tarrival_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -222,7 +217,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tbolus_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-ylim(ratio_limits), xlim([exp.Tbolus_min, exp.Tbolus_max]), xlabel('Tbolus')
+ylim(ratio_limits), xlim([exp.Tbolus_min, exp.Tbolus_max]), xlabel('Tbolus (s)')
 
 results.Tbolus_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.Tbolus_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -251,7 +246,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(1./R1L_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
-ylim(ratio_limits), xlim(1./[exp.R1L_max, exp.R1L_min]), xlabel('T_{1L}')
+ylim(ratio_limits), xlim(1./[exp.R1L_max, exp.R1L_min]), xlabel('T_{1L} (s)')
 
 results.R1L_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.R1L_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -278,7 +273,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(1./R1P_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
-ylim(ratio_limits), xlim(1./[exp.R1P_max, exp.R1P_min]), xlabel('T_{1P}')
+ylim(ratio_limits), xlim(1./[exp.R1P_max, exp.R1P_min]), xlabel('T_{1P} (s)')
 
 results.R1P_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.R1P_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -372,7 +367,7 @@ parfor n = 1:NMC
 
     kPL_fit(n) = params_fit.kPL;
     
-    AUC_fit(n) = sum(Sn(2,:))/sum(Sn(1,:));
+    AUC_fit(n) = compute_AUCratio(Sn);
 end
 
 end
