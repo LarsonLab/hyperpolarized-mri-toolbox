@@ -135,6 +135,9 @@ for i=1:size(S, 1)
         x1 = y1./(Sscale(1, :)+eps);  % add eps to eliminate divide by zero errors
         x2 = y2./(Sscale(2, :)+eps);
         
+        % update guess for final lactate magnetization
+        params_est_vec(end) = x2(end);
+        
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);

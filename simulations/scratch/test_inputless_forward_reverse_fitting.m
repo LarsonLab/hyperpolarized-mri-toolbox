@@ -3,12 +3,11 @@ NMC = 100;  % less for quicker testing
 
 % default experiment values
 exp.R1P = 1/25;  exp.R1L =1/25;  exp.kPL = 0.02; exp.std_noise = 0.01;
-exp.Tarrival = 4;  exp.Tbolus = 8;
+
+exp.Tbolus = 8; exp.Tarrival = 
 
 for  est_R1L = 0
-    for fit_input = 1
-        disp('Running Monte Carlo Simulation')
-        fit_description = [];
+    for fit_model = 1:3
         
         clear params_est params_fixed acq fitting
         
@@ -17,10 +16,8 @@ for  est_R1L = 0
         params_fixed.R1P = R1P_est;
         params_est.kPL = kPL_est;
         if est_R1L
-            fit_description = [fit_description, '  Fitting T1L'];
             params_est.R1L = R1L_est;
         else
-            fit_description = [fit_description, '  Fixed T1L'];
             params_fixed.R1L = R1L_est;
         end
         
@@ -31,14 +28,12 @@ for  est_R1L = 0
         % constraining R1L to narrow range maybe reasonable compromise
         
         if fit_input
-            fit_description = [fit_description, '  Fitting the input function'];
             fitting.fit_fcn = @fit_kPL_withinput;
-            Tarrival_est = exp.Tarrival;    Tbolus_est = exp.Tbolus;  % ... perfect estimates ... how do they perform with variability?
+            Tarrival_est = 0;    Tbolus_est = 12;  % ... perfect estimates ... how do they perform with variability?
             Rinj_est = 0.1; % ??
             params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
         else
-           fit_description = [fit_description, '  Inputless fitting'];
-           fitting.fit_fcn = @fit_kPL;
+            fitting.fit_fcn = @fit_kPL;
         end
         
         
@@ -54,9 +49,7 @@ for  est_R1L = 0
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
         fitting.NMC = NMC;
         
-        disp(fit_description)
-        [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
-        hdata.Name = fit_description; hsim.Name =fit_description;
+        HP_montecarlo_evaluation( acq, fitting, exp );
         
     end
 end

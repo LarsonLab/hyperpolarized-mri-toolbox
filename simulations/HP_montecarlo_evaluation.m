@@ -9,12 +9,12 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 % 10.1371/journal.pone.0071996 , is always computed as a reference.
 %
 % INPUTS:
-%   acq - structure containing acquisition parameters, including
+%   acq - structure containing acquisition parameters, must include
 %       TR, flips, N (number of timepoints)
 %   fitting - structure containing fitting parameters, including
 %       fit_fcn, params_est, params_fixed
 %       (for use with fit_kPL* functions)    
-%   exp - structure containing experimental parameters (optional)
+%   exp - structure containing experimental parameters and ranges for simulations (optional)
 %
 % OUTPUTS:
 %   results - structure containing summary of results
@@ -44,9 +44,24 @@ if nargin < 3 || isempty(exp)
     exp = struct([]);
 end
 
-% default experiment values
-exp_params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus', 'Tarrival'};
-exp_params_default = [0.02, 1/25, 1/30, 0.005, 8, 4];
+% default experiment values - chosen based on UCSF Human Prostate Cancer
+% studies
+exp_params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus', 'Tarrival', ... % nominal values
+    'kPL_min', 'kPL_max', 'R1L_min', 'R1L_max', 'R1P_min', 'R1P_max', ...
+    'std_noise_min', 'std_noise_max', 'Tbolus_min', 'Tbolus_max', 'Tarrival_min', 'Tarrival_max', ...
+    'B1error_min', 'B1error_max', 'B1diff_min', 'B1diff_max'}; % experiment simulation ranges
+exp_params_default = [0.02, 1/25, 1/30, 0.005, 8, 4 ... % nominal values
+    0.001, 0.04, 1/35, 1/15, 1/40, 1/20, ...
+    0, 0.01, 6, 10, 0, 8, ...
+    -.2, .2, -.2, .2]; % experiment simulation ranges
+% exp.kPL_min = 0.001; exp.kPL_max = 0.04;    % approx kpL max in human studies
+% exp.std_noise_min = 0; exp.std_noise_max = 0.01;
+% exp.Tarrival_min = 0; exp.Tarrival_max = 8;
+% exp.Tbolus_min = 6; exp.Tbolus_max = 10;
+% exp.R1L_min = 1/35; exp.R1L_max = 1/15;
+% exp.R1P_min = 1/40; exp.R1P_max = 1/20;
+% exp.B1error_min = -.2; exp.B1error_max = .2;
+% exp.B1diff_min = -.2; exp.B1diff_max = .2;
 
 for n = 1:length(exp_params_all)
     param_name = exp_params_all{n};
@@ -57,17 +72,6 @@ end
 
 R1 = [exp.R1P, exp.R1L]; kPL = exp.kPL; std_noise = exp.std_noise;
 Tbolus = exp.Tbolus;
-
-% experiment simulation ranges
-exp.kPL_min = 0.001; exp.kPL_max = 0.04;    % approx kpL max in human studies
-exp.std_noise_min = 0; exp.std_noise_max = 0.01;
-exp.Tarrival_min = 0; exp.Tarrival_max = 8;
-exp.Tbolus_min = 6; exp.Tbolus_max = 10;
-exp.R1L_min = 1/35; exp.R1L_max = 1/15;
-exp.R1P_min = 1/40; exp.R1P_max = 1/20;
-exp.B1error_min = -.2; exp.B1error_max = .2;
-exp.B1diff_min = -.2; exp.B1diff_max = .2;
-
 
 Nplot1 = 4; Nplot2 = 2;
 

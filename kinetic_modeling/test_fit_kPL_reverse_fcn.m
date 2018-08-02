@@ -76,16 +76,26 @@ params_est.kPL = kPL_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:size(Mxy,2),  Iflips)] = fit_kPL(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:size(Mxy,2),  Iflips)] = fit_kPL(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+
+    % no noise
+    [params_fit_reverse(:,Iflips) Sfit_reverse(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    
+    % add noise
+    [params_fitn_complex_reverse(:,Iflips) Snfit_complex_reverse(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    
+    % magnitude fitting with noise
+    [params_fitn_mag_reverse(:,Iflips) Snfit_mag_reverse(1:size(Mxy,2),  Iflips)] = fit_kPL_reverse(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
+disp('*Forward fits*')
 disp('Noiseless fit results:')
 disp(['KPL  = ']); disp(num2str(struct2array(params_fit).'))
 disp('Noisy complex fit results:')
@@ -93,14 +103,26 @@ disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_complex).'))
 disp('Noisy magnitude fit results:')
 disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_mag).'))
 
+disp('*Reverse fits*')
+disp('Noiseless fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fit_reverse).'))
+disp('Noisy complex fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_complex_reverse).'))
+disp('Noisy magnitude fit results:')
+disp(['KPL  = ']); disp(num2str(struct2array(params_fitn_mag_reverse).'))
+
 figure
-subplot(121) , plot(t, squeeze(Sn(1,:,:)))
+subplot(131) , plot(t, squeeze(Sn(1,:,:)))
 title('Pyruvate signals')
-subplot(122) , plot(t, squeeze(Sn(2,:,:)))
+subplot(132) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(:,:)),':')
 plot(t, squeeze(Snfit_mag(:,:)),'--')
 title('kPL fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 legend('constant','multiband', 'multiband variable flip')
+subplot(133) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex_reverse(:,:)),':')
+plot(t, squeeze(Snfit_mag_reverse(:,:)),'--')
+title('kPL fit reverse: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 
 disp('Press any key to continue')
 disp('')
