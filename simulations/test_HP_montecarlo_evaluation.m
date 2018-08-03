@@ -1,9 +1,9 @@
 clear all
-NMC = 100;  % less for quicker testing
+NMC = 20;  % less for quicker testing
 
 % default experiment values
 exp.R1P = 1/25;  exp.R1L =1/25;  exp.kPL = 0.02; exp.std_noise = 0.01;
-
+exp.Tarrival = 4;  exp.Tbolus = 8;
 for  est_R1L = 0
     for fit_input = 0
         
@@ -27,7 +27,7 @@ for  est_R1L = 0
         
         if fit_input
             fitting.fit_fcn = @fit_kPL_withinput;
-            Tarrival_est = 0;    Tbolus_est = 12;  % ... perfect estimates ... how do they perform with variability?
+            Tarrival_est = 4;    Tbolus_est = 8;  % ... perfect estimates ... how do they perform with variability?
             Rinj_est = 0.1; % ??
             params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
         else
