@@ -149,7 +149,7 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
+                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, Imaxy1, noise_level.*(Sscale(2,:).^2));
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
@@ -202,7 +202,7 @@ end
 
 end
 
-function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, noise_level)
+function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzscale, params_fixed, TR, Istart, noise_level)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
 %    compartmental model with Rician noise
 % noise level is scaled for state magnetization (Mz) domain
@@ -210,7 +210,7 @@ function [ l1 ] = negative_log_likelihood_rician_frompyr(params_fit, x1, x2, Mzs
 N = size(x1,2);
 
 % compute trajectory of the model with parameter values
-x2fit = trajectories_frompyr_bidirectional(params_fit, x1, Mzscale, params_fixed, TR);
+x2fit = trajectories_frompyr_bidirectional(params_fit, x1, Mzscale, params_fixed, TR, Istart);
 
 % compute negative log likelihood
 l1 = 0;

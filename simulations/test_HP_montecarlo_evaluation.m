@@ -3,11 +3,11 @@ NMC = 20;  % less for quicker testing
 
 % default experiment values
 
-experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.01;
+experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.005;
 experiment.Tarrival = 4;  experiment.Tbolus = 8;
 
-for  est_R1L = 0
-    for fit_input = 1
+for  est_R1L = 0:1
+    for fit_input = 0:1
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         
@@ -20,6 +20,7 @@ for  est_R1L = 0
         if est_R1L
             fit_description = [fit_description, '  Fitting T1L'];
             params_est.R1L = R1L_est;
+            params_est.R1L_lb = 1/35; params_est.R1L_ub = 1/15;
         else
             fit_description = [fit_description, '  Fixed T1L'];
             params_fixed.R1L = R1L_est;
