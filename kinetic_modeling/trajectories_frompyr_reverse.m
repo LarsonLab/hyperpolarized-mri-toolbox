@@ -36,7 +36,7 @@ u(It) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp(Ap*-TR) ) * Ap / (exp(Ap
 
 xstar = - inv(A)*[u(It),0].';
 
-% solve next time point under assumption of constant input during TR
+% solve previous time point under assumption of constant input during TR
 Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
 
 

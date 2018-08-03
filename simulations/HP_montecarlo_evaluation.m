@@ -1,5 +1,5 @@
-function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
-% [ results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp );
+function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment )
+% [ results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
 %
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
 % simulations.
@@ -14,7 +14,7 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exp )
 %   fitting - structure containing fitting parameters, including
 %       fit_fcn, params_est, params_fixed
 %       (for use with fit_kPL* functions)    
-%   exp - structure containing experimental parameters and ranges for simulations (optional)
+%   experiment - structure containing experimental parameters and ranges for simulations (optional)
 %
 % OUTPUTS:
 %   results - structure containing summary of results
@@ -40,8 +40,8 @@ end
 
 
 % experimental parameters
-if nargin < 3 || isempty(exp)
-    exp = struct([]);
+if nargin < 3 || isempty(experiment)
+    experiment = struct([]);
 end
 
 % default experiment values - chosen based on UCSF Human Prostate Cancer
@@ -65,22 +65,22 @@ exp_params_default = [0.02, 1/25, 1/30, 0.005, 8, 4 ... % nominal values
 
 for n = 1:length(exp_params_all)
     param_name = exp_params_all{n};
-    if ~isfield(exp, param_name)
-       exp.(param_name) = exp_params_default(n);
+    if ~isfield(experiment, param_name)
+       experiment.(param_name) = exp_params_default(n);
     end
 end
 
-R1 = [exp.R1P, exp.R1L]; kPL = exp.kPL; std_noise = exp.std_noise;
-Tbolus = exp.Tbolus;
+R1 = [experiment.R1P, experiment.R1L]; kPL = experiment.kPL; std_noise = experiment.std_noise;
+Tbolus = experiment.Tbolus;
 
 Nplot1 = 4; Nplot2 = 2;
 
 % default input function and sample data
 t = [0:acq.N-1]*acq.TR;
 Mz0 = [0,0];
-t_input = t+acq.TR-exp.Tarrival;
-if isfield(exp, 'input_function')
-    input_function = exp.input_function;
+t_input = t+acq.TR-experiment.Tarrival;
+if isfield(experiment, 'input_function')
+    input_function = experiment.input_function;
 else
     input_function = gampdf(t_input,4,Tbolus/4);  % gives a full-width half-max of the bolus of ~ Tbolus sec
 end
@@ -109,7 +109,7 @@ Iplot = 1;
 
 %% KPL test
 
-kPL_test = linspace(exp.kPL_min, exp.kPL_max, Nexp_values).';
+kPL_test = linspace(experiment.kPL_min, experiment.kPL_max, Nexp_values).';
 
 kPL_fit = zeros(length(kPL_test), NMC); AUC_fit = kPL_fit;
 
@@ -123,7 +123,7 @@ end
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
 ylim(ratio_limits)
-xlabel('k_{PL} (1/s)'),  xlim([exp.kPL_min, exp.kPL_max])
+xlabel('k_{PL} (1/s)'),  xlim([experiment.kPL_min, experiment.kPL_max])
 
 % add legend
 legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
@@ -140,7 +140,7 @@ results.kPL_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% SNR
 
-std_noise_test = linspace(exp.std_noise_min, exp.std_noise_max, Nexp_values).';
+std_noise_test = linspace(experiment.std_noise_min, experiment.std_noise_max, Nexp_values).';
 
 kPL_fit = zeros(length(std_noise_test), NMC); AUC_fit = kPL_fit;
 Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
@@ -153,7 +153,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(std_noise_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-xlabel('\sigma'),  xlim([exp.std_noise_min, exp.std_noise_max])
+xlabel('\sigma'),  xlim([experiment.std_noise_min, experiment.std_noise_max])
 ylim(ratio_limits)
 
 
@@ -168,12 +168,12 @@ results.noise_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% bolus tests: arrival time
 
-Tarrival_test= linspace(exp.Tarrival_min, exp.Tarrival_max, Nexp_values);
+Tarrival_test= linspace(experiment.Tarrival_min, experiment.Tarrival_max, Nexp_values);
 
 kPL_fit = zeros(length(Tarrival_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(Tarrival_test)
-    t_test = t_input - (Tarrival_test(Itest)-exp.Tarrival);
+    t_test = t_input - (Tarrival_test(Itest)-experiment.Tarrival);
     input_function_test = interp1(t_input, input_function, t_test, 'linear', 0);
     Mz0_test = [sum(input_function)-sum(input_function_test) 0];
     
@@ -187,7 +187,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tarrival_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-xlabel('Tarrival (s)'), xlim([exp.Tarrival_min, exp.Tarrival_max]), ylim(ratio_limits)
+xlabel('Tarrival (s)'), xlim([experiment.Tarrival_min, experiment.Tarrival_max]), ylim(ratio_limits)
 
 results.Tarrival_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.Tarrival_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -201,7 +201,7 @@ results.Tarrival_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% bolus tests: duration
 
-Tbolus_test = linspace(exp.Tbolus_min, exp.Tbolus_max, Nexp_values);
+Tbolus_test = linspace(experiment.Tbolus_min, experiment.Tbolus_max, Nexp_values);
 
 
 kPL_fit = zeros(length(Tbolus_test), NMC); AUC_fit = kPL_fit;
@@ -221,7 +221,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(Tbolus_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-ylim(ratio_limits), xlim([exp.Tbolus_min, exp.Tbolus_max]), xlabel('Tbolus (s)')
+ylim(ratio_limits), xlim([experiment.Tbolus_min, experiment.Tbolus_max]), xlabel('Tbolus (s)')
 
 results.Tbolus_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.Tbolus_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -236,7 +236,7 @@ results.Tbolus_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% T1 lactate tests - this is hard
 
-R1L_test = linspace(exp.R1L_min, exp.R1L_max, Nexp_values);
+R1L_test = linspace(experiment.R1L_min, experiment.R1L_max, Nexp_values);
 
 kPL_fit = zeros(length(R1L_test), NMC); AUC_fit = kPL_fit;
 
@@ -250,7 +250,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(1./R1L_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
-ylim(ratio_limits), xlim(1./[exp.R1L_max, exp.R1L_min]), xlabel('T_{1L} (s)')
+ylim(ratio_limits), xlim(1./[experiment.R1L_max, experiment.R1L_min]), xlabel('T_{1L} (s)')
 
 results.R1L_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.R1L_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -263,7 +263,7 @@ results.R1L_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
 %% T1 pyruvate tests
 
-R1P_test = linspace(exp.R1P_min, exp.R1P_max, Nexp_values);
+R1P_test = linspace(experiment.R1P_min, experiment.R1P_max, Nexp_values);
 
 kPL_fit = zeros(length(R1P_test), NMC); AUC_fit = kPL_fit;
 
@@ -277,7 +277,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(1./R1P_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
-ylim(ratio_limits), xlim(1./[exp.R1P_max, exp.R1P_min]), xlabel('T_{1P} (s)')
+ylim(ratio_limits), xlim(1./[experiment.R1P_max, experiment.R1P_min]), xlabel('T_{1P} (s)')
 
 results.R1P_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.R1P_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -291,7 +291,7 @@ results.R1P_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 %% B1 error tests
     % simulate inaccurate B1, & unknown
 
-B1error_test = linspace(exp.B1error_min, exp.B1error_max, Nexp_values);
+B1error_test = linspace(experiment.B1error_min, experiment.B1error_max, Nexp_values);
 
 kPL_fit = zeros(length(B1error_test), NMC); AUC_fit = kPL_fit;
 
@@ -304,7 +304,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(B1error_test, kPL_fit/kPL-1, AUC_fit/AUC_predicted-1);
-ylim(ratio_limits), xlim([exp.B1error_min, exp.B1error_max]), xlabel('% B_{1} error')
+ylim(ratio_limits), xlim([experiment.B1error_min, experiment.B1error_max]), xlabel('% B_{1} error')
 
 results.B1error_test.kPL_avg_error = mean(kPL_std);  % precision measurement
 results.B1error_test.kPL_avg_bias = mean(abs(kPL_mean));  % accuracy measurement
@@ -318,7 +318,7 @@ results.B1error_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 %% B1 difference tests
     % simulate inaccurate B1, but known
 
-B1diff_test = linspace(exp.B1diff_min, exp.B1diff_max, Nexp_values);
+B1diff_test = linspace(experiment.B1diff_min, experiment.B1diff_max, Nexp_values);
 
 kPL_fit = zeros(length(B1diff_test), NMC); AUC_fit = kPL_fit;
 clear AUC_predicted_test
@@ -332,7 +332,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(B1diff_test, kPL_fit/kPL-1, AUC_fit./repmat(AUC_predicted_test(:), [1, NMC]) -1);
-ylim(ratio_limits), xlim([exp.B1diff_min, exp.B1diff_max]), xlabel('% B_{1} difference')
+ylim(ratio_limits), xlim([experiment.B1diff_min, experiment.B1diff_max]), xlabel('% B_{1} difference')
 
 
 
