@@ -1,12 +1,12 @@
 clear all
-NMC = 20;  % less for quicker testing
+NMC = 100;  % less for quicker testing
 
 % default experiment values
-experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.004;
+experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.01;
 experiment.Tarrival = 4;  experiment.Tbolus = 8;
 
 for  est_R1L = 0
-    for fit_model = 1:2
+    for fit_model = 1:3
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         
@@ -48,11 +48,14 @@ for  est_R1L = 0
         % 2D dynamic 10/20 flips
         Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
         Npe = 8; Nall = acq.N * Npe;
-%        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
-        acq.flips(1:2,1:acq.N) = [vfa_const_amp(acq.N, pi/2, exp(-acq.TR * ( 0.05))); ... % max lactate SNR variable flip angle
+%        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180;
+%        20*pi/180]).^Npe), [1 acq.N]);  % reverse failing sometimes
+
+Tacq = 45; acq.TR = 3; acq.N = Tacq/acq.TR;
+        acq.flips = [vfa_const_amp(acq.N, pi/2, exp(-acq.TR * ( 0.05))); ... % max lactate SNR variable flip angle
     vfa_opt_signal(acq.N, exp(-acq.TR * ( experiment.R1L)))];
 
-        %                    acq.flips = repmat([10*pi/180; 40*pi/180], [1 N]);
+         %                   acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);  % reverse failing sometimes
         
         
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
@@ -73,15 +76,13 @@ N = acq.N; TR = acq.TR; std_noise = experiment.std_noise;
 input_function = realistic_input_function(acq.N, acq.TR, experiment.Tarrival, experiment.Tbolus);
 Mz0 = [0,0]';
 
-Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
-        Npe = 8; Nall = acq.N * Npe;
-        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
+%         acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
 flips = acq.flips;
-flips(1:2,1:N) = ones(2,N)*30*pi/180;  % constant, single-band
-flips(1:2,1:N) = repmat([20;35]*pi/180,[1 N]);  % constant, multi-band
-flips(1:2,1:N) = [vfa_const_amp(N, pi/2, exp(-TR * ( 0.05))); ... % max lactate SNR variable flip angle
-    vfa_opt_signal(N, exp(-TR * ( experiment.R1L)))];
-
+% flips(1:2,1:N) = ones(2,N)*30*pi/180;  % constant, single-band
+% flips(1:2,1:N) = repmat([20;35]*pi/180,[1 N]);  % constant, multi-band
+% flips(1:2,1:N) = [vfa_const_amp(N, pi/2, exp(-TR * ( 0.05))); ... % max lactate SNR variable flip angle
+%     vfa_opt_signal(N, exp(-TR * ( experiment.R1L)))];
+% 
 % reverse failing for high flip angles
 
 
@@ -101,7 +102,10 @@ params_est.kPL = kPL_est;
     plot_fits = 1;
 
     Iflips = 1;
-        % no noise
+    [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL_bidirectional(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+
+    return
+    % no noise
     [params_fit(:,Iflips) Sfit(1:size(Mxy,2),  Iflips)] = fit_kPL(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
