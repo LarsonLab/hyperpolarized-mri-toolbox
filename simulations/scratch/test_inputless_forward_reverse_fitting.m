@@ -48,13 +48,13 @@ for  est_R1L = 0
         % 2D dynamic 10/20 flips
         Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
         Npe = 8; Nall = acq.N * Npe;
-%        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180;
-%        20*pi/180]).^Npe), [1 acq.N]);  % reverse failing sometimes
+       acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180;
+       20*pi/180]).^Npe), [1 acq.N]);  % reverse failing sometimes
 
-Tacq = 45; acq.TR = 3; acq.N = Tacq/acq.TR;
-        acq.flips = [vfa_const_amp(acq.N, pi/2, exp(-acq.TR * ( 0.05))); ... % max lactate SNR variable flip angle
-    vfa_opt_signal(acq.N, exp(-acq.TR * ( experiment.R1L)))];
-
+% Tacq = 45; acq.TR = 3; acq.N = Tacq/acq.TR;
+%         acq.flips = [vfa_const_amp(acq.N, pi/2, exp(-acq.TR * ( 0.05))); ... % max lactate SNR variable flip angle
+%     vfa_opt_signal(acq.N, exp(-acq.TR * ( experiment.R1L)))];
+% 
          %                   acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);  % reverse failing sometimes
         
         
