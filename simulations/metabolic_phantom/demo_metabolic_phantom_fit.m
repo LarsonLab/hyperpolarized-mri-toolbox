@@ -23,10 +23,8 @@ R1P = 1/25; R1L = 1/25;
 std_noise = 1e-4;
 
 t = [1:N]*TR;
-Tarrival = 0;
-A = 4; B = 1*TR;
-input_function = gampdf(t-Tarrival,A,B);  % gamma distribution -continued input
-input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
+Tarrival = 0; Tbolus = 10;
+input_function = realistic_input_function(N, TR, Tarrival, Tbolus);% normalize for a total magnetization input = 1
 Mz0 = [0,0];
 
 flips(1:2,1:N) = ones(2,N)*20*pi/180;  % constant, single-band

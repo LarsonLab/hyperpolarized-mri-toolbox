@@ -1,4 +1,4 @@
-function input_function = realistic_input_function(N, TR, Tarrival, Tbolus);
+function [input_function, t_input] = realistic_input_function(N, TR, Tarrival, Tbolus)
 
 t = [1:N]*TR;
 t_input = t-Tarrival;

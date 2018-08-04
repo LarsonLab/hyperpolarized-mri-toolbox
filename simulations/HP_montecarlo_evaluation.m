@@ -78,13 +78,13 @@ Nplot1 = 4; Nplot2 = 2;
 % default input function and sample data
 t = [0:acq.N-1]*acq.TR;
 Mz0 = [0,0];
-t_input = t+acq.TR-experiment.Tarrival;
 if isfield(experiment, 'input_function')
     input_function = experiment.input_function;
+    input_function = input_function/sum(input_function); % normalize so total input magnetization = 1
+    t_input = t+acq.TR-experiment.Tarrival;
 else
-    input_function = gampdf(t_input,4,Tbolus/4);  % gives a full-width half-max of the bolus of ~ Tbolus sec
+    [input_function, t_input] = realistic_input_function(acq.N, acq.TR, experiment.Tarrival, experiment.Tbolus);  % gives a full-width half-max of the bolus of ~ Tbolus sec
 end
-input_function = input_function/sum(input_function); % normalize so total input magnetization = 1
 results.input_function = input_function;
 
 Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);

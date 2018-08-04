@@ -6,7 +6,7 @@ NMC = 20;  % less for quicker testing
 experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.005;
 experiment.Tarrival = 4;  experiment.Tbolus = 8;
 
-for  est_R1L = 0:1
+for  est_R1L = 0
     for fit_input = 0:1
         disp('Running Monte Carlo Simulation')
         fit_description = [];
@@ -47,11 +47,11 @@ for  est_R1L = 0:1
         
         
         % 2D dynamic 10/20 flips
-        Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
+        Tacq = 50; acq.TR = 2; acq.N = Tacq/acq.TR;
         Npe = 8; Nall = acq.N * Npe;
         acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
         
-        %                    acq.flips = repmat([10*pi/180; 40*pi/180], [1 N]);
+                            acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
         
         
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
