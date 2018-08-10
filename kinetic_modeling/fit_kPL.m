@@ -12,8 +12,11 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %
 % [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
-% All params_* values are structures, with possible fields of 'kPL', 'R1L',
-% and 'R1P', and units of 1/s.
+% All params_* values are structures, with possible fields of:
+%   'kPL', 'R1L', 'R1P',  in units of 1/s
+%   'errkPL', 'ub', 'lb', 'Rsq', 'CHI' as measures of goodness of fit
+%       where 'ub' and 'lb' are the upper and lower bounds of model error
+%
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
 %   TR - repetition time per time point 
@@ -35,15 +38,15 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %
 % EXAMPLES - see test_fit_kPL_fcn.m
 %
-% Authors: John Maidens,  Peder E. Z. Larson
+% Authors: John Maidens, Peder E. Z. Larson, Daniele Mammoli, Natalie Korn
 %
-% (c)2015-2017 The Regents of the University of California. All Rights
+% (c)2015-2018 The Regents of the University of California. All Rights
 % Reserved.
 
-params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
-params_default_est = [0.01, 1/25, 1/25, 0];
-params_default_lb = [-Inf, 1/60, 1/60, 0];
-params_default_ub = [Inf, 1/10, 1/10, Inf];
+params_all = {'kPL', 'R1L', 'R1P', 'ub', 'lb', 'errkPL', 'Rsq', 'CHI', 'L0_start',};
+params_default_est = [0.05, 1/25, 1/25, 0.05, 0.05, 0.001, 0.5, 1, 0.05];
+params_default_lb = [-Inf, 1/60, 1/60, -Inf, -Inf, 0, -Inf, -Inf, 0];
+params_default_ub = [Inf, 1/10, 1/10, Inf, Inf, Inf, Inf, Inf, Inf];
 
 if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -141,8 +144,11 @@ for i=1:size(S, 1)
         switch(fit_method)
             case 'ls'
                 obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
-                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
+                % extract 95% confidence interval on lactate timecourse fitting
+                sigma = nlparci(params_fit_vec(i,1),resid,'jacobian',J(:,1));
+
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
@@ -151,6 +157,13 @@ for i=1:size(S, 1)
         [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        
+        % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
+        params_fit_vec(i,2)=sigma(1,2);
+        params_fit_vec(i,3)=sigma(1,1);
+        params_fit_vec(i,4)=sigma(1,2)-sigma(1,1);
+        params_fit_vec(i,5)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
+        params_fit_vec(i,6)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
         
         if plot_flag
             % plot of fit for debugging
