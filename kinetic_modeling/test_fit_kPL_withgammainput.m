@@ -14,9 +14,6 @@ switch input_condition
         % gamma variate input function
         t = [1:N]*TR;
         Tarrival = 0;  Tbolus = 12;
-        A = 4; % emperical choice to start bolus rapidly
-        input_function = gampdf(t-Tarrival,A,Tbolus/4);  % gamma distribution
-        input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
         input_function = realistic_input_function(N, TR, Tarrival, Tbolus);
         Mz0 = [0,0];
     case 2
