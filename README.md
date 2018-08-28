@@ -7,10 +7,11 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 ## Additional Resources
 
 This includes, as a subtree, the
-[Spectral-Spatial-RF-Pulse-Design toolbox](https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.
+[Spectral-Spatial-RF-Pulse-Design toolbox](https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.
 <!-- 
-git subtree add --prefix RF_pulses/spectral_spatial https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design.git master --squash
-git subtree pull --prefix RF_pulses/spectral_spatial https://github.com/agentmess/Spectral-Spatial-RF-Pulse-Design.git master --squash
+git subtree add --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
+git subtree pull --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
+git subtree push --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
 
  -->
 
