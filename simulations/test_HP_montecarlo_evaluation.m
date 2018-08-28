@@ -2,6 +2,7 @@ clear all
 NMC = 20;  % less for quicker testing
 
 % default experiment values
+
 experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.01;
 experiment.Tarrival = 4;  experiment.Tbolus = 8;
 
