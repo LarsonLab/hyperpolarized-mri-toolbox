@@ -14,9 +14,7 @@ switch input_condition
         % gamma variate input function
         t = [1:N]*TR;
         Tarrival = 0;  Tbolus = 12;
-        A = 4; % emperical choice to start bolus rapidly
-        input_function = gampdf(t-Tarrival,A,Tbolus/4);  % gamma distribution
-        input_function = input_function/sum(input_function);% normalize for a total magnetization input = 1
+        input_function = realistic_input_function(N, TR, Tarrival, Tbolus);
         Mz0 = [0,0];
     case 2
         % boxcar input function
@@ -61,7 +59,7 @@ end
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
-Tarrival_est = 0; Rinj_est = 1; A_est = 4;  B_est = 3;% magnitude fitting relatively sensitive to estimates of arrival and bolus times
+Tarrival_est = 0; Rinj_est = 1; Tbolus_est = 12;% magnitude fitting relatively sensitive to estimates of arrival and bolus times
 
 plot_fits = 0;
 
@@ -74,7 +72,7 @@ disp('')
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
 params_est.kPL = kPL_est;
-params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.A = A_est;  params_est.B = B_est;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est; 
 
 for Iflips = 1:N_flip_schemes
     % no noise
@@ -92,14 +90,14 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, KPL))
 disp('Noiseless fit results:')
-disp(['KPL         Rinj        Tarrive       A         B    = ']);
-disp(num2str(reshape(struct2array(params_fit), 5, N_flip_schemes).'))
+disp(['KPL         Rinj        Tarrive       Tbolus    = ']);
+disp(num2str(reshape(struct2array(params_fit), 4, N_flip_schemes).'))
 disp('Noisy complex fit results:')
-disp(['KPL         Rinj        Tarrive       A         B    = ']);
-disp(num2str(reshape(struct2array(params_fitn_complex), 5, N_flip_schemes).'))
+disp(['KPL         Rinj        Tarrive       Tbolus    = ']);
+disp(num2str(reshape(struct2array(params_fitn_complex), 4, N_flip_schemes).'))
 disp('Noisy magnitude fit results:')
-disp(['KPL         Rinj        Tarrive       A         B    = ']);
-disp(num2str(reshape(struct2array(params_fitn_mag), 5, N_flip_schemes).'))
+disp(['KPL         Rinj        Tarrive       Tbolus    = ']);
+disp(num2str(reshape(struct2array(params_fitn_mag), 4, N_flip_schemes).'))
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
@@ -124,7 +122,7 @@ disp('Improve fit with known bolus shape')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
-params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.A = A_est;  params_fixed.B = B_est; params_fixed.Tarrival = Tarrival_est; 
+params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.Tbolus = Tbolus_est; params_fixed.Tarrival = Tarrival_est; 
 params_est.kPL = kPL_est;
 params_est.Rinj = Rinj_est; % still fit injection rate, which is equivalent to a perfusion parameter
 
@@ -177,7 +175,7 @@ disp('')
 
 % Fitting both kPL and relaxation rate of lactate
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
-params_fixed.R1P = R1P_est; params_fixed.A = A_est;  params_fixed.B = B_est; params_fixed.Tarrival = Tarrival_est; 
+params_fixed.R1P = R1P_est; params_fixed.Tbolus = Tbolus_est; params_fixed.Tarrival = Tarrival_est; 
 params_est.kPL = kPL_est; params_est.R1L = R1L_est;
 params_est.Rinj = Rinj_est; % still fit injection rate, which is equivalent to a perfusion parameter
 % set constraints on lactate T1:

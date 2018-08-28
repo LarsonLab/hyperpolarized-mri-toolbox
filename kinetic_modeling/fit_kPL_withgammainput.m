@@ -34,10 +34,10 @@ function [params_fit, Sfit, objective_val] = fit_kPL_withgammainput(S, TR, flips
 % (c)2015-2017 The Regents of the University of California. All Rights
 % Reserved.
 
-params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'A','B'};
-params_default_est = [0.02, 1/25, 1/25, 0.1, 0, 12,3];
-params_default_lb = [0, 1/50, 1/50, 0, -30, 0, 0];
-params_default_ub = [Inf, 1/10, 1/10 Inf 30 Inf Inf];
+params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'Tbolus'};
+params_default_est = [0.02, 1/25, 1/25, 0.1, 0, 8];
+params_default_lb = [0, 1/50, 1/50, 0, -30, 0];
+params_default_ub = [Inf, 1/10, 1/10 Inf 30 Inf];
 
 Iparams_pyr = [4:6]; % for initial fit of just pyruvate to determine input parameters
 

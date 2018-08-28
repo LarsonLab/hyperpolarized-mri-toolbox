@@ -4,7 +4,7 @@ function [x1, x2] = trajectories_withgammainput( params_fit, params_fixed , TR, 
 
 x1 = zeros(1, N); x2 = zeros(1,N);
 
-params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'A','B'};
+params_all = {'kPL', 'R1L', 'R1P', 'Rinj', 'Tarrival', 'Tbolus'};
 nfit = 0;
 for n = 1:length(params_all)
     if isfield(params_fixed, params_all(n))
@@ -14,6 +14,10 @@ for n = 1:length(params_all)
         eval([params_all{n} '= params_fit(nfit);']);
     end
 end
+
+% these parameters give a full-width half-max of the bolus of ~ Tbolus sec
+A = 4;
+B = Tbolus/4;
 
 for It=1:N
     
