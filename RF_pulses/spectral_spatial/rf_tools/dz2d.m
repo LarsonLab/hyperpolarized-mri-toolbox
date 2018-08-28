@@ -41,7 +41,7 @@ rf = besselj(1,kr*pi*tbp/2+0.0001) ./ (kr*pi*tbp/2+0.0001);
 rf = rf.*exp(-kr.*kr*2);
 
 % gradient waveform
-g = diff([0; k]);
+g = diff([0, k]);
 
 % rf weighting compensation
 omt = 2*pi*nt;
