@@ -2,7 +2,7 @@ function ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
 % SS_SAVE - Save spectral-spatial pulse 
 % Uses Chuck Cunningham's format for GE systems, and creates associated
 % .dat-file
-% Pulse parameters saved in header for Varian fules
+% Pulse parameters saved in header for Varian and Bruker files
 %   
 %  ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
 %
@@ -12,7 +12,7 @@ function ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
 %  thk - thickness in cm
 %  isodelay (optional) - delay from in-phase point to end of pulse (GE
 %  definition)
-%  format (optional) - 'GE' (default), 'Varian'  
+%  format (optional) - 'GE' (default), 'Varian', 'Bruker'
 %  fspec (optional) - frequency bands (Hz) to write in file
 %  a_angs (optional) - band amplidutes (radians) to write in file
 
@@ -52,7 +52,8 @@ end
             end
             
         case 'Varian'
-            
+        case 'Bruker'
+
         otherwise
             error(sprintf(['Format save type of: %s not' ...
                 ' recognized'], format));
