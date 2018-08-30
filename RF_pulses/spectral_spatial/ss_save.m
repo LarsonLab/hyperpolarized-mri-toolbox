@@ -179,7 +179,59 @@ end
             
             fclose(fid);
 
-            % Now write out RF and Gradient 
+% Data Acquisition Descriptor (DAD) XML file containing RF pulse information
+% for more info see SIVIC project https://github.com/SIVICLab/sivic
+
+docNode = com.mathworks.xml.XMLUtils.createDocument('svk_data_acquisition_description');
+dad = docNode.getDocumentElement;
+
+dad_version = docNode.createElement('version');
+dad_version.appendChild(docNode.createTextNode('0'));
+dad.appendChild(dad_version)
+
+encoding =docNode.createElement('encoding');
+dad.appendChild(encoding);
+
+excitation =docNode.createElement('excitation');
+encoding.appendChild(excitation);
+
+spectralType =docNode.createElement('spectralType');
+spectralType.appendChild(docNode.createTextNode('selective'));
+encoding.appendChild(spectralType);
+
+spatialType =docNode.createElement('spatialType');
+spatialType.appendChild(docNode.createTextNode('selective'));
+encoding.appendChild(spatialType);
+
+pulseName =docNode.createElement('pulseName');
+pulseName.appendChild(docNode.createTextNode(root_fname));
+encoding.appendChild(pulseName);
+
+% flip angle(s) and associated frequency bands
+if (nargin == 7)
+for b = 1:length(a_angs)
+curr_node = docNode.createElement('fligAngle_deg');
+
+% need to convert to strings??
+curr_node.setAttribute('frequency_min',num2str(fspec(2*b-1)));
+curr_node.setAttribute('frequency_max',num2str(fspec(2*b)));
+
+curr_node.appendChild(docNode.createTextNode(num2str(a_angs(b)*180/pi)));
+
+encoding.appendChild(curr_node);
+end
+end
+
+% add pulse frequency
+
+dad_name = sprintf('%s.xml', root_fname);
+xmlwrite(dad_name,docNode);
+
+
+
+
+
+            % Now write out RF and Gradient
             %
             rho_fname = sprintf('%s.rho', root_fname);
             signa(mag_rf,rho_fname,1);
