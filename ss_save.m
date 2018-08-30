@@ -1,10 +1,10 @@
-function ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
+function ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs, root_fname)
 % SS_SAVE - Save spectral-spatial pulse 
 % Uses Chuck Cunningham's format for GE systems, and creates associated
 % .dat-file
 % Pulse parameters saved in header for Varian and Bruker files
 %   
-%  ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
+%  ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs, root_fname)
 %
 %  g - in G/cm    
 %  rf - in G
@@ -15,6 +15,7 @@ function ss_save(g,rf,ang,thk, isodelay, format, fspec, a_angs)
 %  format (optional) - 'GE' (default), 'Varian', 'Bruker'
 %  fspec (optional) - frequency bands (Hz) to write in file
 %  a_angs (optional) - band amplidutes (radians) to write in file
+%  root_fname (optional) - root file name (no prompting)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -46,9 +47,9 @@ end
         case 'GE'
             % force even number of samples due to some GE sequences having
             % issues loading odd number of samples
-            if rem(length(rf))
-                rf = [rf(:), 0];
-                g = [g(:), 0];
+            if rem(length(rf),2)
+                rf = [rf(:); 0];
+                g = [g(:); 0];
             end
             
         case 'Varian'
@@ -69,11 +70,13 @@ end
     maxrf = max(abs(rf));
     rfn = rf / maxrf;
 
+    if (nargin < 9) || isempty(root_fname)
     root_fname = input('Root file name: (leave empty to not save) ', 's');
     if isempty(root_fname)
 	fprintf(1,'Not saving files \n');
 	return;
     end;
+    end
 
     % calculate pulse parameters
     nrf = length(rf);
@@ -170,7 +173,7 @@ end
             fprintf(fid,'%10d \t\t #g_pwm \n',0);
             fprintf(fid,'%10d \t\t #g_pwm_abs \n',0);
             fprintf(fid,'# *************************************\n');
-            if (nargin == 7)
+            if (nargin > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'# Band %d: [%.2f, %.2f] Hz, %.2f degree flip\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi);
@@ -178,58 +181,7 @@ end
             end
             
             fclose(fid);
-
-% Data Acquisition Descriptor (DAD) XML file containing RF pulse information
-% for more info see SIVIC project https://github.com/SIVICLab/sivic
-
-docNode = com.mathworks.xml.XMLUtils.createDocument('svk_data_acquisition_description');
-dad = docNode.getDocumentElement;
-
-dad_version = docNode.createElement('version');
-dad_version.appendChild(docNode.createTextNode('0'));
-dad.appendChild(dad_version)
-
-encoding =docNode.createElement('encoding');
-dad.appendChild(encoding);
-
-excitation =docNode.createElement('excitation');
-encoding.appendChild(excitation);
-
-spectralType =docNode.createElement('spectralType');
-spectralType.appendChild(docNode.createTextNode('selective'));
-encoding.appendChild(spectralType);
-
-spatialType =docNode.createElement('spatialType');
-spatialType.appendChild(docNode.createTextNode('selective'));
-encoding.appendChild(spatialType);
-
-pulseName =docNode.createElement('pulseName');
-pulseName.appendChild(docNode.createTextNode(root_fname));
-encoding.appendChild(pulseName);
-
-% flip angle(s) and associated frequency bands
-if (nargin == 7)
-for b = 1:length(a_angs)
-curr_node = docNode.createElement('fligAngle_deg');
-
-% need to convert to strings??
-curr_node.setAttribute('frequency_min',num2str(fspec(2*b-1)));
-curr_node.setAttribute('frequency_max',num2str(fspec(2*b)));
-
-curr_node.appendChild(docNode.createTextNode(num2str(a_angs(b)*180/pi)));
-
-encoding.appendChild(curr_node);
-end
-end
-
-% add pulse frequency
-
-dad_name = sprintf('%s.xml', root_fname);
-xmlwrite(dad_name,docNode);
-
-
-
-
+            
 
             % Now write out RF and Gradient
             %
@@ -254,7 +206,7 @@ xmlwrite(dad_name,docNode);
             fprintf(fid,'# Resolution = %d us\n', SS_TS*1e6);
             fprintf(fid,'# Flip = %.2f degrees\n',ang*180/pi);
             fprintf(fid,'# Max B1 = %.4f Gauss\n',max_b1);
-             if (nargin == 7)
+             if (nargin > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'# Band %d: [%.2f, %.2f] Hz, %.2f degree flip\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi);
@@ -326,7 +278,7 @@ xmlwrite(dad_name,docNode);
             else
                fprintf(fid,'##SHAPE= SLR\n');
             end
-             if (nargin == 10)
+             if (nargin > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'##Band_%d= [%.2f, %.2f] Hz, %.2f degree flip, %.3f ripple\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi, d(b)/sin(max(a_angs)));
@@ -356,6 +308,55 @@ xmlwrite(dad_name,docNode);
             fprintf(fid,'%5.3f  \n',g);
             fclose(fid);
     end
+    
+    % Data Acquisition Descriptor (DAD) XML file containing RF pulse information
+    % for more info see SIVIC project https://github.com/SIVICLab/sivic
+    
+    docNode = com.mathworks.xml.XMLUtils.createDocument('svk_data_acquisition_description');
+    dad = docNode.getDocumentElement;
+    
+    dad_version = docNode.createElement('version');
+    dad_version.appendChild(docNode.createTextNode('0'));
+    dad.appendChild(dad_version);
+    
+    encoding =docNode.createElement('encoding');
+    dad.appendChild(encoding);
+    
+    excitation =docNode.createElement('excitation');
+    encoding.appendChild(excitation);
+    
+    spectralType =docNode.createElement('spectralType');
+    spectralType.appendChild(docNode.createTextNode('selective'));
+    excitation.appendChild(spectralType);
+    
+    spatialType =docNode.createElement('spatialType');
+    spatialType.appendChild(docNode.createTextNode('selective'));
+    excitation.appendChild(spatialType);
+    
+    pulseName =docNode.createElement('pulseName');
+    pulseName.appendChild(docNode.createTextNode(root_fname));
+    excitation.appendChild(pulseName);
+    
+    % flip angle(s) and associated frequency bands
+    if (nargin > 6)
+        for b = 1:length(a_angs)
+            curr_node = docNode.createElement('flipAngle_deg');
+            
+            % need to convert to strings??
+            curr_node.setAttribute('frequencyMin_Hz',num2str(min(fspec(2*b-1),fspec(2*b))));
+            curr_node.setAttribute('frequencyMax_Hz',num2str(max(fspec(2*b-1),fspec(2*b))));
+            
+            curr_node.appendChild(docNode.createTextNode(num2str(a_angs(b)*180/pi)));
+            
+            excitation.appendChild(curr_node);
+        end
+    end
+    
+    % add pulse frequency, other RF stat parameters?
+    
+    dad_name = sprintf('%s.xml', root_fname);
+    xmlwrite(dad_name,docNode);
+    
     
     
     

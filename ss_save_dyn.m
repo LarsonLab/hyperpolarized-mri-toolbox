@@ -47,9 +47,9 @@ end
         case 'GE'
             % force even number of samples due to some GE sequences having
             % issues loading odd number of samples
-            if rem(length(rf))
-                rf = [rf(:), 0];
-                g = [g(:), 0];
+            if rem(length(rf),2)
+                rf = [rf(:); 0];
+                g = [g(:); 0];
             end
             
         case 'Varian'
@@ -165,7 +165,7 @@ end
             fprintf(fid,'%10d \t\t #g_pwm \n',0);
             fprintf(fid,'%10d \t\t #g_pwm_abs \n',0);
             fprintf(fid,'# *************************************\n');
-            if (nargin == 7)
+            if (nargin  > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'# Band %d: [%.2f, %.2f] Hz, %.2f degree flip\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi);
@@ -197,7 +197,7 @@ end
             fprintf(fid,'# Resolution = %d us\n', SS_TS*1e6);
             fprintf(fid,'# Flip = %.2f degrees\n',ang*180/pi);
             fprintf(fid,'# Max B1 = %.4f Gauss\n',max_b1);
-             if (nargin == 7)
+             if (nargin > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'# Band %d: [%.2f, %.2f] Hz, %.2f degree flip\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi);
@@ -270,7 +270,7 @@ end
             else
                fprintf(fid,'##SHAPE= SLR\n');
             end
-             if (nargin == 10)
+             if (nargin > 6)
                 for b = 1:length(a_angs)
                    fprintf(fid,'##Band_%d= [%.2f, %.2f] Hz, %.2f degree flip, %.3f ripple\n', ...
                        b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi, d(b)/sin(max(a_angs)));
@@ -300,6 +300,74 @@ end
             fprintf(fid,'%5.3f  \n',g);
             fclose(fid);
     end
+    
+    % Data Acquisition Descriptor (DAD) XML file containing RF pulse information
+    % for more info see SIVIC project https://github.com/SIVICLab/sivic
+    dad_name = sprintf('%s.xml', root_fname);
+    
+    if pulse_num ==1
+        docNode = com.mathworks.xml.XMLUtils.createDocument('svk_data_acquisition_description');
+        dad = docNode.getDocumentElement;
+        
+        dad_version = docNode.createElement('version');
+        dad_version.appendChild(docNode.createTextNode('0'));
+        dad.appendChild(dad_version);
+        
+        encoding =docNode.createElement('encoding');
+        dad.appendChild(encoding);
+        
+        excitation =docNode.createElement('excitation');
+        encoding.appendChild(excitation);
+        
+        spectralType =docNode.createElement('spectralType');
+        spectralType.appendChild(docNode.createTextNode('selective'));
+        excitation.appendChild(spectralType);
+        
+        spatialType =docNode.createElement('spatialType');
+        spatialType.appendChild(docNode.createTextNode('selective'));
+        excitation.appendChild(spatialType);
+        
+        pulseName =docNode.createElement('pulseName');
+        pulseName.appendChild(docNode.createTextNode(root_fname));
+        excitation.appendChild(pulseName);
+        
+        % flip angle(s) and associated frequency bands
+        if (nargin > 6)
+            for b = 1:length(a_angs)
+                curr_node = docNode.createElement('flipAngle_deg');
+                
+                % need to convert to strings??
+                curr_node.setAttribute('frequencyMin_Hz',num2str(min(fspec(2*b-1),fspec(2*b))));
+                curr_node.setAttribute('frequencyMax_Hz',num2str(max(fspec(2*b-1),fspec(2*b))));
+                
+                curr_node.appendChild(docNode.createTextNode(num2str(a_angs(b)*180/pi)));
+                
+                excitation.appendChild(curr_node);
+            end
+        end
+        
+    else
+        docNode = xmlread(dad_name);
+        
+        % flip angle(s) and associated frequency bands
+        if (nargin > 6)
+            flipAngle_deg = docNode.getElementsByTagName('flipAngle_deg');
+            
+            for b = 1:length(a_angs)
+                curr_node = flipAngle_deg.item(b-1);
+                curr_node_child = curr_node.getFirstChild;
+                new_flipAngle_deg_data = [char(curr_node_child.getData), ' ' num2str(a_angs(b)*180/pi)];
+                curr_node.replaceChild(docNode.createTextNode(new_flipAngle_deg_data), curr_node_child);
+            end
+        end
+        
+    end
+    
+    
+    % add pulse frequency
+    
+    xmlwrite(dad_name,docNode);
+    
     
     
     

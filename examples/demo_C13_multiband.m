@@ -71,6 +71,10 @@ set(gcf,'Name', '[1-13C]pyr+13C-urea Multiband');
 fprintf(1,'Hit any key to continue:\n');
 pause;
 
+% % for saving pulses:
+% 
+% ss_save(g,rf,max(a_angs),z_thk, [], 'GE', fspec, a_angs, root_fname);
+
 %% multiband pulse - minimum phase
 fprintf(1, '************************************************************\n')
 fprintf(1, 'This pulse is shortened by using a Minimum-phase spectral filter\n');
