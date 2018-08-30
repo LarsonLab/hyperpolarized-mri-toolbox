@@ -236,6 +236,72 @@ end
             fprintf(fid,'%d  1\n',round(32767*gn));
             fclose(fid);
     
+    
+        case 'Bruker'
+            
+            fid = fopen(sprintf('%s.exc', root_fname),'wt');
+  
+            fprintf(fid,'##TITLE= %s\n', sprintf('%s.RF', root_fname));
+            fprintf(fid,'##JCAMP-DX= 5.00 BRUKER JCAMP library\n');
+            fprintf(fid,'##DATA TYPE= Shape Data\n');
+            fprintf(fid,'##ORIGIN= BRUKER MEDICAL\n');
+            fprintf(fid,'##OWNER= <BRUKER MEDICAL>\n');
+            fprintf(fid,'##DATE= 20171106\n');
+            fprintf(fid,'##MINX= \n');
+            fprintf(fid,'##MAXX= \n');
+            fprintf(fid,'##MINY= \n');
+            fprintf(fid,'##MAXY= \n');
+            fprintf(fid,'##$SHAPE_EXMODE=  Excitation\n');
+            fprintf(fid,'##$SHAPE_TOTROT= 90.000000e+00\n');
+            fprintf(fid,'##$SHAPE_BWFAC= %6.6f\n',z_tb);
+            fprintf(fid,'##$SHAPE_INTEGFAC=      %1.4f\n',  sum(cos(-angle(rfn)).*abs(rfn))/length(rfn)); %changed by Vickie for Varian 
+
+            fprintf(fid,'##$SHAPE_REPHFAC= 50\n');
+            fprintf(fid,'##$SHAPE_TYPE=conventional\n');
+            fprintf(fid,'##$SHAPE_MODE= 0 \n');
+            fprintf(fid,'##NPOINTS= %d\n',length(g)); 
+            
+            fprintf(fid,'##Spectral_spatial_Matlab_Package\n');
+            fprintf(fid,'##Nucleus= %s\n',SS_NUCLEUS);
+            fprintf(fid,'##Duration= %d us\n',round(length(rf)*SS_TS*1e6));
+            fprintf(fid,'##Resolution= %d us\n', SS_TS*1e6);
+            fprintf(fid,'##Flip= %.2f degrees\n',ang*180/pi);
+            fprintf(fid,'##Max_B1 = %.4f Gauss\n',max_b1);
+            fprintf(fid,'##Spatial_time_bandwidth= %d\n',z_tb);
+            if SS_SLR_FLAG == 0
+               fprintf(fid,'##SHAPE= small tip\n');
+            else
+               fprintf(fid,'##SHAPE= SLR\n');
+            end
+             if (nargin == 10)
+                for b = 1:length(a_angs)
+                   fprintf(fid,'##Band_%d= [%.2f, %.2f] Hz, %.2f degree flip, %.3f ripple\n', ...
+                       b, fspec(2*b-1), fspec(2*b), a_angs(b)*180/pi, d(b)/sin(max(a_angs)));
+                end
+            end             
+            fprintf(fid,'##XYPOINTS= (XY..XY)\n');
+            
+            %fprintf(fid,'%3.2f  %4.2f  1.0\n',[-angle(rfn(:)).'*180/pi; 1023*abs(rfn(:)).']);    
+            %fprintf(fid,'%5.2f  %5.2f \n',[-angle(rfn(:)).'*180/pi; 1023*abs(rfn(:)).']);    
+            fprintf(fid,'%5.2f, %5.2f \n',[abs(rfn(:)).'*100'; -angle(rfn(:)).'*180/pi' ]);    
+       
+
+            fclose(fid);
+
+            fid = fopen(sprintf('%s.gp', root_fname),'wt');
+            fprintf(fid,'##TITLE= %s\n', sprintf('%s.gp', root_fname));
+            fprintf(fid,'## Spectral_spatial_Matlab_Package\n');
+            fprintf(fid,'##Nucleus= %s\n',SS_NUCLEUS);
+            fprintf(fid,'##SHAPE= %s\n',ss_type);
+            fprintf(fid,'##Duration= %d us\n',round(length(g)*SS_TS*1e6));
+            fprintf(fid,'##Resolution= %d us\n', SS_TS*1e6);
+            fprintf(fid,'##Points= %d\n',length(g));
+            fprintf(fid,'##Max_Gradient_Strength= %.4f Gauss/cm\n',maxg);
+            fprintf(fid,'##(Max_Gradient_Strength_Constraint= %.2f Gauss/cm)\n',SS_MXG);
+            fprintf(fid,'##Max_Slew Rate= %.2f Gauss/cm/ms\n',SS_MXS);
+            fprintf(fid,'##Slice_thickness= %.1f mm\n',thk*10);
+            fprintf(fid,'%5.3f  \n',g);
+            fclose(fid);
     end
     
     
