@@ -103,12 +103,12 @@ end
 
 size_S = size(S);  ndimsx = length(size_S)-2;
 Nt = size_S(end); t = [0:Nt-1]*TR;
-Nx = size_S(1:ndimsx)
+Nx = size_S(1:ndimsx);
 if isempty(Nx)
     Nx = 1;
 end
 S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimension
-Ssize=size(S)
+Ssize=size(S);
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
