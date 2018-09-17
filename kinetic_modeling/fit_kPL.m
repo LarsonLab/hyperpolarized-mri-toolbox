@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, err_metrics] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
@@ -10,10 +10,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 % It also allows for fixing of parameters. Based on simulations, our
 % current recommendation is to fix pyruvate T1, as it doesn't impact kPL substantially.
 %
-% [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+% [params_fit, Sfit, ufit, err_metrics] = fit_kPL(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
-% All params_* values are structures, with possible fields of 'kPL', 'R1L',
-% and 'R1P', and units of 1/s.
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
 %   TR - repetition time per time point 
@@ -31,16 +29,17 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL(S, TR, flips, params_
 %   params_fit - structure of fit parameters 
 %   Sfit - fit curve for lactate
 %   ufit - derived input function (unitless)
-%   objective_val - measure of fit error
+%   err_metrics - structure of fit error metrics (kPL error, R^2, Chi^2)
 %
 % EXAMPLES - see test_fit_kPL_fcn.m
 %
-% Authors: John Maidens,  Peder E. Z. Larson
+% Authors: John Maidens, Peder E. Z. Larson, Daniele Mammoli, Natalie Korn
 %
-% (c)2015-2017 The Regents of the University of California. All Rights
+% (c)2015-2018 The Regents of the University of California. All Rights
 % Reserved.
 
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
+err_all = {'ub', 'lb', 'err', 'Rsq', 'CHIsq'};
 params_default_est = [0.01, 1/25, 1/25, 0];
 params_default_lb = [-Inf, 1/60, 1/60, 0];
 params_default_ub = [Inf, 1/10, 1/10, Inf];
@@ -80,7 +79,6 @@ for n = 1:Nparams_to_fit
     end
 end
 
-
 if nargin < 6 
     noise_level = [];
 end
@@ -110,11 +108,13 @@ if isempty(Nx)
     Nx = 1;
 end
 S = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimension
-
+Ssize=size(S);
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
+err_vec=zeros([prod(Nx),5]);
 Sfit = zeros([prod(Nx),Nt]); ufit = zeros([prod(Nx),Nt]);
+fitsize=size(params_fit_vec);
 
 for i=1:size(S, 1)
     if length(Nx) > 1 && plot_flag
@@ -123,6 +123,7 @@ for i=1:size(S, 1)
     % observed magnetization (Mxy)
     y1 = reshape(S(i, 1, :), [1, Nt]); % pyr
     y2 = reshape(S(i, 2, :), [1, Nt]); % lac
+    
     if any(y1(:) ~= 0)
         % % plot of observed data for debugging
         % figure(1)
@@ -141,16 +142,27 @@ for i=1:size(S, 1)
         switch(fit_method)
             case 'ls'
                 obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR)) .* Sscale(2,:);  % perform least-squares in signal domain
-                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
+                % extract 95% confidence interval on lactate timecourse fitting
+                sigma = nlparci(params_fit_vec(i,1),resid,'jacobian',J(:,1));
+                %sigma
+
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, noise_level.*(Sscale(2,:).^2));
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
-                
+                    
         end
         [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        
+        % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
+        err_vec(i,1)=sigma(1,2);
+        err_vec(i,2)=sigma(1,1);
+        err_vec(i,3)=sigma(1,2)-sigma(1,1);
+        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
+        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
         
         if plot_flag
             % plot of fit for debugging
@@ -170,7 +182,6 @@ for i=1:size(S, 1)
     end
 end
 
-
 params_fit = struct([]);
 nfit = 0;
 for n = 1:length(params_all)-1  % don't output L0_start
@@ -186,12 +197,25 @@ if length(Nx) > 1
         params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
     end
     
-    
     Sfit = reshape(Sfit, [Nx, Nt]);
     ufit = reshape(ufit, [Nx, Nt]);
     objective_val = reshape(objective_val, Nx);
 	if plot_flag
     	disp('100 % complete')
+    end
+end
+
+err_metrics=struct([]);
+nfit=0;
+for n = 1:length(err_all)
+    nfit=nfit+1;
+    err_metrics(1).(err_all{n})= err_vec(:,nfit);
+end
+
+if length(Nx) > 1
+    for n = 1:length(err_all)
+        param_name = err_all{(n)};
+        err_metrics.(param_name) = reshape(err_metrics.(param_name), [12,12,16]);
     end
 end
 
