@@ -86,17 +86,23 @@ end
 	end;
     end;
     max_pw = max_pw / n;
+    rfstat.duration_us = round(length(rf)*SS_TS*1e6);
+    rfstat.numPoints = length(rf);
+    rfstat.isodelay_us= round(isodelay*1e6);
     
     dty_cyc = sum(abs(rfn) > 0.2236)/nrf; 
     if dty_cyc < max_pw, 
 	dty_cyc = max_pw;
     end;
 
-    max_b1 = max(abs(rf));
-    int_b1_sqr = sum(abs(rf).^2 * SS_TS * 1e3);
-    rms_b1 = sqrt(sum(abs(rf).^2))/nrf;
+    rfstat.maxB1_G = max(abs(rf));
+    rfstat.intB1Sqr = sum(abs(rf).^2 * SS_TS * 1e3);
+    rfstat.rmsB1 = sqrt(sum(abs(rf).^2))/nrf;
     thk_scale = thk * SS_GAMMA / SS_GAMMA_HYDROGEN * 10;
+    rfstat.nominalThickness_mm = thk*10;
+    rfstat.nominalMaxGradient_Gcm = maxg;
     
+    rfstat.nucleus = SS_NUCLEUS;
     
     % Allow magnitude of RF to go negative, this will
     % help reduce sensitivity to theta modulation since
@@ -142,8 +148,8 @@ end
             end;
 
             fprintf(fid,'%10d \t\t #Spectral-Spatial\n', 1);
-            fprintf(fid,'%10d \t\t #res\n', length(rf));
-            fprintf(fid,'%10d \t\t #pw\n',round(length(rf)*SS_TS*1e6));
+            fprintf(fid,'%10d \t\t #res\n', rfstat.numPoints);
+            fprintf(fid,'%10d \t\t #pw\n',rfstat.duration_us);
             fprintf(fid,'%10.7f \t\t #nom_flip \n',ang*180/pi);
             fprintf(fid,'%10.7f \t\t #abswidth \n',abswidth);
             fprintf(fid,'%10.7f \t\t #effwidth \n',effwidth);
@@ -151,12 +157,12 @@ end
             fprintf(fid,'%10.7f \t\t #dtycyc \n',dty_cyc);
             fprintf(fid,'%10.7f \t\t #maxpw \n',max_pw);
             gamscale = SS_GAMMA/SS_GAMMA_HYDROGEN; % GE assumes max B1 is for application at 1H
-            fprintf(fid,'%10.7f \t\t #max_b1 \n',max_b1 * gamscale); 
-            fprintf(fid,'%10.7f \t\t #max_int_b1_sqr \n',int_b1_sqr* gamscale^2);
-            fprintf(fid,'%10.7f \t\t #max_rms_b1 \n',rms_b1* gamscale^2);
-            fprintf(fid,'%10.3f \t\t #a_gzs \n',maxg);
-            fprintf(fid,'%10.3f \t\t #nom_thk(mm) \n',thk * gamscale * 10);
-            fprintf(fid,'%10d \t\t #isodelay\n',round(isodelay*1e6));
+            fprintf(fid,'%10.7f \t\t #max_b1 \n',rfstat.maxB1_G * gamscale); 
+            fprintf(fid,'%10.7f \t\t #max_int_b1_sqr \n',rfstat.intB1Sqr* gamscale^2);
+            fprintf(fid,'%10.7f \t\t #max_rms_b1 \n',rfstat.rmsB1* gamscale^2);
+            fprintf(fid,'%10.3f \t\t #a_gzs \n',rfstat.nominalMaxGradient_Gcm);
+            fprintf(fid,'%10.3f \t\t #nom_thk(mm) \n',rfstat.nominalThickness_mm * gamscale );
+            fprintf(fid,'%10d \t\t #isodelay\n',rfstat.isodelay_us);
             fprintf(fid,'%10d \t\t #g_pow \n',0);
             fprintf(fid,'%10d \t\t #g_pos_pow \n',0);
             fprintf(fid,'%10d \t\t #g_neg_pow \n',0);
@@ -346,6 +352,14 @@ end
             end
         end
         
+        % add pulse frequency, other RF stat parameters?
+        rfstat_fields = fieldnames(rfstat);
+        for I = 1:length(rfstat_fields)
+            rfstat_element =docNode.createElement(rfstat_fields(I));
+            rfstat_element.appendChild(docNode.createTextNode(num2str(rfstat.(rfstat_fields{I}))));
+            excitation.appendChild(rfstat_element);
+        end
+        
     else
         docNode = xmlread(dad_name);
         
@@ -363,9 +377,7 @@ end
         
     end
     
-    
-    % add pulse frequency
-    
+
     xmlwrite(dad_name,docNode);
     
     
