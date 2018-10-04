@@ -36,16 +36,17 @@ if length(R1) == 1
 end
 
 N = size(flips,2);
+A = [-R1(1)-k(1) +k(2)
+    +k(1) -R1(2)-k(2)];
+Ad = expm(A*TR);
 
 if nargin < 6 || isempty(input_function) || all(input_function == 0)
     use_input_function = 0;
 else
     use_input_function = 1;
-    Nsim = 100;
+    Bd = A\(Ad-eye(2));
 end
 
-A = [-R1(1)-k(1) +k(2)
-    +k(1) -R1(2)-k(2)];
 
 if length(Tin) == 1  % remove Tin feature?
     Mz0 = expm(A*Tin) * [1;0];
@@ -58,15 +59,11 @@ Mxy(1:2,1) = Mz0 .* sin(flips(:,1));
 Mz(1:2,1) = Mz0 .* cos(flips(:,1));
 for n = 2:N
     if use_input_function
-        Mz_m = Mz(:,n-1);
-        % more accurate to spread out input over a number of samples to
-        % avoid unrealistically large signal jumps
-        for ni = 1:Nsim
-            Mz_m = expm(A*TR/Nsim) * (Mz_m + [input_function(n-1)/Nsim;0]);
-        end
+        Mz_m = Ad*(Mz(:,n-1)) + Bd(:,1).*input_function(n-1);
     else
-        Mz_m = expm(A*TR) * (Mz(:,n-1));
+        Mz_m = Ad*(Mz(:,n-1));
+   
     end
     Mxy(:,n) =  Mz_m .* sin(flips(:,n));
-    Mz(:,n) = Mz_m .* cos(flips(:,n));
+    Mz(:,n) = Mz_m .* cos(flips(:,n));     
 end
