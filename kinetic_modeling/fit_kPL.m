@@ -159,14 +159,15 @@ for i=1:size(S, 1)
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
+        % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
         if exist('sigma', 'var')
             % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
             err_vec(i,1)=sigma(1,2);
             err_vec(i,2)=sigma(1,1);
             err_vec(i,3)=sigma(1,2)-sigma(1,1);
-            err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
-            err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
         end
+        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
+        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
         
         if plot_flag
             % plot of fit for debugging
@@ -219,7 +220,7 @@ end
 if length(Nx) > 1
     for n = 1:length(err_all)
         param_name = err_all{(n)};
-        err_metrics.(param_name) = reshape(err_metrics.(param_name), [12,12,16]);
+        err_metrics.(param_name) = reshape(err_metrics.(param_name), Nx);
     end
 end
 
