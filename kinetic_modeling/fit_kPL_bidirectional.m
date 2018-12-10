@@ -42,7 +42,7 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL_bidirectional(S, TR, 
 
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
 params_default_est = [0.01, 1/25, 1/25, 0];
-params_default_lb = [-Inf, 1/60, 1/60, 0];
+params_default_lb = [-Inf, 1/60, 1/60, -Inf];
 params_default_ub = [Inf, 1/10, 1/10, Inf];
 
 if nargin < 4 || isempty(params_fixed)
@@ -52,6 +52,26 @@ end
 if nargin < 5 || isempty(params_est)
     params_est = struct([]);
 end
+
+if nargin < 6 
+    noise_level = [];
+end
+
+if nargin < 7
+    plot_flag = 0;
+end
+
+if isempty(noise_level)
+    % no noise level provided, so use least-squares fit (best for Gaussian
+    % zero-mean noise)
+    fit_method = 'ls';
+else
+    % otherwise use maximum likelihood (good for Rician noise from
+    % magnitudes)
+    fit_method = 'ml';
+    params_default_lb(4) = 0;  % set default lower bound for initial lactate to be non-negative
+end
+
 
 I_params_est = [];
 for n = 1:length(params_all)
@@ -80,24 +100,6 @@ for n = 1:Nparams_to_fit
     end
 end
 
-
-if nargin < 6 
-    noise_level = [];
-end
-
-if isempty(noise_level)
-    % no noise level provided, so use least-squares fit (best for Gaussian
-    % zero-mean noise)
-    fit_method = 'ls';
-else
-    % otherwise use maximum likelihood (good for Rician noise from
-    % magnitudes)
-    fit_method = 'ml';
-end
-
-if nargin < 7
-    plot_flag = 0;
-end
 
 if plot_flag
     disp('==== Computing parameter map ====')

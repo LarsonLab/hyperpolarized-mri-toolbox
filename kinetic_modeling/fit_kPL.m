@@ -41,7 +41,7 @@ function [params_fit, Sfit, ufit, err_metrics] = fit_kPL(S, TR, flips, params_fi
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
 err_all = {'ub', 'lb', 'err', 'Rsq', 'CHIsq'};
 params_default_est = [0.01, 1/25, 1/25, 0];
-params_default_lb = [-Inf, 1/60, 1/60, 0];
+params_default_lb = [-Inf, 1/60, 1/60, -Inf];
 params_default_ub = [Inf, 1/10, 1/10, Inf];
 
 if nargin < 4 || isempty(params_fixed)
@@ -51,6 +51,26 @@ end
 if nargin < 5 || isempty(params_est)
     params_est = struct([]);
 end
+
+if nargin < 6 
+    noise_level = [];
+end
+
+if nargin < 7
+    plot_flag = 0;
+end
+
+if isempty(noise_level)
+    % no noise level provided, so use least-squares fit (best for Gaussian
+    % zero-mean noise)
+    fit_method = 'ls';
+else
+    % otherwise use maximum likelihood (good for Rician noise from
+    % magnitudes)
+    fit_method = 'ml';
+    params_default_lb(4) = 0;  % set default lower bound for initial lactate to be non-negative
+end
+
 
 I_params_est = [];
 for n = 1:length(params_all)
@@ -77,24 +97,6 @@ for n = 1:Nparams_to_fit
     else
         params_ub(n) = params_default_ub(I_params_est(n));
     end
-end
-
-if nargin < 6 
-    noise_level = [];
-end
-
-if isempty(noise_level)
-    % no noise level provided, so use least-squares fit (best for Gaussian
-    % zero-mean noise)
-    fit_method = 'ls';
-else
-    % otherwise use maximum likelihood (good for Rician noise from
-    % magnitudes)
-    fit_method = 'ml';
-end
-
-if nargin < 7
-    plot_flag = 0;
 end
 
 if plot_flag
@@ -157,12 +159,14 @@ for i=1:size(S, 1)
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
-        % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
-        err_vec(i,1)=sigma(1,2);
-        err_vec(i,2)=sigma(1,1);
-        err_vec(i,3)=sigma(1,2)-sigma(1,1);
-        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
-        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
+        if exist('sigma', 'var')
+            % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
+            err_vec(i,1)=sigma(1,2);
+            err_vec(i,2)=sigma(1,1);
+            err_vec(i,3)=sigma(1,2)-sigma(1,1);
+            err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
+            err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
+        end
         
         if plot_flag
             % plot of fit for debugging
@@ -175,7 +179,7 @@ for i=1:size(S, 1)
             plot(t, y1, t, y2, t, Sfit(i,:),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
-            title(num2str(params_fit_vec(i,:),4)) % don't display L0_start value
+            title(num2str(params_fit_vec(i,:),4))
             legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
             drawnow, pause(0.5)
         end
