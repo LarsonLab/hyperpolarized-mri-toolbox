@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, err_metrics] = fit_kPL_bidirectional_git(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, err_metrics] = fit_kPL_bidirectional(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
@@ -31,7 +31,7 @@ function [params_fit, Sfit, ufit, err_metrics] = fit_kPL_bidirectional_git(S, TR
 %   params_fit - structure of fit parameters 
 %   Sfit - fit curve for lactate
 %   ufit - derived input function (unitless)
-%   err_metrics - structure containing measures of fit error
+%   err_metrics - structure containgmeasures of fit error
 %
 % EXAMPLES - see test_fit_kPL_fcn.m
 %
@@ -143,13 +143,13 @@ for i=1:size(S, 1)
         % (starting point of inputless model)
         [~, Imaxy1] = max(y1);  % max pyruvate signal
         params_est_vec(end) = x2(Imaxy1);
-        
+
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr_bidirectional(var, x1, Mzscale, params_fixed, TR, Imaxy1)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_frompyr_bidirectional(var, x1, Mzscale, params_fixed, TR, maxtime)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
                 % extract 95% confidence interval on lactate timecourse fitting
