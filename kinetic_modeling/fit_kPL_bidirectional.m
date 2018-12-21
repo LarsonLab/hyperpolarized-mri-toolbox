@@ -139,17 +139,25 @@ for i=1:size(S, 1)
         x1 = y1./(Sscale(1, :)+eps);  % add eps to eliminate divide by zero errors
         x2 = y2./(Sscale(2, :)+eps);
         
-        % update guess for lactate magnetization at peak pyruvate signal
-        % (starting point of inputless model)
-        [~, Imaxy1] = max(y1);  % max pyruvate signal
-        params_est_vec(end) = x2(Imaxy1);
+        % begin bidirectional decay at augmented meantime
+        % meantime: center of mass of pyruvate signal curve, ignoring the 
+        % first 5 timepoints
+        mean_time_pyr = sum( x1(6:end) .* t(6:end)) ./ sum(x1(6:end));
+        % round meantime to the nearest timepoint
+        [~,meantime]=min(abs(t-mean_time_pyr));
+        meantime=meantime+5;
+        % artifact of rounding at the end of the time course
+        if meantime>=20
+            meantime=20;
+        end
+        params_est_vec(end) = x2(meantime);
         
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr_bidirectional(var, x1, Mzscale, params_fixed, TR, Imaxy1)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2 - trajectories_frompyr_bidirectional(var, x1, Mzscale, params_fixed, TR, meantime)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
                 % extract 95% confidence interval on lactate timecourse fitting
@@ -159,7 +167,7 @@ for i=1:size(S, 1)
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
-        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr_bidirectional(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR, Imaxy1);
+        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr_bidirectional(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR, meantime);
         Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
