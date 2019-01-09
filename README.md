@@ -31,5 +31,6 @@ Please let us know if you would like to contribute or have suggestions for conte
 * Eugene Milshteyn, University of California - San Francisco
 * Xucheng Zhu, University of California - San Francisco
 * Shuyu Tang, University of California - San Francisco
+* Natalie Korn, University of California - San Francisco
 * John Maidens, University of California - Berkeley
 * You :)
