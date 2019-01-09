@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, err_metrics] = fit_kPL_bidirectional_git(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, err_metrics] = fit_kPL_bidirectional(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_kPL - Simple kinetic model fitting of conversion rate by fitting of
 % product (e.g. lactate) signal at each time point.  Substrate (e.g.
 % pyruvate) signal taken as is, and not fit to any function, eliminating
