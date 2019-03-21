@@ -142,6 +142,8 @@ function [rf,g] = ss_flyback(ang, z_thk, z_tb, z_d, f, a, d, fs, ptype, z_ftype,
 		% the number of time samples of the gradient --- do this 
 		% partly before calling b2rf and partly afterwards
 		%
+        fprintf(1,'Note: Spectral Correction for SLR pulses only corrects base bandwidth (not aliased bands)\n');
+
 		Nper = length([gpos gneg]);
 		oversamp_slr = 16;
 		Ntotal  = Nper * (length(s_b));
