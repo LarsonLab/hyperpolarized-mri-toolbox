@@ -156,22 +156,25 @@ for i=1:size(Sreshape, 1)
         % estimate state magnetization (MZ) based on scaling from RF pulses
         Mz = Mxy./Sscale;
         
+        % option to propogate inputless model from various points in time
+        Istart = 1;
+        
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         
         switch(fit_method)
             case 'ls'
-                obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Nmets) ;  % perform least-squares in signal domain
+                obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Istart, Nmets) ;  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Nmets);
+                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Istart, Nmets);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
         
-        [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:));
+        [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:), Istart);
         
         Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
@@ -221,14 +224,14 @@ end
 
 end
 
-function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzscale, Sscale, Mz, Nmets)
-Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:)) ;
+function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzscale, Sscale, Mz, Istart, Nmets)
+Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), Istart) ;
 temp_diff = (Mz - Mzfit) .* Sscale;
 diff_products = temp_diff(2:Nmets,:);
 diff_products = diff_products(:);
 end
 
-function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fixed, TR, Mzscale, Mz, noise_level, Nmets)
+function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fixed, TR, Mzscale, Mz, noise_level, Istart, Nmets)
 %FUNCTION NEGATIVE_LOG_LIKELIHOOD_RICIAN Computes log likelihood for
 %    compartmental model with Rician noise
 % noise level is scaled for state magnetization (Mz) domain
@@ -236,7 +239,7 @@ function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fi
 N = size(Mzscale,2);
 
 % compute trajectory of the model with parameter values
-Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:)) ;
+Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), Istart) ;
 
 % compute negative log likelihood
 l1 = 0;
@@ -252,10 +255,15 @@ for t = 1:N
 end
 end
 
-function [Mz_all, u] = trajectories_inputless( params_fit, params_fixed, TR, Mzscale , Mz_pyr )
+function [Mz_all, u] = trajectories_inputless( params_fit, params_fixed, TR, Mzscale , Mz_pyr, Istart )
 % Compute product magnetizations using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
+
+if nargin < 6
+    Istart = 1;
+end
+
 
 Nmets = size(Mzscale,1); N = size(Mzscale,2);
 Mz_all = zeros(Nmets, N);
@@ -276,16 +284,16 @@ for n = 1:length(params_all)
 end
 
 Mz_all(1,:) = Mz_pyr;
-Mz_all(2,1) = S0_L;
-Mz_all(3,1) = S0_B;
-Mz_all(4,1) = S0_A;
+Mz_all(2,Istart) = S0_L;
+Mz_all(3,Istart) = S0_B;
+Mz_all(4,Istart) = S0_A;
 
 A = [-R1P-kPL-kPB-kPA, 0, 0, 0
     +kPL, -R1L, 0, 0
     +kPB, 0, -R1B, 0
     +kPA, 0, 0, -R1A];
 
-for It=1:N-1
+for It=Istart:N-1
     
     Mz_init = Mz_all(:,It) .* Mzscale(:, It);
     
@@ -300,5 +308,26 @@ for It=1:N-1
     
     
 end
+
+% reverse in time
+for It=Istart:-1:2
+    
+    Mz_init = Mz_all(:,It);
+    
+    % estimate input, assuming this is constant during TR interval
+    % This calculation could be improved for noise stability?
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
+    
+    xstar = - inv(A)*[u(It-1),0,0,0].';
+    
+    % solve previous time point under assumption of constant input during TR
+    Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
+    
+    
+    Mz_all(:,It-1) = Mz_plus ./ Mzscale(:, It-1);
+    
+    
+end
+
 
 end
