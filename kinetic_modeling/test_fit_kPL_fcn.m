@@ -3,7 +3,7 @@
 clear all
 
 % choose fitting function to test
-fit_function = @fit_kPL; %@fit_kPL_reverse; %@fit_kPL_bidirectional;
+fit_function = @fit_kPL;
 plot_fits = 1;
 
 % Test values

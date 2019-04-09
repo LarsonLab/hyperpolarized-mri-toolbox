@@ -1,8 +1,12 @@
-function [Mz_product, u] = trajectories_frompyr( params_fit, Mz_pyr, Mzscale, params_fixed , TR )
+function [Mz_product, u] = trajectories_frompyr( params_fit, Mz_pyr, Mzscale, params_fixed , TR, Istart )
 % Compute product magnetization (e.g. lactate) using a uni-directional two-site model
 % Uses substrate magnetization measurements, estimated relaxation and
 % conversion rates
 % x1 and x2 are pyruvate and lactate, respectively, longitudinal magnetization (MZ) component estimates in order to account for variable flip angles
+
+if nargin < 6
+    Istart = 1;
+end
 
 N = length(Mz_pyr);
 Mz_all = zeros(2, N);
@@ -20,26 +24,46 @@ for n = 1:length(params_all)
 end
 
 Mz_all(1,:) = Mz_pyr;
-Mz_all(2,1) = L0_start;
+Mz_all(2,Istart) = L0_start;
 
 A = [-R1P-kPL, 0
      +kPL, -R1L];
+Ap = -R1P-kPL;
 
-Ap = - R1P - kPL;
-
-for It=1:N-1
+%forward in time
+for It=Istart:N-1
     
-Mz_init = Mz_all(:,It) .* Mzscale(:, It);
+    Mz_init = Mz_all(:,It) .* Mzscale(:, It);
+    
+    % estimate input, assuming this is constant during TR interval
+    % This calculation could be improved for noise stability?
+    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp(Ap*TR) ) * Ap/(exp(Ap*TR) - 1);
+    
+    xstar = - inv(A)*[u(It),0].';
+    
+    % solve next time point under assumption of constant input during TR
+    Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
+    
+end
 
-% estimate input, assuming this is constant during TR interval
-% This calculation could be improved for noise stability?
-u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp(Ap*TR) ) * Ap/(exp(Ap*TR) - 1);
-
-xstar = - inv(A)*[u(It),0].';
-
-% solve next time point under assumption of constant input during TR
-Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
-
+% reverse in time
+for It=Istart:-1:2
+    
+    Mz_init = Mz_all(:,It);% .* Mzscale(:, It);
+    
+    % estimate input, assuming this is constant during TR interval
+    % This calculation could be improved for noise stability?
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp(Ap*-TR) ) * Ap / (exp(Ap*-TR) - 1);
+    
+    xstar = - inv(A)*[u(It-1),0].';
+    
+    % solve previous time point under assumption of constant input during TR
+    Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
+    
+    
+    Mz_all(:,It-1) = Mz_plus ./ Mzscale(:, It-1);
+    
+    
 end
 
 Mz_product = Mz_all(2,:);
