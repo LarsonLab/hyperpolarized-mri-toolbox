@@ -1,4 +1,4 @@
-function [Image_w, Correlation_Matrix] = prewhitening_cc(Image_mc)
+function [Image_w, Correlation_Matrix] = prewhitening_cc(Image_mc, Noise_data)
 % Prewhitening step for Image_data
 % Reference:
 %   Hall, Emma L., et al. "Methodology for improved detection of low 
@@ -8,6 +8,10 @@ function [Image_w, Correlation_Matrix] = prewhitening_cc(Image_mc)
 % INPUTS:
 %   Image_mc - multi-channel image data. dim:[Nx, Ny, Nz, Ncoil, 1,
 %       N_freq, Ndyn]
+%
+%   Noise_data - Optional argument to specify noise-only data. If not
+%   supplied, will default to using the final timepoint from all
+%   frequencies and all slices from Image_mc.
 %       
 % OUTPUTS:
 %   Image_w - Prewhitened image data.
@@ -20,7 +24,11 @@ function [Image_w, Correlation_Matrix] = prewhitening_cc(Image_mc)
 %   
 %
 [Nx, Ny, Nz, Ncoil, Nmap, N_freq, Ndyn] = size(Image_mc);
-Noise = Image_mc(1,:,:,:,1,:,end);
+if nargin == 1
+    Noise = Image_mc(1,:,:,:,1,:,end);
+else
+    Noise = Noise_data;
+end
 Noise = permute(Noise,[4,1,2,3,5,6,7]);
 Nsample = numel(Noise)/Ncoil;
 % TODO: add minimum points for prewhitening calibration
