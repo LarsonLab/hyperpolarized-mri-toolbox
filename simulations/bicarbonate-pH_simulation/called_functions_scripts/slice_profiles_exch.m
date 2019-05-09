@@ -44,8 +44,8 @@ function [cf , s, out] = slice_profiles_exch(rf_in, flips, AtoB, TR, kex, scale)
 % in slice (diffusion assumed to be negligible)
 % 10/15/18: Modified by D. Korenchan to include specified gradient
 % correction factor for each pulse
-% 12/21/18: 
-
+% 3/25/19:   Changed to specify timestep between points, rather than # of 
+% points, for Bloch-McConnell simulation
 
 %Initialize variables for simulation
 Nrf = length(rf_in);
@@ -57,7 +57,8 @@ g = ones(Nrf,1);
 %New variables for exchange
 kab = kex * 1 / (AtoB + 1);
 kba = kex * AtoB / (AtoB + 1);
-Ntp = 100; %# of points to simulate over TR for exchange
+dt = 0.01; %timestep between points for Bloch-McConnell (s)
+Ntp = ceil(TR / dt) + 1; %# of points to simulate over TR for exchange
 Npick = Nsim/5; %profile points to simulate for exchange; makes sim faster!
 names = [{'a'},{'b'}];
 
@@ -166,23 +167,23 @@ for kk = 1:2
     sumprof.(name).fwhm = find(abs(srch) < 1e-1,1,'last') - find(abs(srch) < 1e-1,1,'first');
 end
 
-% %Determine FWHM for each metabolite, each excitation
-% for kk = 1:2
-%     name = names{kk};
-%     for ii = 1:N
-%         hm = max(abs(Mxyslr_constant.(name)(1:Nsim,ii))) / 2;
-%         srch = (abs(Mxyslr_constant.(name)(1:Nsim,ii)) - hm) ./ abs(Mxyslr_constant.(name)(1:Nsim,ii));
-%         fwhm.(name)(ii) = find(abs(srch) < 1e-1,1,'last') - find(abs(srch) < 1e-1,1,'first');
-%     end
-%     %Normalize all FWHM's to that of 1st excitation
-%     sumprof.(name).fwhm = sumprof.(name).fwhm / fwhm.(name)(1);
-%     fwhm.(name) = fwhm.(name) / fwhm.(name)(1);
-% end
-% 
-% disp(['Bicarb (1st metabolite): final composite profile is ' ...
-%     num2str(sumprof.a.fwhm,'%2.2f') ' times wider than original pulse'])
-% disp(['CO2 (2nd metabolite): final composite profile is ' ...
-%     num2str(sumprof.b.fwhm,'%2.2f') ' times wider than original pulse'])
+%Determine FWHM for each metabolite, each excitation
+for kk = 1:2
+    name = names{kk};
+    for ii = 1:N
+        hm = max(abs(Mxyslr_constant.(name)(1:Nsim,ii))) / 2;
+        srch = (abs(Mxyslr_constant.(name)(1:Nsim,ii)) - hm) ./ abs(Mxyslr_constant.(name)(1:Nsim,ii));
+        fwhm.(name)(ii) = find(abs(srch) < 1e-1,1,'last') - find(abs(srch) < 1e-1,1,'first');
+    end
+    %Normalize all FWHM's to that of 1st excitation
+    sumprof.(name).fwhm = sumprof.(name).fwhm / fwhm.(name)(1);
+    fwhm.(name) = fwhm.(name) / fwhm.(name)(1);
+end
+
+disp(['Bicarb (1st metabolite): final composite profile is ' ...
+    num2str(sumprof.a.fwhm,'%2.2f') ' times wider than original pulse'])
+disp(['CO2 (2nd metabolite): final composite profile is ' ...
+    num2str(sumprof.b.fwhm,'%2.2f') ' times wider than original pulse'])
 
 %Stacked slice profiles
 h = figure;
@@ -254,294 +255,8 @@ out.mxy_uncorr = Mxyslr_constant;
 out.mz_uncorr = Mzslr_constant;
 out.signal_total = s_spsp;
 out.sumprof = sumprof;
-% out.fwhm = fwhm;
+out.fwhm = fwhm;
 
-% %% 2.) With a constant RF, update the gradients to provide desired response
-% %%%Calculate gradient correction factor (gcf) here, to yield desired
-% %%%response
-% iter = 0;
-% scale = 1*ones(1,N); %same gradient for all
-% scale_prior = 1*ones(1,N); %same gradient for all
-% error = 1;
-% min_error = Inf;
-% 
-% [a b] = abr([rf_spsp1(1:Nrf,1);0], [scale(1).*g;-Nisodelay], y);
-% Mxyslr_sim_grad_update(1:Nsim,1) = 2*conj(a).*b;
-% Mzslr_sim_grad_update(1:Nsim,1) = 1 - 2*conj(b).*b;
-% 
-% %fixed point iteration; break after 20 iterations or less than 1% change
-% while iter < 20 && error > 1e-2;
-%     
-%     for n = 2:N-1
-%         [a b] = abr([rf_spsp1(1:Nrf,n);0], [scale(n).*g;-Nisodelay], y);
-%         Mxyslr_sim_grad_update(1:Nsim,n) = 2*conj(a).*b  .* Mzslr_sim_grad_update(1:Nsim, n-1);
-%         Mzslr_sim_grad_update(1:Nsim,n) = ( 1 - 2*conj(b).*b) .* Mzslr_sim_grad_update(1:Nsim,n-1);
-%     end
-%     for n = N
-%         [a b] = abr([rf_spsp1(1:Nrf,n);0],[scale(n).*g;-Nisodelay],  y);
-%         Mxyslr_sim_grad_update(1:Nsim,n) = 2*conj(a).*b  .* Mzslr_sim_grad_update(1:Nsim, n-1);
-%         Mzslr_sim_grad_update(1:Nsim,n) = ( 1 - 2*conj(b).*b ) .* Mzslr_sim_grad_update(1:Nsim,n-1);
-%     end
-%     
-%     %Calc AUC ratio for 90:45deg, should be 1 if correctly accounted for
-%     clc
-%     f = abs(Mxyslr_sim_grad_update(1:Nsim,N));
-%     g1 = abs(Mxyslr_sim_grad_update(1:Nsim,N-1));
-%     dx = 0.001;
-%     area1 = sum(f.*dx);
-%     area2 = sum(g1.*dx);
-%     ratio_corr_grad = abs(area1/area2);
-%     
-%     scale_prior = scale;
-%     area = sum(abs(Mxyslr_sim_grad_update.*dx),1);
-%     scale = area./area(end);
-%     scale = (area./max(area(:,1)))./s;
-%     scale = scale.*scale_prior;
-%     
-%     if iter == 0
-%         error_initial = norm(scale-scale_prior,2);
-%     end
-%     
-%     iter = iter + 1;
-%     clc
-%     
-%     if verbose == 1
-%         figure(1234)
-%         drawnow
-%         subplot(121)
-%         hold off
-%         plot(1:n,sum(abs(Mxyslr_sim_grad_update),1)./max(sum(abs(Mxyslr_sim_grad_update(:,1)),1)))
-%         hold on
-%         plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired),1)),'--r')
-%         axis square
-%         xlim([1 n])
-%         ylim([0 1.5])
-%         xlabel('RF #')
-%         ylabel('Relative Signal')
-%         legend('Desired','Simulated')
-%         
-%         subplot(122)
-%         plot(scale,'-o')
-%         axis square
-%         xlabel('RF #')
-%         ylabel('Gradient Scaling Factor')
-%         xlim([1 n])
-%         
-%         drawnow
-%     end
-% 
-%     error_prior = error;
-%     error = norm(scale-scale_prior,2)./error_initial
-%     if error < error_prior
-%         min_error = error;
-%     end
-%     if iter > 1 && error > 1.1.*min_error %short circuit
-%         display('short circuit')
-%         error = 0;
-%     end
-% end
-% 
-% f = abs(Mxyslr_sim_grad_update(1:Nsim,N));
-% g = abs(Mxyslr_sim_grad_update(1:Nsim,N-1));
-% dx = 0.001;
-% area1 = sum(f.*dx);
-% area2 = sum(g.*dx);
-% ratio_corr_grad = abs(area1/area2);
-% gcf = scale;
-% %% 3.) Keep the gradients constant, update the RF pulse
-% 
-% %Given initial Mz and desired Mxy, get tip profiles!
-% clear Mxy Mz theta
-% 
-% Mxy = abs(Mxyslr_desired);
-% Mz(:,1) = ones(length(Mxy),1);
-% theta(:,1) = asin(Mxy(:,1));
-% 
-% for ii = 2:N
-%     Mz(:,ii) = Mz(:,ii-1).*cos(theta(:,ii-1));
-%     theta(:,ii) = asin(Mxy(:,ii)./Mz(:,ii));
-% end
-% 
-% %If imaginary, we're trying to deliver unrealistic magnetization
-% theta = real(theta);
-% 
-% %Will crash MATLAB if give too many points for b2a/ab2rf
-% theta = downsample(theta,round(length(theta)/Nrf));
-% Nrf = length(theta);
-% 
-% %%%Use tip profile to generate RF pulse
-% for n = 1:N
-%     bs(1:Nrf,n) = ifftc(sin(theta(1:Nrf,n)/2));
-%     as(1:Nrf,n) = b2a(bs(1:Nrf,n));
-%     rfs(1:Nrf,n) = ab2rf(as(1:Nrf,n),(bs(1:Nrf,n)));
-%     
-%     %Window the pulse here to prevent unrealstic excitation
-%     rfs(1:Nrf,n) = rfs(1:Nrf,n).*hamming(length(rfs));
-% end
-% 
-% rfs = real(rfs); %Potential issue with complex pulses, need to look into further
-% 
-% %%% Simulate Mxy/Mz with updated RF pulses
-% z = linspace(0.3,0.7,Nsim);
-% grad_scale = 8;
-% [a b] = abr([rfs(1:Nrf,1);0], [grad_scale*ones(Nrf,1);-Nisodelay], y);
-% Mxyslr_sim_rf_update(1:Nsim,1) = 2*conj(a).*b;
-% Mzslr_sim_rf_update(1:Nsim,1) = 1 - 2*conj(b).*b;
-% 
-% for n = 2:N-1
-%     [a b] = abr([rfs(1:Nrf,n);0], [grad_scale*ones(Nrf,1);-Nisodelay], y);
-%     Mxyslr_sim_rf_update(1:Nsim,n) = 2*conj(a).*b  .* Mzslr_sim_rf_update(1:Nsim, n-1);
-%     Mzslr_sim_rf_update(1:Nsim,n) = ( 1 - 2*conj(b).*b) .* Mzslr_sim_rf_update(1:Nsim,n-1);
-% end
-% for n = N
-%     [a b] = abr([rfs(1:Nrf,n);0],[grad_scale*ones(Nrf,1);-Nisodelay],  y);
-%     Mxyslr_sim_rf_update(1:Nsim,n) = 2*conj(a).*b  .* Mzslr_sim_rf_update(1:Nsim, n-1);
-%     Mzslr_sim_rf_update(1:Nsim,n) = ( 1 - 2*conj(b).*b ) .* Mzslr_sim_rf_update(1:Nsim,n-1);
-% end
-% 
-% ratio_corr_rf = sum((abs(Mxyslr_sim_rf_update(1:Nsim,N))))./sum(abs(Mxyslr_sim_rf_update(1:Nsim,N-1)));
-% 
-% 
-%uncomment below if you wish to save the workspace
-% save mag.mat
-% 
-% %% Here is where we'll plot ALL of the results
-% if verbose == 1
-%     
-%     %determine limits for display
-%     ll = find(abs(Mxyslr_constant(1:Nsim/2,end)) < 0.005.*max(abs(Mxyslr_constant(:,end))),1,'last');
-%     ul = find(abs(Mxyslr_constant(Nsim/2:Nsim,end)) < 0.005.*max(abs(Mxyslr_constant(:,end))),1,'first');
-%     ul = Nsim/2 + ul;
-%     
-%     %if testing w/ no gradient (g=0), ensure it still works
-%     if isempty(ll) || isempty(ul)
-%         ll = 1;
-%         ul = Nsim;
-%     else
-%         ll = ll-100;
-%         ul = ul+100;
-%     end
-%     
-%     %Stacked slice profiles
-%     h = figure;
-%     subplot(131)
-%     plot(y, abs(Mxyslr_constant)) %look at magnitude, not imaginary component
-%     title('Slice Profile: Constant Gradient')
-%     xlabel('Normalized Frequency'), ylabel('Signal Magnitude')
-%     % xlim([-0.25 0.25])
-%     xlim([y(ll) y(ul)])
-%     
-%     subplot(132)
-%     plot(y, abs(Mxyslr_sim_grad_update)) %look at magnitude, not imaginary component
-%     title('Slice Profile: Gradient Update')
-%     xlabel('Normalized Frequency'), ylabel('Signal Magnitude')
-%     % xlim([-0.25 0.25])
-%     xlim([y(ll) y(ul)])
-%     
-%     subplot(133)
-%     plot(y, abs(Mxyslr_sim_rf_update)) %look at magnitude, not imaginary component
-%     title('Slice Profile: RF Update')
-%     xlabel('Normalized Frequency'), ylabel('Signal Magnitude')
-%     % xlim([-0.25 0.25])
-%     xlim([y(ll) y(ul)])
-%     set(h,'position',[0 0 1200 800]);
-%     
-%     
-%     %4x2 plot of results
-%     zmax = max(abs(Mxyslr_constant(:)));
-%     h = figure;
-%     subplot(241)
-%     surf(abs(Mxyslr_desired));
-%     shading interp
-%     title('Desired Response')
-%     view(-72,30)
-%     axis square
-%     xlim([1 n])
-%     ylim([250 750]+500)
-%     ylim([ll ul])
-%     zlim([0 zmax])
-%     
-%     subplot(242)
-%     surf(abs(Mxyslr_constant));
-%     shading interp
-%     title('Constant External RF')
-%     view(-72,30)
-%     axis square
-%     xlim([1 n])
-%     ylim([250 750]+500)
-%     ylim([ll ul])
-%     zlim([0 zmax])
-%     
-%     subplot(243)
-%     surf(abs(Mxyslr_sim_grad_update));
-%     shading interp
-%     title('Constant RF, Update Gradients')
-%     view(-72,30)
-%     axis square
-%     xlim([1 n])
-%     ylim([250 750]+500)
-%     ylim([ll ul])
-%     zlim([0 zmax])
-%     
-%     subplot(244)
-%     surf(abs(Mxyslr_sim_rf_update));
-%     shading interp
-%     title('Update RF')
-%     view(-72,30)
-%     axis square
-%     xlim([1 n])
-%     ylim([250 750]+500)
-%     ylim([ll ul])
-%     zlim([0 zmax])
-%     
-%     subplot(245)
-%     %we're just plotting s here (calc above)
-%     plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired(:,1)),1)))
-%     hold on
-%     plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired(:,1)),1)),'--r')
-%     axis square
-%     xlim([1 n])
-%     ylim([0 1.5])
-%     xlabel('RF #')
-%     title('Normalized Area')
-%     
-%     subplot(246)
-%     % plot(1:n,sum(abs(Mxyslr_constant),1)./max(sum(abs(Mxyslr_constant),1)))
-%     plot(1:n,sum(abs(Mxyslr_constant),1)./max(sum(abs(Mxyslr_constant(:,1)),1)))
-%     hold on
-%     plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired(:,1)),1)),'--r')
-%     % plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired),1)),'--r')
-%     axis square
-%     xlim([1 n])
-%     ylim([0 1.5])
-%     xlabel('RF #')
-%     title('Normalized Area')
-%     
-%     subplot(247)
-%     plot(1:n,sum(abs(Mxyslr_sim_grad_update),1)./max(sum(abs(Mxyslr_sim_grad_update(:,1)),1)))
-%     hold on
-%     plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired(:,1)),1)),'--r')
-%     axis square
-%     xlim([1 n])
-%     ylim([0 1.5])
-%     xlabel('RF #')
-%     title('Normalized Area')
-%     
-%     subplot(248)
-%     plot(1:n,sum(abs(Mxyslr_sim_rf_update),1)./max(sum(abs(Mxyslr_sim_rf_update(:,1)),1)))
-%     hold on
-%     plot(1:n,sum(abs(Mxyslr_desired),1)./max(sum(abs(Mxyslr_desired(:,1)),1)),'--r')
-%     axis square
-%     xlim([1 n])
-%     ylim([0 1.5])
-%     xlabel('RF #')
-%     title('Normalized Area')
-%     set(h,'position',[0 0 1600 1067]);
-% 
-% end
-% 
-% clc
-% sprintf(' Desired ratio for final two pulses: %1.4f\n Uncorrected ratio: %1.4f\n RF corrected ratio: %1.4f\n Gradient corrected ratio: %1.4f',s(N)./s(N-1),ratio_uncorr,ratio_corr_rf,ratio_corr_grad)
 
 %% INTERNAL FUNCTIONS
 %
