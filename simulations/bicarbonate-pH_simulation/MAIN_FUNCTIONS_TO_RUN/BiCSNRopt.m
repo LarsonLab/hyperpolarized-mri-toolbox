@@ -25,6 +25,8 @@ function BiCSNRopt(infilename)
 %11/28/18:  Adjusted script so that SNR masking would only look at min BiC
 %           and min CO2 SNRs over pH range, once both are maximized for Nexc
 %11/29/18:  Added display of pH error for each simulated max
+%3/25/19:   Changed to specify timestep between points, rather than # of 
+%           points, for Bloch-McConnell simulation
 
 
 %% VALUES TO ADJUST PRIOR TO RUNNING
@@ -32,21 +34,22 @@ function BiCSNRopt(infilename)
 % save_dir = '/home/dkorenchan/Dave_K/MATLAB/Simulation/Saved_data';
 save_dir = '/Users/sf865719/Lab/MATLAB/Simulation/HP_BiC/Saved_data';
     %name of directory for loading previously-saved simulation data
-npBM = 50; %# of timepoints for simulating Bloch-McConnell over TR
+npBM = 0;
+dtBM = .01; %time step between points for Bloch-McConnell (s)
         
 % Variables used in simulation: "givens"
 %
-% pH = [6.4 7.6]; %pH range (min, max) for simulation - phantom
+pH = [6.4 7.6]; %pH range (min, max) for simulation - phantom
 % pH = [6.8 7.6]; %pH range (min, max) for simulation - in vivo
-pH = [7.2 7.0];
-T1 = 10; %T1 of BiC and CO2 (s, assumed equal) - in vivo
-% T1 = 25; %T1 of BiC and CO2 (s, assumed equal) - in solution, 14 T
+% pH = [7.2 7.0];
+% T1 = 10; %T1 of BiC and CO2 (s, assumed equal) - in vivo
+T1 = 25; %T1 of BiC and CO2 (s, assumed equal) - in solution, 14 T
 % kex = 0;
-kex = 1.56; %exchange rate between BiC and CO2 (1/s) - measured in TRAMP tumors
+% kex = 1.56; %exchange rate between BiC and CO2 (1/s) - measured in TRAMP tumors
 % kex = .168; %exchange rate between BiC and CO2 (1/s) - in free solution, no CA
 % kex = 5.51; %exchange rate between BiC and CO2 (1/s) - with CA at 7.55 ug/mL, pH 6.7
 % kex = 4.26; %exchange rate between BiC and CO2 (1/s) - with CA at 7.55 ug/mL, pH 7.8 (calculated)
-% kex = 4.32; %exchange rate between BiC and CO2 (1/s) - with CA at 7.55 ug/mL, pH 7.6 (calculated)
+kex = 4.32; %exchange rate between BiC and CO2 (1/s) - with CA at 7.55 ug/mL, pH 7.6 (calculated)
 
 % Variables used in simulation: sequence parameters to optimize
 %
@@ -128,7 +131,7 @@ switch(nargin)
                         for ll = 2:n.Nexc %Nexc loop
                             %Bloch-McConnell on z-magnetization
                             [Mb(ii,jj,kk,ll,mm),Mc(ii,jj,kk,ll,mm)] = ...
-                                bmsim(Mb(ii,jj,kk,ll,mm),Mc(ii,jj,kk,ll,mm),kbc,kcb,pars.TR(kk),T1,npBM);
+                                bmsim(Mb(ii,jj,kk,ll,mm),Mc(ii,jj,kk,ll,mm),kbc,kcb,pars.TR(kk),T1,dtBM);
                             %'ll'th excitation
                             Sb(ii,jj,kk,ll,mm) = Sb(ii,jj,kk,ll-1,mm) + Mb(ii,jj,kk,ll,mm) * sind(pars.FAb(ii));
                             Sc(ii,jj,kk,ll,mm) = Sc(ii,jj,kk,ll-1,mm) + Mc(ii,jj,kk,ll,mm) * sind(pars.FAc(jj));
@@ -195,9 +198,9 @@ SNRbtocmin = 1; %constrains to SNRb/SNRc >= specified value when finding maxima
 SNRbmaskd = zeros(size(SNRb));
 SNRcmaskd = SNRbmaskd;
 SNRcmax = zeros(size(pH));
-pHflg = false;%true; %if true, enforces pH accuracy constraint on data (can
+pHflg = true;%false; %if true, enforces pH accuracy constraint on data (can
     %set dynamically using figure buttons)
-snrflg = false;%true; %if true, enforces SNR ratio constraint on data (can
+snrflg = true;%false; %if true, enforces SNR ratio constraint on data (can
     %set dynamically using figure buttons)
 
 % Make pH accuracy + SNR mask, find max SNRc
@@ -520,7 +523,8 @@ end
 % and B over a given TR, using first-order forward and reverse exchange
 % rates
 %
-function [Maf,Mbf] = bmsim(Ma0,Mb0,kab,kba,TR,T1,np)
+function [Maf,Mbf] = bmsim(Ma0,Mb0,kab,kba,TR,T1,dt)
+np = floor(TR / dt); %# of points for simulation
 M = zeros (2 , np);
 M(:,1) = [Ma0; Mb0];
 R1a = 1 / T1;

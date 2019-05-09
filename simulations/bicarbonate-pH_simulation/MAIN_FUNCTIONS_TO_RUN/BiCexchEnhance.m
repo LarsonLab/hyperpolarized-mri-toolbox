@@ -1,5 +1,5 @@
 function BiCexchEnhance
-%BiCexchEnhance.m
+%BiCsim3.m
 %
 %Takes two flip angles for bicarb and CO2 and computes the z-magnetization 
 %and signal magnitudes over a range of total excitations. Pulses are 
@@ -30,6 +30,9 @@ function BiCexchEnhance
 %   psf:        Contains calculated point-spread functions for each pH
 %               value and for a uniform k-space weighting
 %   FWHM:       Vector of full-widths half-max for each PSF in psf
+%
+% 3/25/19:   Changed to specify timestep between points, rather than # of 
+% points, for Bloch-McConnell simulation
 
 %Initialize variables
 %
@@ -46,7 +49,9 @@ TR = .067; %repetition time between excitations (s)
 T1 = 3000000000000000000; %T1 of BiC and CO2 (s) (assumed equal)
 pKa = 6.17; %pKa of BiC-CO2 in vivo at 37 degC
 N = 1:Nexc;
-npBM = 100; %number of points to use when simulating Bloch-McConnell
+
+dt = 0.01; %timestep between points for Bloch-McConnell (s)
+np = ceil(TR / dt) + 1; %# of points to simulate over TR for exchange
 
 %Initialize outermost loop, which will iterate each pH value
 %
@@ -84,7 +89,7 @@ for m=1:size(pH,2)
         Mc(i+1,m) = Mc(i,m) * cosd(FAc);
         Mb(i+1,m) = Mb(i,m) * cosd(FAb);
         %Perform Bloch-McConnell simulation
-        [Mb(i+1,m),Mc(i+1,m),Mbtoc(i+1,m)] = bmsim(Mb(i+1,m),Mc(i+1,m),kbc,kcb,TR,T1,npBM);
+        [Mb(i+1,m),Mc(i+1,m),Mbtoc(i+1,m)] = bmsim(Mb(i+1,m),Mc(i+1,m),kbc,kcb,TR,T1,np);
     end
     %Calculate pH by summing signal values, correcting for flip angle 
     %differences, and inserting into the Henderson-Hasselbalch equation
