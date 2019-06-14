@@ -141,12 +141,19 @@ for i=1:size(S, 1)
         x1 = y1./(Sscale(1, :)+eps);  % add eps to eliminate divide by zero errors
         x2 = y2./(Sscale(2, :)+eps);
         
+        % normalize state magentization (MZ) so L0_start fitting parameter
+        % are on a similar scale to kPL, R1P, etc otherwise fitting may
+        % fail
+        x_scale = max([x1(:);x2(:)]);
+        x1_scaled = x1 / x_scale;
+        x2_scaled = x2 / x_scale;
+        
         % fit to data
         options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         switch(fit_method)
             case 'ls'
-                obj = @(var) (x2 - trajectories_frompyr(var, x1, Mzscale, params_fixed, TR, Istart)) .* Sscale(2,:);  % perform least-squares in signal domain
+                obj = @(var) (x2_scaled - trajectories_frompyr(var, x1_scaled, Mzscale, params_fixed, TR, Istart)) .* Sscale(2,:);  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
                 % extract 95% confidence interval on lactate timecourse fitting
@@ -154,13 +161,13 @@ for i=1:size(S, 1)
                 %sigma
 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1, x2, Mzscale, params_fixed, TR, Istart, noise_level.*(Sscale(2,:).^2));
+                obj = @(var) negative_log_likelihood_rician_frompyr(var, x1_scaled, x2_scaled, Mzscale, params_fixed, TR, Istart, noise_level .* (Sscale(2,:).^2)/x_scale);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                     
         end
-        [Sfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1, Mzscale, params_fixed, TR, Istart);
-        Sfit(i,:) = Sfit(i,:)  .* Sscale(2, :);
-        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        [Mzfit(i,:), ufit(i,:)] = trajectories_frompyr(params_fit_vec(i,:), x1_scaled, Mzscale, params_fixed, TR, Istart);
+        Sfit(i,:) = Mzfit(i,:)*x_scale  .* Sscale(2, :);
+        ufit(i,:) = ufit(i,:)*x_scale  .* Sscale(1, :);
         
         % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
         if exist('sigma', 'var')

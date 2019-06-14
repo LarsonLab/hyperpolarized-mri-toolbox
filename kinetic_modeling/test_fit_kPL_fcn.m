@@ -11,7 +11,7 @@ Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
 R1P = 1/25; R1L = 1/25; kPL = 0.05; std_noise = 0.01;
 input_function = zeros(1,N);
 
-input_condition = 1; % choose from various simulated starting conditions
+input_condition = 4; % choose from various simulated starting conditions
 switch input_condition
     case 1
         % gamma variate input function - most realistic
