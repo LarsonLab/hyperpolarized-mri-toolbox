@@ -87,12 +87,12 @@ else
 end
 results.input_function = input_function;
 
-Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
+Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 AUC_predicted = compute_AUCratio(Mxy);
 
 %% sample data
 
-[Mxy Mz] = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
+[Mxy Mz] = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 results.sample_data = Mxy + randn(size(Mxy))*std_noise;
 results.sample_data_time = t;
 
@@ -114,7 +114,7 @@ kPL_test = linspace(experiment.kPL_min, experiment.kPL_max, Nexp_values).';
 kPL_fit = zeros(length(kPL_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(kPL_test)
-    Mxy = simulate_2site_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
+    Mxy = simulate_Nsite_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
     
     AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
@@ -143,7 +143,7 @@ results.kPL_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 std_noise_test = linspace(experiment.std_noise_min, experiment.std_noise_max, Nexp_values).';
 
 kPL_fit = zeros(length(std_noise_test), NMC); AUC_fit = kPL_fit;
-Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
+Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 
 for Itest = 1:length(std_noise_test)
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise_test(Itest), params_fixed, params_est);
@@ -177,7 +177,7 @@ for Itest = 1:length(Tarrival_test)
     input_function_test = interp1(t_input, input_function, t_test, 'linear', 0);
     Mz0_test = [sum(input_function)-sum(input_function_test) 0];
     
-    Mxy = simulate_2site_model(Mz0_test, R1, [kPL 0], acq.flips, acq.TR, input_function_test);
+    Mxy = simulate_Nsite_model(Mz0_test, R1, [kPL 0], acq.flips, acq.TR, input_function_test);
     %     figure(99),  plot(t, Mxy), pause
     %
     
@@ -211,7 +211,7 @@ for Itest = 1:length(Tbolus_test)
     input_function_test = interp1(t, input_function, t_test, 'linear', 0);
     input_function_test = input_function_test/sum(input_function_test) * sum(input_function); % normalized
     
-    Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function_test);
+    Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function_test);
     %     figure(99),  plot(t, Mxy), pause
     %
     
@@ -242,7 +242,7 @@ kPL_fit = zeros(length(R1L_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(R1L_test)
     
-    Mxy = simulate_2site_model(Mz0, [R1(1), R1L_test(Itest)], [kPL 0], acq.flips, acq.TR, input_function);
+    Mxy = simulate_Nsite_model(Mz0, [R1(1), R1L_test(Itest)], [kPL 0], acq.flips, acq.TR, input_function);
     
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
     
@@ -269,7 +269,7 @@ kPL_fit = zeros(length(R1P_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(R1P_test)
     
-    Mxy = simulate_2site_model(Mz0, [R1P_test(Itest), R1(2)], [kPL 0], acq.flips, acq.TR, input_function);
+    Mxy = simulate_Nsite_model(Mz0, [R1P_test(Itest), R1(2)], [kPL 0], acq.flips, acq.TR, input_function);
     
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
     
@@ -296,7 +296,7 @@ B1error_test = linspace(experiment.B1error_min, experiment.B1error_max, Nexp_val
 kPL_fit = zeros(length(B1error_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(B1error_test)
-    Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips * (1+B1error_test(Itest)), acq.TR, input_function);
+    Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips * (1+B1error_test(Itest)), acq.TR, input_function);
     
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
     
@@ -324,7 +324,7 @@ kPL_fit = zeros(length(B1diff_test), NMC); AUC_fit = kPL_fit;
 clear AUC_predicted_test
 
 for Itest = 1:length(B1diff_test)
-    Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips * (1+B1diff_test(Itest)), acq.TR, input_function);
+    Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips * (1+B1diff_test(Itest)), acq.TR, input_function);
     
     [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips* (1+B1diff_test(Itest)), NMC, std_noise, params_fixed, params_est);
     AUC_predicted_test(Itest) = sum(Mxy(2,:))/sum(Mxy(1,:));

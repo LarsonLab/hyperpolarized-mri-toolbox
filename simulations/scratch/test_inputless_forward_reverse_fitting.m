@@ -89,7 +89,7 @@ flips = acq.flips;
 % generate simulated data
 noise_S = randn([2 N])*experiment.std_noise;  % same noise for all flip schedules
 
-    [Mxy(1:2, 1:N), Mz] = simulate_2site_model(Mz0, [experiment.R1P experiment.R1L], [experiment.kPL 0], flips, TR, input_function);
+    [Mxy(1:2, 1:N), Mz] = simulate_Nsite_model(Mz0, [experiment.R1P experiment.R1L], [experiment.kPL 0], flips, TR, input_function);
 %    Mxy = Mxy(:,1:2:end) + Mxy(:,2:2:end);
     % add noise
     Sn(1:size(Mxy,1), 1:size(Mxy,2)) = Mxy(:,:) + noise_S;

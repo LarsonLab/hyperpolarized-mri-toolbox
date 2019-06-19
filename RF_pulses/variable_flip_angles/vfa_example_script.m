@@ -32,9 +32,9 @@ flips_t1eff = [vfa_const_amp(N, pi/2, exp(-TR * (R1P + kPL))); ...
 %   amplitude solution
 flips_constsignal = mvfa_const_amp(N, TR, kPL, [R1P R1L], Minit);
 
-[Mxy_maxsnr, Mz_maxsnr] = simulate_2site_model(Minit, [R1P R1L], [kPL 0], flips_maxsnr, TR);
-[Mxy_t1eff, Mz_t1eff] = simulate_2site_model(Minit, [R1P R1L], [kPL 0], flips_t1eff, TR);
-[Mxy_constsignal, Mz_constsignal] = simulate_2site_model(Minit, [R1P R1L], [kPL 0], flips_constsignal, TR);
+[Mxy_maxsnr, Mz_maxsnr] = simulate_Nsite_model(Minit, [R1P R1L], [kPL 0], flips_maxsnr, TR);
+[Mxy_t1eff, Mz_t1eff] = simulate_Nsite_model(Minit, [R1P R1L], [kPL 0], flips_t1eff, TR);
+[Mxy_constsignal, Mz_constsignal] = simulate_Nsite_model(Minit, [R1P R1L], [kPL 0], flips_constsignal, TR);
 
 t = [0:N-1] * TR;
 figure
@@ -55,7 +55,7 @@ title('Lactate')
 xlabel('time (s)'), ylabel('Simulated Signal')
 
 %%
-validate = 0;
+validate = 1;
 
 if validate
     flips_maxsnrnew = flips_maxsnr; flips_t1effnew = flips_t1eff; flips_constsignalnew = flips_constsignal;
