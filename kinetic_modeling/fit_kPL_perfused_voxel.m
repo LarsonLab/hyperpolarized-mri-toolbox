@@ -162,8 +162,11 @@ for i=1:size(Sreshape, 1)
         % fail
         Mz_data_scale = max(Mz(:));
         Mz_scaled = Mz / Mz_data_scale;
-
         
+        % normalization for VIF 
+        VIF = VIF./Sscale;
+        VIF = VIF./Mz_data_scale;
+
         % option to propogate inputless model from various points in time
         Istart = 1;
         
@@ -323,8 +326,8 @@ for It=1:N-1
     %Now calculate new spins flowing into the system
     %
     %Assume piecewise linear VIF. Diagonalize:
-    dff1=P\VIF(:,n-1);    % Diag'd VIF @ start of TR
-    dff2=P\VIF(:,n);  % Diag'd VIF @ end of TR
+    dff1=P\VIF(:,It);    % Diag'd VIF @ start of TR
+    dff2=P\VIF(:,It+1);  % Diag'd VIF @ end of TR
     %Get slope and y-intercept for diagonolized forcing function:
     b=dff1;
     m=(dff2-dff1)/TR;

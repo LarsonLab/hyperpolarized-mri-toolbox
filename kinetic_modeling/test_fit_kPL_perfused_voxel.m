@@ -4,7 +4,7 @@ clear all
 
 % choose fitting function to test
 fit_function = @fit_kPL_perfused_voxel;
-plot_fits = 1;
+plot_fits = 0;
 
 % Test values
 Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
@@ -61,7 +61,7 @@ flip_description_array = [repmat('    ',N_flip_schemes,1),  char(flip_descripton
 noise_S = randn([2 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy_ev Mz_ev Mxy_iv Mz_iv] = simulate_Nsite_perfused_voxel_model(Mz0, [R1P R1L], [kPL 0], kve, vb, flips(:,:,Iflips), TR, VIF*VIFscale);
-    S(:,:,Iflips) = Mxy_ev + Mxy_iv;
+    S(:,:,Iflips) = Mxy_ev*(1-vb) + Mxy_iv*vb;
     % add noise
     Sn(:, :,  Iflips) = S(:,:,Iflips) + noise_S;
 
@@ -108,18 +108,23 @@ end
 
 disp(sprintf('Input R1 = %f (pyr) %f (lac), kPL = %f', R1P, R1L, kPL))
 disp('Noiseless fit results:')
-disp(['kPL  = ']); disp([num2str(struct2array(params_fit).'), flip_description_array])
+disp(['kPL  = ']); disp([num2str(getfield(struct2table(params_fit),'kPL')), flip_description_array])
 disp('Noisy complex fit results:')
-disp(['kPL  = ']); disp([num2str(struct2array(params_fitn_complex).'), flip_description_array])
+disp(['kPL  = ']); disp([num2str(getfield(struct2table(params_fitn_complex),'kPL')), flip_description_array])
 disp('Noisy magnitude fit results:')
-disp(['kPL  = ']); disp([num2str(struct2array(params_fitn_mag).'), flip_description_array])
+disp(['kPL  = ']); disp([num2str(getfield(struct2table(params_fitn_mag),'kPL')), flip_description_array])
 
-figure
-subplot(121) , plot(t, squeeze(Sn(1,:,:)))
+
+
+titles={'constant','multiband', 'multiband variable flip'};
+figure('units','normalized', 'outerposition', [0.2 0.1 0.6 0.8])
+subplot(3,2,3) , plot(t, squeeze(Sn(1,:,:)))
+legend(char(titles))
 title('Pyruvate signals')
-subplot(122) , plot(t, squeeze(Sn(2,:,:)))
-hold on, plot(t, squeeze(Snfit_complex(:,:)),':')
-plot(t, squeeze(Snfit_mag(:,:)),'--')
-title('kPL fit: Lactate signals and fits (dots=complex fit, dashed=magnitude)')
-legend('constant','multiband', 'multiband variable flip')
-
+for i = 1:3
+    subplot(3,2,2*(i-1)+2) , plot(t, squeeze(Sn(2,:,i)))
+    hold on, plot(t, squeeze(Snfit_complex(2,:,i)),':')
+    plot(t, squeeze(Snfit_mag(2,:,i)),'--')
+    title(['kPL fit: Lactate signals and fits ',char(titles(i))])
+    legend('original','complex fit', 'magnitude fit')
+end
