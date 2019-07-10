@@ -7,7 +7,7 @@ experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment
 experiment.Tarrival = 0;  experiment.Tbolus = 8;
 
 for  est_R1L = 0
-    for fit_input = 1
+    for fit_input = 0
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         

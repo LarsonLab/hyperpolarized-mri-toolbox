@@ -11,7 +11,7 @@ Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
 R1P = 1/25; R1L = 1/25; kPL = 0.05; std_noise = 0.01;
 input_function = zeros(1,N);
 
-input_condition = 4; % choose from various simulated starting conditions
+input_condition = 1; % choose from various simulated starting conditions
 switch input_condition
     case 1
         % gamma variate input function - most realistic
@@ -59,7 +59,7 @@ flip_description_array = [repmat('    ',N_flip_schemes,1),  char(flip_descripton
 % generate simulated data
 noise_S = randn([2 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
-    [Mxy(1:2, 1:N, Iflips), Mz] = simulate_2site_model(Mz0, [R1P R1L], [kPL 0], flips(:,:,Iflips), TR, input_function);
+    [Mxy(1:2, 1:N, Iflips), Mz] = simulate_Nsite_model(Mz0, [R1P R1L], [kPL 0], flips(:,:,Iflips), TR, input_function);
     % add noise
     Sn(1:size(Mxy,1), 1:size(Mxy,2),  Iflips) = Mxy(:,:,Iflips) + noise_S;
 end
@@ -107,6 +107,7 @@ legend('constant','multiband', 'multiband variable flip')
 
 disp('Press any key to continue')
 disp(' ')
+
 pause
 
 %% Test fitting - fit kPL and T1 of lactate

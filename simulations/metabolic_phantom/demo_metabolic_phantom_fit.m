@@ -34,7 +34,7 @@ data = zeros(nx,ny,nz,2, N);
 for Ix = 1:nx
     for Iy = 1:ny
         for Iz = 1:nz
-            [Mxy Mz] = simulate_2site_model(Mz0, [R1P R1L], [kPL(Ix,Iy,Iz) 0], flips, TR, input_function*kTRANS(Ix,Iy,Iz) );
+            [Mxy Mz] = simulate_Nsite_model(Mz0, [R1P R1L], [kPL(Ix,Iy,Iz) 0], flips, TR, input_function*kTRANS(Ix,Iy,Iz) );
             data_nonoise(Ix,Iy,Iz,:,:) = Mxy;
             % add noise
             noise_S = randn([2 N])*std_noise;
@@ -65,14 +65,14 @@ params_est.kPL = kPL_est;
 Splot = [0 kPL_high];
 figure
 subplot(221)
-imagesc(kPL, Splot)
+imagesc(kPL, Splot), colorbar
 title('Original k_{PL}')
 subplot(222)
-imagesc(kTRANS)
+imagesc(kTRANS), colorbar
 title('Original k_{TRANS}')
 subplot(223)
-imagesc(params_fit_nonoise.kPL, Splot)
+imagesc(params_fit_nonoise.kPL, Splot), colorbar
 title('Fit k_{PL} (no noise)')
 subplot(224)
-imagesc(params_fit.kPL, Splot)
+imagesc(params_fit.kPL, Splot), colorbar
 title('Fit k_{PL} (with noise)')

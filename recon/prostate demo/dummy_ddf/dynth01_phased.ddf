@@ -1,0 +1,270 @@
+DATA DESCRIPTOR FILE
+version: 6.1
+object type: MR Spectroscopy
+patient id: PS7365             
+patient name: PS7365                                                         
+patient code: 
+date of birth: 
+sex: 
+study id: 5389           
+study code: 
+study date: 09/08/2017
+accession number: 
+root name: reordered_csre                                             
+series number: 4
+series description: 	 Fid CSI_dse_200ms_study
+comment:                                                                      
+patient entry: head first
+patient position: supine
+orientation: axial
+data type: floating point
+number of components: 2
+source description: 
+number of dimensions: 4
+dimension 1: type: frequency npoints: 256 
+dimension 2: type: space npoints: 12 pixel spacing(mm): 3.330000
+dimension 3: type: space npoints: 12 pixel spacing(mm): 3.330000
+dimension 4: type: space npoints: 16 pixel spacing(mm): 5.400000
+center(lps, mm):        8.94750      40.86610       5.86260
+toplc(lps, mm):        -9.36750      22.55110      46.36260
+dcos0:        1.00000       0.00000       0.00000
+dcos1:        0.00000       1.00000       0.00000
+dcos2:        0.00000       0.00000      -1.00000
+===================================================
+MR Parameters
+coil name: MNS 13C TR     
+slice gap(mm): -0.000000
+echo time(ms): 200.000000
+repetition time(ms): 400.000000
+inversion time(ms): 
+flip angle: 90.000000
+pulse sequence name: fidcsihy1      
+transmitter frequency(MHz): 32.134220
+isotope: 13C
+field strength(T): 3.000000
+number of sat bands: 0
+===================================================
+Spectroscopy Parameters
+localization type: PRESS
+center frequency(MHz): 32.134220
+ppm reference: 178.000000
+sweepwidth(Hz): 581.395325
+dwelltime(ms): 1.720000
+frequency offset(Hz): 0.000000
+centered on water: yes
+suppression technique: 
+residual water: 
+number of acquisitions: 1
+chop: yes
+even symmetry: yes
+data reordered: 
+acq. toplc(lps, mm):       -9.36750      22.55110       5.86260
+acq. spacing(mm):           3.33000       3.33000       3.33000
+acq. number of data points: 2538
+acq. number of points: 12 12 1
+acq. dcos1:        1.00000       0.00000       0.00000
+acq. dcos2:        0.00000       1.00000       0.00000
+acq. dcos3:        0.00000       0.00000      -1.00000
+selection center(lps, mm):        8.94750      40.86610       5.86260
+selection size(mm):              39.96000      39.96000       3.33000
+selection dcos1:        1.00000       0.00000       0.00000
+selection dcos2:        0.00000       1.00000       0.00000
+selection dcos3:        0.00000       0.00000      -1.00000
+reordered toplc(lps, mm):        -9.36750      22.55110      46.36260
+reordered center(lps, mm):        8.94750      40.86610       5.86260
+reordered spacing(mm):            3.33000       3.33000       5.40000
+reordered number of points: 12 12 16
+reordered dcos1:        1.00000       0.00000       0.00000
+reordered dcos2:        0.00000       1.00000       0.00000
+reordered dcos3:        0.00000       0.00000      -1.00000
+===================================================
+[process_spec]
+fftpars0.cfttype = nmr FID/echo, frequency reversed
+fftpars0.fttype = 1
+fftpars0.nzeroafter = 197
+fftpars0.nzerobefore = 0
+fftpars0.nzerodata = 0
+fftpars1.cfttype = kspace echo
+fftpars1.fttype = 3
+fftpars1.nzeroafter = 0
+fftpars1.nzerobefore = 0
+fftpars1.nzerodata = 0
+fftpars2.cfttype = kspace echo
+fftpars2.fttype = 3
+fftpars2.nzeroafter = 0
+fftpars2.nzerobefore = 0
+fftpars2.nzerodata = 0
+fftpars3.cfttype = kspace echo
+fftpars3.fttype = 3
+fftpars3.nzeroafter = 0
+fftpars3.nzerobefore = 0
+fftpars3.nzerodata = 0
+filtered = y
+filtpars0.cftype = gaussian
+filtpars0.fpars0 = 10
+filtpars0.fpars1 = 0
+filtpars0.fpars2 = 0
+filtpars0.ftype = 1
+filtpars0.nfpars = 1
+filtpars1.cftype = none
+filtpars1.fpars0 = 0
+filtpars1.fpars1 = 0
+filtpars1.fpars2 = 0
+filtpars1.ftype = 0
+filtpars1.nfpars = 0
+filtpars2.cftype = none
+filtpars2.fpars0 = 0
+filtpars2.fpars1 = 0
+filtpars2.fpars2 = 0
+filtpars2.ftype = 0
+filtpars2.nfpars = 0
+filtpars3.cftype = none
+filtpars3.fpars0 = 0
+filtpars3.fpars1 = 0
+filtpars3.fpars2 = 0
+filtpars3.ftype = 0
+filtpars3.nfpars = 0
+fouriertransform = y
+fptphasecorrect = n
+freqcor.elim = 5
+freqcor.file = none
+freqcor.peakloc = 2
+freqcor.width = 1
+freqcorrect = n
+inputfile = 
+originshift = y
+output_type = n
+outputfile = dynth01_phased.cmplx
+phasecorrected = y
+phasepars.a0 = 0
+phasepars.a1 = 0
+phasepars.pivot = 227
+phfile = none
+phfiltpars0.cftype = gaussian
+phfiltpars0.fpars0 = 10
+phfiltpars0.fpars1 = 0
+phfiltpars0.fpars2 = 0
+phfiltpars0.ftype = 1
+phfiltpars0.nfpars = 1
+phfiltpars1.cftype = none
+phfiltpars1.fpars0 = 0
+phfiltpars1.fpars1 = 0
+phfiltpars1.fpars2 = 0
+phfiltpars1.ftype = 0
+phfiltpars1.nfpars = 0
+phfiltpars2.cftype = none
+phfiltpars2.fpars0 = 0
+phfiltpars2.fpars1 = 0
+phfiltpars2.fpars2 = 0
+phfiltpars2.ftype = 0
+phfiltpars2.nfpars = 0
+phfiltpars3.cftype = none
+phfiltpars3.fpars0 = 0
+phfiltpars3.fpars1 = 0
+phfiltpars3.fpars2 = 0
+phfiltpars3.ftype = 0
+phfiltpars3.nfpars = 0
+program = process_spec_v6
+shiftpars0.kshift = 0
+shiftpars0.spacecent = 0
+shiftpars1.kshift = 0
+shiftpars1.spacecent = 8.9475
+shiftpars2.kshift = 0
+shiftpars2.spacecent = 40.8661
+shiftpars3.kshift = 0
+shiftpars3.spacecent = 5.8626
+specloc.col1 = 1
+specloc.col2 = 256
+specsample = y
+
+DATA DESCRIPTOR FILE
+version: 6.1
+object type: MR Spectroscopy
+patient id: PS7365
+patient name: PS7365
+patient code: 
+date of birth: 
+sex: O
+study id: 5389
+study code: 
+study date: 09/08/2017
+accession number: 
+root name: /data/vig1/C13/animal/TRAMP/PS7365_170908/exp1-200ms/reordered_csrecon01
+series number: 4
+series description: Fid CSI_dse_200ms_study
+comment: 
+patient entry: head first
+patient position: supine
+orientation: axial
+data type: floating point
+number of components: 2
+source description: 
+number of dimensions: 4
+dimension 1: type: time npoints: 59
+dimension 2: type: k-space npoints: 12 pixel spacing(mm): 3.330000
+dimension 3: type: k-space npoints: 12 pixel spacing(mm): 3.330000
+dimension 4: type: epsi_flyback npoints: 16 pixel spacing(mm): 5.400000
+center(lps, mm):        8.94750      40.86610       5.86260
+toplc(lps, mm):        -9.36750      22.55110      46.36260
+dcos0:        1.00000       0.00000       0.00000
+dcos1:        0.00000       1.00000       0.00000
+dcos2:        0.00000       0.00000      -1.00000
+MR Parameters
+coil name: MNS 13C TR
+slice gap(mm): -0.000000
+echo time(ms): 200.000000
+repetition time(ms): 400.000000
+inversion time(ms): 
+flip angle: 90.000000
+pulse sequence name: fidcsihy1
+transmitter frequency(MHz): 32.134220
+isotope: 13C
+field strength(T): 3.000000
+number of sat bands: 0
+Spectroscopy Parameters
+localization type: NONE
+center frequency(MHz): 32.134220
+ppm reference: 178.000000
+sweepwidth(Hz): 581.395325
+dwelltime(ms): 1.720000
+frequency offset(Hz): 0.000000
+centered on water: 
+suppression technique: 
+residual water: 
+number of acquisitions: 1
+chop: yes
+even symmetry: yes
+data reordered: 
+acq. toplc(lps, mm):       -9.36750      22.55110       5.86260
+acq. spacing(mm):           3.33000       3.33000       3.33000
+acq. number of data points: 2538
+acq. number of points: 12 12 1
+acq. dcos1:        1.00000       0.00000       0.00000
+acq. dcos2:        0.00000       1.00000       0.00000
+acq. dcos3:        0.00000       0.00000      -1.00000
+selection center(lps, mm):        8.94750      40.86610       5.86260
+selection size(mm):              39.96000      39.96000       3.33000
+selection dcos1:        1.00000       0.00000       0.00000
+selection dcos2:        0.00000       1.00000       0.00000
+selection dcos3:        0.00000       0.00000      -1.00000
+reordered toplc(lps, mm):        -9.36750      22.55110      46.36260
+reordered center(lps, mm):        8.94750      40.86610       5.86260
+reordered spacing(mm):            3.33000       3.33000       5.40000
+reordered number of points: 12 12 16
+reordered dcos1:        1.00000       0.00000       0.00000
+reordered dcos2:        0.00000       1.00000       0.00000
+reordered dcos3:        0.00000       0.00000      -1.00000
+<SVK_PROVENANCE>
+  <SVK_VERSION version="0.9.71" platform="NA">
+  </SVK_VERSION>
+  <SVK_CMD_LINE cmd="svk_reorder_epsi.dev -i P29713.7 -o PP29713_svk_processed -t 2 --lobes 59 --skip 27 --first 16 --axis 3 --type 1 ">
+  </SVK_CMD_LINE>
+  <SVK_ALGORITHM algoName="svkGEPFileReader">
+  </SVK_ALGORITHM>
+  <SVK_ALGORITHM algoName="svkEPSIReorder">
+  </SVK_ALGORITHM>
+  <SVK_ALGORITHM algoName="svkDdfVolumeWriter">
+  </SVK_ALGORITHM>
+</SVK_PROVENANCE>
+===================================================
+

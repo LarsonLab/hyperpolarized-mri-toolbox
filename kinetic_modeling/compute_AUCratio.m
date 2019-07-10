@@ -9,7 +9,7 @@ function [ AUCratio ] = compute_AUCratio( S )
 % OUTPUTS
 %   AUCratio - Area-under-curve (AUC) ratio
 % EXAMPLES
-%   Mxy = simulate_2site_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
+%   Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 %   % Mxy(1,:) is pyruvate signal, Mxy(2,:) is lactate signal 
 %   AUCratio = compute_AUCratio(Mxy);
 

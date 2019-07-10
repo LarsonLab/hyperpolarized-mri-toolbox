@@ -7,8 +7,8 @@ function [Mxy, Mz] = simulate_Nsite_model(Tin, R1, k, flips, TR, input_function)
 % Applied disretely as flips(:,1), TR, flips(:,2), TR, etc...
 %
 % INPUTS:
-%   Mz0 [1xN] -  model starts from this
-%       magnetization distribution
+%   Mz0 [1xN] -  model starts from this  magnetization distribution
+%       (If a single value is specified for Mz0, then this value is a time (s) for which the model will evolve prior to playing flips.  Magnetization is assumed to start all in substrate (e.g. pyruvate)
 %   R1 - relaxation times for N sites (1/s)
 %   k [Nx2] - conversion rates between sites (1/s), first column is forward
 %   rate, second column is reverse rate
@@ -58,7 +58,16 @@ switch Nmets
             +k(3,1) 0 0 -R1(4)-k(3,2)];
 end
 
-Mz0 = Tin(:);
+Ad_TR = expm(A*TR);
+if use_input_function
+    Ad_Nsim = expm(A*TR/Nsim);
+end
+
+if length(Tin) == 1  % remove Tin feature?
+    Mz0 = expm(A*Tin) * [1;0];
+else
+    Mz0 = Tin(:);
+end
 
 
 Mxy(1:Nmets,1) = Mz0 .* sin(flips(:,1));
@@ -70,10 +79,10 @@ for n = 2:N
         % more accurate to spread out input over a number of samples to
         % avoid unrealistically large signal jumps
         for ni = 1:Nsim
-            Mz_m = expm(A*TR/Nsim) * (Mz_m + [input_function(n-1)/Nsim;zeros(Nmets-1,1)]);
+            Mz_m =  Ad_Nsim * (Mz_m + [input_function(n-1)/Nsim;zeros(Nmets-1,1)]);
         end
     else
-        Mz_m = expm(A*TR) * (Mz(:,n-1));
+        Mz_m = Ad_TR * (Mz(:,n-1));
     end
     Mxy(:,n) =  Mz_m .* sin(flips(:,n));
     Mz(:,n) = Mz_m .* cos(flips(:,n));

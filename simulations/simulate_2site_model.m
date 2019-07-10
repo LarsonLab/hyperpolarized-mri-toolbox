@@ -27,6 +27,12 @@ function [Mxy, Mz] = simulate_2site_model(Tin, R1, k, flips, TR, input_function)
 %
 % Author: Peder E. Z. Larson
 
+warning('simulate_2site_model() is now combined into simulate_Nsite_model() and maybe removed in a future toolbox release');
+
+[Mxy, Mz] = simulate_Nsite_model(Tin, R1, k, flips, TR, input_function);
+
+return
+
 if isempty(R1)
   R1 = [0 0];  % infinite relaxation time
 end
