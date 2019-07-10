@@ -35,7 +35,7 @@ function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips
 %   ufit - derived input function (unitless)
 %   objective_val - measure of fit error
 %
-% EXAMPLES - see test_fit_HP_kinetics.m
+% EXAMPLES - see test_fit_pyr_kinetics.m
 %
 % Authors: John Maidens,  Peder E. Z. Larson
 %
@@ -160,7 +160,7 @@ for i=1:size(Sreshape, 1)
         Istart = 1;
         
         % fit to data
-        options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton');
+        % options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton'); % not supported in Octave
         lsq_opts = optimset('Display','none','MaxIter', 500, 'MaxFunEvals', 500);
         
         switch(fit_method)
@@ -170,7 +170,7 @@ for i=1:size(Sreshape, 1)
                 
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Istart, Nmets);
-                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
+                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, 'Display','none','Algorithm','quasi-newton');
                 
         end
         
