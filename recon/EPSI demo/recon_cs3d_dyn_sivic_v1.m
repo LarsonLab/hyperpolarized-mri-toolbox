@@ -6,10 +6,10 @@ function kspace_all = recon_cs3d_dyn_sivic_v1(root_dir, fb_root_name, samp_patte
 %
 % PEZL 2.9.09, 2.9.12
 
-addpath /netopt/share/lib/local/brain/matlab
-addpath(genpath('/home/plarson/matlab/reconstruction/rand_epsi/'))
-addpath(genpath('/home/plarson/matlab/reconstruction/sparseMRI/'))
-addpath(genpath('/home/plarson/matlab/utilities/Wavelab850'))
+%addpath /netopt/share/lib/local/brain/matlab
+%addpath(genpath('/home/plarson/matlab/reconstruction/rand_epsi/'))
+%addpath(genpath('/home/plarson/matlab/reconstruction/sparseMRI/'))
+%addpath(genpath('/home/plarson/matlab/utilities/Wavelab850'))
 
 if nargin < 5
   Navg = 1;
