@@ -1,10 +1,11 @@
 % Script for testing fit_kPL kinetic model fitting functions
 
 clear all
-
+close all
+clc
 % choose fitting function to test
 fit_function = @fit_kPL_perfused_voxel;
-plot_fits = 0;
+plot_fits = 1;
 
 % Test values
 Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
@@ -79,7 +80,7 @@ end
 
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;  kve_est = 0.02; vb_est = 0.1;
-
+% kve_est = kve; vb_est = vb;
 
 
 %% Test fitting - fit kPL only
@@ -126,5 +127,5 @@ for i = 1:3
     hold on, plot(t, squeeze(Snfit_complex(2,:,i)),':')
     plot(t, squeeze(Snfit_mag(2,:,i)),'--')
     title(['kPL fit: Lactate signals and fits ',char(titles(i))])
-    legend('original','complex fit', 'magnitude fit')
+    legend('original','noise fit', 'magnitude fit')
 end

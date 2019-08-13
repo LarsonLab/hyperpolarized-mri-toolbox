@@ -1,0 +1,13 @@
+JW318_A498_020916_spspdyn copy.xlsx
+is modified and its 'urea' sheet is deleted so as to look the same as the others.
+
+JW327_A498_031816_spspdyn copy
+is modified and the roi#3 in it is deleted.
+so is JW318_A498_020916_spspdyn copy
+and JW326_A498_032316_spspdyn copy
+
+342 seems to be wrong somehow, moved to the root folder
+
+JW332_A498_042516_spspdyn copy
+is the same as 327's modification
+

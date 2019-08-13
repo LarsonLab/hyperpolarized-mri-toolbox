@@ -1,0 +1,17 @@
+11-1 friday
+friday afternoon 3 for next week.
+simulation:
+	fixed parameters
+	1.fit one and kpl at a time.(kpl and vb, kpl and kve) and fix everything else.
+	2.only fit kpl. fix everything else. use factors to fix to the wrong.
+
+real:
+	plot results of the 3 cases
+	vif function, pyruvate,lac for the tumor ,(input and result fitting)
+	fits for intra and out
+
+organize the folder
+
+
+remember to look at the simulate_Nsite_perfused_voxel_model line 35
+fit_kPL_perfused_voxel last line

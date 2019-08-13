@@ -1,0 +1,39 @@
+todo for July 25
+	next week is the presentation
+	The one after next week is to use a poster.
+	prepare for the presentation.
+	see the error for different parameters following the paper.
+
+	1. noise influence
+	2. parameter influence
+
+recommendation letter *
+openings
+professors
+
+slide
+	mathematical model
+	old model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. ignore the volume for the return result
+2. distinguish VIF_xy, VIF_z
+3. noise for simulation
+
