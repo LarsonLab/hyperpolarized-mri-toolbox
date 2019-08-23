@@ -53,20 +53,21 @@ end
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_L', 'S0_B', 'S0_A', ...
-    'Rinj', 'Tarrival', 'Tbolus'};
+    'S0_L', 'S0_B', 'S0_A'};%, ...
+%    'Rinj', 'Tarrival', 'Tbolus'};
 params_default_est = [0.01, 0.01, 0.01, ...
     1/30, 1/25, 1/25, 1/15, ...
-    0, 0, 0, ...
-    0.1, 0, 8];
+    0, 0, 0] ;%, ...
+%    0.1, 0, 8];
 params_default_lb = [-Inf, -Inf, -Inf, ...
     1/50, 1/50, 1/50, 1/50, ...
-    -Inf, -Inf, -Inf, ...
-    0, -30, 0];
+    -Inf, -Inf, -Inf]; %, ...
+%    0, -30, 0];
 params_default_ub = [Inf, Inf, Inf, ...
     1/10, 1/10, 1/10, 1/5 , ...
-    Inf, Inf, Inf, ...
-    Inf 30 Inf];
+    Inf, Inf, Inf]; %, ...
+%    Inf 30 Inf];
+
 
 if nargin < 5 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -77,13 +78,15 @@ if nargin < 6 || isempty(params_est)
 end
 
 % Supports up to 3 metabolic products (e.g. alanine, lactate, bicarb)
+products_string = {'lactate', 'bicarb', 'alanine'};
 switch Nmets
     case 2 % assume pyruvate & lactate
         params_fixed.kPA = 0;  params_fixed.S0_A = 0;  params_fixed.R1A = 1;
         params_fixed.kPB = 0;  params_fixed.S0_B = 0;  params_fixed.R1B = 1;
-        
+        products_string = {'lactate'};
     case 3 % assume pyruvate & lactate & bicarbonate
         params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
+        products_string = {'lactate', 'bicarb'};
 end
 
 
@@ -96,19 +99,20 @@ end
 Nparams_to_fit = length(I_params_est);
 
 for n = 1:Nparams_to_fit
-    param_name = params_all{I_params_est(n)};
-    if isfield(params_est, param_name)
-        params_est_vec(n) = params_est.(param_name);
+    param_names{n} = params_all{I_params_est(n)};
+
+    if isfield(params_est, param_names{n})
+        params_est_vec(n) = params_est.(param_names{n});
     else
         params_est_vec(n) = params_default_est(I_params_est(n));
     end
-    if isfield(params_est, [param_name '_lb'])
-        params_lb(n) = params_est.([param_name '_lb']);
+    if isfield(params_est, [param_names{n} '_lb'])
+        params_lb(n) = params_est.([param_names{n} '_lb']);
     else
         params_lb(n) = params_default_lb(I_params_est(n));
     end
-    if isfield(params_est, [param_name '_ub'])
-        params_ub(n) = params_est.([param_name '_ub']);
+    if isfield(params_est, [param_names{n} '_ub'])
+        params_ub(n) = params_est.([param_names{n} '_ub']);
     else
         params_ub(n) = params_default_ub(I_params_est(n));
     end
@@ -170,7 +174,7 @@ for i=1:size(Sreshape, 1)
                 
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Istart, Nmets);
-                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, 'Display','none','Algorithm','quasi-newton');
+                [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec); %, 'Display','none','Algorithm','quasi-newton'); % octave commented out
                 
         end
         
@@ -183,15 +187,28 @@ for i=1:size(Sreshape, 1)
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz, t, Mzfit,'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t, Mz(1:Nmets,:), t, Mzfit(1:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
-            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--', t, ufit(i,:), 'k:')
+            plot(t, Mxy(1:Nmets,:), t, squeeze(Sfit(i,1:Nmets-1,:)),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
-            title(num2str(params_fit_vec(i,:),2)) % don't display L0_start value
-            %            legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
+            
+            fit_results_string = [];
+            for n = 1:Nparams_to_fit
+                fit_results_string = [fit_results_string, param_names{n} ' = ' num2str(params_fit_vec(i,n),2) ' '];
+            end            
+            title(fit_results_string)
+            disp(fit_results_string)
+            
+            products_legend{1} = 'pyruvate';
+            for n = 1:Nmets-1
+                products_legend{n+1} = products_string{n};
+                products_legend{n+Nmets} = [products_string{n} ' fit'];
+            end    
+            products_legend{Nmets*2} = 'input estimate';
+            legend( products_legend)
             drawnow, pause(0.5)
         end
     end
@@ -199,18 +216,13 @@ end
 
 
 params_fit = struct([]);
-nfit = 0;
-for n = 1:length(params_all)-1  % don't output L0_start
-    if ~isfield(params_fixed, params_all(n))
-        nfit = nfit+1;
-        params_fit(1).(params_all{n})= params_fit_vec(:,nfit);
-    end
+for n = 1:Nparams_to_fit
+    params_fit(1).(param_names{n})= params_fit_vec(:,n);
 end
 
 if length(Nx) > 1
-    for n = 1:Nparams_to_fit-1 % don't output L0_start
-        param_name = params_all{I_params_est(n)};
-        params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
+    for n = 1:Nparams_to_fit
+        params_fit.(param_names{n}) = reshape(params_fit.(param_names{n}), Nx);
     end
     
     

@@ -44,15 +44,15 @@ function [kTRANS, kPL] = metabolic_phantom( nx, ny, nz, kTRANS_low, kTRANS_high,
     kPL = zeros(size(X));
     if (linear_kPL_gradient)
         scale = 0.5*(kPL_low - kPL_high)*Y + 0.5*(kPL_low + kPL_high);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - scale).*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - scale).*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
-        kPL = kPL + scale.*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - scale).*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
+        kPL = kPL + scale.*sphere_fcn(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - scale).*sphere_fcn(X, Y, Z, 0.10, 0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere_fcn(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - scale).*sphere_fcn(X, Y, Z, 0.10, -0.45, 0.45, 0);
+        kPL = kPL + scale.*sphere_fcn(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - scale).*sphere_fcn(X, Y, Z, 0.10, 0.45, -0.45, 0);
+        kPL = kPL + scale.*sphere_fcn(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - scale).*sphere_fcn(X, Y, Z, 0.10, -0.45, -0.45, 0);   
     else
-        kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, 0.45, 0.45, 0);
-        kPL = kPL + kPL_low*sphere(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere(X, Y, Z, 0.10, -0.45, 0.45, 0);
-        kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, 0.45, -0.45, 0);
-        kPL = kPL + kPL_high*sphere(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere(X, Y, Z, 0.10, -0.45, -0.45, 0);   
+        kPL = kPL + kPL_low*sphere_fcn(X, Y, Z, 0.35, 0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere_fcn(X, Y, Z, 0.10, 0.45, 0.45, 0);
+        kPL = kPL + kPL_low*sphere_fcn(X, Y, Z, 0.35, -0.45, 0.45, 0) + (kPL_high - kPL_low)*sphere_fcn(X, Y, Z, 0.10, -0.45, 0.45, 0);
+        kPL = kPL + kPL_high*sphere_fcn(X, Y, Z, 0.35, 0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere_fcn(X, Y, Z, 0.10, 0.45, -0.45, 0);
+        kPL = kPL + kPL_high*sphere_fcn(X, Y, Z, 0.35, -0.45, -0.45, 0) + (kPL_low - kPL_high)*sphere_fcn(X, Y, Z, 0.10, -0.45, -0.45, 0);   
     end
 end
 
