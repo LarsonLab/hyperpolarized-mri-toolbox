@@ -16,7 +16,7 @@ if ~isOctave % MATLAB
     if ~license('test', 'Image_Toolbox'), warning('Image Toolbox is not installed: some display functions will not work. Consider installing <a href="matlab:matlab.internal.language.introspective.showAddon(''IP'');">Image Processing Toolbox</a>'); end
 else % OCTAVE
     % install octave package
-    installlist = {'optim','image'};
+    installlist = {'optim','image','io','statistics'};
     for ii=1:length(installlist)
         try
             disp(['loading ' installlist{ii}])
