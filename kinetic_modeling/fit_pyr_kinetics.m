@@ -204,8 +204,8 @@ for i=1:size(Sreshape, 1)
             
             products_legend{1} = 'pyruvate';
             for n = 1:Nmets-1
-                products_legend{2*n} = products_string{n};
-                products_legend{2*n+1} = [products_string{n} ' fit'];
+                products_legend{n+1} = products_string{n};
+                products_legend{n+Nmets} = [products_string{n} ' fit'];
             end    
             products_legend{Nmets*2} = 'input estimate';
             legend( products_legend)
