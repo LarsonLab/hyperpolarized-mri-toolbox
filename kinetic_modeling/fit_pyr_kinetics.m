@@ -1,4 +1,4 @@
-function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 % fit_pyr_kinetics - Kinetic model fitting function for HP 13C MRI.
 %
 % Fits product signals, assuming origination from a single substrate
@@ -33,7 +33,8 @@ function [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips
 %   params_fit - structure of fit parameters
 %   Sfit - fit curves
 %   ufit - derived input function (unitless)
-%   objective_val - measure of fit error
+%   error_metrics - measurements of fit error, including upper/lower
+%   bounds, estimated kPL error, Rsquared, and Chisquared (untested)
 %
 % EXAMPLES - see test_fit_pyr_kinetics.m
 %
@@ -148,9 +149,10 @@ end
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),Nmets-1,Nt]); ufit = zeros([prod(Nx),Nt]);
 
+
 for i=1:size(Sreshape, 1)
     if prod(Nx) > 1 && plot_flag
-        disp([num2str( floor(100*(i-1)/size(S, 1)) ) '% complete'])
+        disp([num2str( floor(100*(i-1)/size(Sreshape, 1)) ) '% complete'])
     end
     % observed magnetization (Mxy)
     Mxy = reshape(Sreshape(i, :, :), [4, Nt]);
@@ -170,7 +172,13 @@ for i=1:size(Sreshape, 1)
         switch(fit_method)
             case 'ls'
                 obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Istart, Nmets) ;  % perform least-squares in signal domain
-                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+    
+                % extract 95% confidence interval on lactate timecourse fitting
+                CI = nlparci(params_fit_vec(i,:),resid,'jacobian',J);
+                lb(i,:) = CI(:,1);
+                ub(i,:) = CI(:,2);
+                err(i,:) = CI(:,2)-CI(:,1);
                 
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Istart, Nmets);
@@ -183,11 +191,19 @@ for i=1:size(Sreshape, 1)
         Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
+        % Note that Sfit only inlcudes products signals, not pyruvate,
+        % hence the difference in indexing here and in plots below
+        Rsq(i,1:Nmets-1) = 1 - sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ,3 ) ...
+            ./ sum( (Sreshape(i,2:Nmets,:) - repmat(mean(Sreshape(i,2:Nmets,:),3),[1 1 Nt])).^2, 3);
+        % chi squared distance - also pdist2 in Octave
+        CHIsq(i,1:Nmets-1) = sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ./ ...
+            (Sreshape(i,2:Nmets,:)+Sfit(i,:,:)) ,3) / 2;
+        
         if plot_flag
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz(1:Nmets,:), t, Mzfit(1:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t, Mz(1:Nmets,:), t, Mzfit(2:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
@@ -214,21 +230,40 @@ for i=1:size(Sreshape, 1)
     end
 end
 
+error_metrics=struct('objective_val', objective_val);
+for n = 1:length(products_string)
+    error_metrics.(products_string{n}).Rsq = Rsq(:,n);
+    error_metrics.(products_string{n}).CHIsq = CHIsq(:,n);
+end
 
 params_fit = struct([]);
 for n = 1:Nparams_to_fit
     params_fit(1).(param_names{n})= params_fit_vec(:,n);
+    if strcmp(fit_method, 'ls')
+        error_metrics.(param_names{n}).lb = lb(:,n);
+        error_metrics.(param_names{n}).ub = ub(:,n);
+        error_metrics.(param_names{n}).err = err(:,n);
+    end
 end
 
 if length(Nx) > 1
     for n = 1:Nparams_to_fit
         params_fit.(param_names{n}) = reshape(params_fit.(param_names{n}), Nx);
+        if strcmp(fit_method, 'ls')
+            error_metrics.(param_names{n}).lb = reshape(error_metrics.(param_names{n}).lb, Nx);
+            error_metrics.(param_names{n}).ub = reshape(error_metrics.(param_names{n}).ub, Nx);
+            error_metrics.(param_names{n}).err = reshape(error_metrics.(param_names{n}).err, Nx);
+        end
     end
-    
     
     Sfit = reshape(Sfit, [Nx, Nmets-1, Nt]);
     ufit = reshape(ufit, [Nx, Nt]);
-    objective_val = reshape(objective_val, Nx);
+
+    error_metrics.objective_val = reshape(error_metrics.objective_val, Nx);
+    for n = 1:length(products_string)
+        error_metrics.(products_string{n}).Rsq = reshape(error_metrics.(products_string{n}).Rsq, Nx);
+        error_metrics.(products_string{n}).CHIsq =  reshape(error_metrics.(products_string{n}).CHIsq, Nx);
+    end
     if plot_flag
         disp('100 % complete')
     end
