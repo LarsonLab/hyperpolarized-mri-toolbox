@@ -177,7 +177,7 @@ for i=1:size(S, 1)
             err_vec(i,3)=sigma(1,2)-sigma(1,1);
         end
         err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
-        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
+        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,2,:)).^2);
         
         if plot_flag
             % plot of fit for debugging
