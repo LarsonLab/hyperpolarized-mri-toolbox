@@ -75,11 +75,12 @@ disp(['KPA  = ' num2str(kPA)])
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
-k_fit = k_fit([[1:3],[9:11],[17:19]]); 
+Nparams_fit = length(k_fit)/3;
+k_fit = k_fit([[1:3],[1:3] + Nparams_fit,[1:3] + 2*Nparams_fit]); 
 disp([['KPL  = ';'KPB  = ';'KPA  = '],num2str(reshape(k_fit,[3 3]),2)])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
-k_fit = k_fit([[1:3],[9:11],[17:19]]); 
+k_fit = k_fit([[1:3],[1:3] + Nparams_fit,[1:3] + 2*Nparams_fit]); 
 disp([['KPL  = ';'KPB  = ';'KPA  = '],num2str(reshape(k_fit,[3 3]),2)])
 % disp('Noisy magnitude fit results:')
 % k_fit = struct2array(params_fitn_mag);
@@ -128,15 +129,16 @@ disp(['KPB  = ' num2str(kPB)])
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
-k_fit = k_fit([[1:2],[7:8],[13:14]]); 
+Nparams_fit = length(k_fit)/3;
+k_fit = k_fit([[1:2],[1:2] + Nparams_fit,[1:2] + 2*Nparams_fit]); 
 disp([['KPL  = ';'KPB  = '],num2str(reshape(k_fit,[2 3]),2)])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
-k_fit = k_fit([[1:2],[7:8],[13:14]]); 
+k_fit = k_fit([[1:2],[1:2] + Nparams_fit,[1:2] + 2*Nparams_fit]); 
 disp([['KPL  = ';'KPB  = '],num2str(reshape(k_fit,[2 3]),2)])
 disp('Noisy magnitude fit results:')
 k_fit = struct2array(params_fitn_mag);
-k_fit = k_fit([[1:2],[7:8],[13:14]]); 
+k_fit = k_fit([[1:2],[1:2] + Nparams_fit,[1:2] + 2*Nparams_fit]); 
 disp([['KPL  = ';'KPB  = '],num2str(reshape(k_fit,[2 3]),2)])
 
 figure
@@ -175,15 +177,16 @@ disp(['KPL  = ' num2str(kPL)])
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
-k_fit = k_fit([[1],[5],[9]]); 
+Nparams_fit = length(k_fit)/3;
+k_fit = k_fit([1,1 + Nparams_fit,1 + 2*Nparams_fit]); 
 disp([['KPL  = '],num2str(reshape(k_fit,[1 3]),2)])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
-k_fit = k_fit([[1],[5],[9]]); 
+k_fit = k_fit([1,1 + Nparams_fit,1 + 2*Nparams_fit]); 
 disp([['KPL  = '],num2str(reshape(k_fit,[1 3]),2)])
 disp('Noisy magnitude fit results:')
 k_fit = struct2array(params_fitn_mag);
-k_fit = k_fit([[1],[5],[9]]); 
+k_fit = k_fit([1,1 + Nparams_fit,1 + 2*Nparams_fit]); 
 disp([['KPL  = '],num2str(reshape(k_fit,[1 3]),2)])
 
 figure

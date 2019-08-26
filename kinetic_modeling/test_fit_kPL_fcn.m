@@ -15,7 +15,6 @@ input_condition = 1; % choose from various simulated starting conditions
 switch input_condition
     case 1
         % gamma variate input function - most realistic
-        t = [1:N]*TR;
         Tarrival = 0;  Tbolus = 12;
         input_function = realistic_input_function(N, TR, Tarrival, Tbolus);
         Mz0 = [0,0]; 

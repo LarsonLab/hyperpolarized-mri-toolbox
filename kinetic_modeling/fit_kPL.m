@@ -38,6 +38,33 @@ function [params_fit, Sfit, ufit, err_metrics] = fit_kPL(S, TR, flips, params_fi
 % (c)2015-2018 The Regents of the University of California. All Rights
 % Reserved.
 
+warning('fit_kPL() is now combined into fit_pyr_kinetics() and maybe removed in a future toolbox release');
+
+if nargin < 4 || isempty(params_fixed)
+    params_fixed = struct([]);
+end
+
+if nargin < 5 || isempty(params_est)
+    params_est = struct([]);
+end
+
+if nargin < 6 
+    noise_level = [];
+end
+
+if nargin < 7
+    plot_flag = 0;
+end
+
+
+
+[params_fit, Sfit, ufit] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag);
+
+
+% err_metrics!! 
+return
+
+
 params_all = {'kPL', 'R1L', 'R1P', 'L0_start'};
 err_all = {'ub', 'lb', 'err', 'Rsq', 'CHIsq'};
 params_default_est = [0.01, 1/25, 1/25, 0];
@@ -176,8 +203,8 @@ for i=1:size(S, 1)
             err_vec(i,2)=sigma(1,1);
             err_vec(i,3)=sigma(1,2)-sigma(1,1);
         end
-        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,2,:)).^2./S(i,2,:).^2);
-        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,1,:)).^2);
+        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,:)).^2./S(i,2,:).^2);
+        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,2,:)).^2);
         
         if plot_flag
             % plot of fit for debugging
