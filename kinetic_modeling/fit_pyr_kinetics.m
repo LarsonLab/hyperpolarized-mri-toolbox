@@ -3,7 +3,7 @@ function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips
 %
 % Fits product signals, assuming origination from a single substrate
 % In other words, pyruvate to lactate, bicarbonate and alanine.
-% An input-less method is used, eliminating
+% An "input-less" method is used, eliminating
 % need to make any assumptions about the input function.
 % This uses the following assumptions:
 %   - uni-directional conversion from substrate to metabolic products (i.e.
