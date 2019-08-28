@@ -154,14 +154,16 @@ Sfit = zeros([prod(Nx),Nmets-1,Nt]); ufit = zeros([prod(Nx),Nt]);
 Rsq = zeros([prod(Nx),Nmets-1]); CHIsq = zeros([prod(Nx),Nmets-1]);
 
 for i=1:size(Sreshape, 1)
-    if prod(Nx) > 1
-        disp([num2str( floor(100*(i-1)/size(Sreshape, 1)) ) '% complete'])
-    end
     % observed magnetization (Mxy)
     Mxy = reshape(Sreshape(i, :, :), [4, Nt]);
     
     if any(Mxy(:) ~= 0)
-        
+
+        if prod(Nx) > 1
+            disp([num2str( floor(100*(i-1)/size(Sreshape, 1)) ) '% complete'])
+        end
+
+
         % estimate state magnetization (MZ) based on scaling from RF pulses
         Mz = Mxy./Sscale;
         

@@ -11,8 +11,8 @@ Ns = size(S);
 tdim = length(Ns);
 Nt = Ns(tdim);
 
-if Ns > 1
-    tmat = repmat(reshape( (0:Nt-1)*dT, [ones(1,Ns-1),Nt]), size(S));
+if length(Ns) > 1
+    tmat = repmat(reshape( (0:Nt-1)*dT, [ones(1,length(Ns)-1),Nt]), [Ns(1:end-1),1]);
 else
     tmat = (0:Nt-1)*dT;
 end
