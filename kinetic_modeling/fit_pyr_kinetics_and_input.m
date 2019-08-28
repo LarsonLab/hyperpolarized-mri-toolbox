@@ -144,11 +144,13 @@ end
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
+lb = zeros([prod(Nx),Nparams_to_fit]); ub = zeros([prod(Nx),Nparams_to_fit]); err = zeros([prod(Nx),Nparams_to_fit]);
 Sfit = zeros([prod(Nx),Nmets,Nt]); ufit = zeros([prod(Nx),Nt]);
+Rsq = zeros([prod(Nx),Nmets]); CHIsq = zeros([prod(Nx),Nmets]);
 
 
 for i=1:size(Sreshape, 1)
-    if prod(Nx) > 1 && plot_flag
+    if prod(Nx) > 1
         disp([num2str( floor(100*(i-1)/size(Sreshape, 1)) ) '% complete'])
     end
     % observed magnetization (Mxy)
@@ -172,24 +174,24 @@ for i=1:size(Sreshape, 1)
                 [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
     
                 if ~isOctave
-                % extract 95% confidence interval on lactate timecourse fitting
-                CI = nlparci(params_fit_vec(i,:),resid,'jacobian',J);
-                lb(i,:) = CI(:,1);
-                ub(i,:) = CI(:,2);
-                err(i,:) = CI(:,2)-CI(:,1);
-                end                
+                    % extract 95% confidence interval on lactate timecourse fitting
+                    CI = nlparci(params_fit_vec(i,:),resid,'jacobian',J);
+                    lb(i,:) = CI(:,1);
+                    ub(i,:) = CI(:,2);
+                    err(i,:) = CI(:,2)-CI(:,1);
+                end
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Nmets);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec,options); %, 'Display','none','Algorithm','quasi-newton'); % octave commented out
         end
         
         switch input_shape
-    case 'gamma'
-        [Mzfit, ufit(i,:)] = trajectories_gamma_input(params_fit_vec(i,:), params_fixed, TR,  Mzscale) ;        
-    case 'boxcar'
-        [Mzfit, ufit(i,:)] = trajectories_boxcar_input(params_fit_vec(i,:), params_fixed, TR,  Mzscale) ;
-end
-
+            case 'gamma'
+                [Mzfit, ufit(i,:)] = trajectories_gamma_input(params_fit_vec(i,:), params_fixed, TR,  Mzscale) ;
+            case 'boxcar'
+                [Mzfit, ufit(i,:)] = trajectories_boxcar_input(params_fit_vec(i,:), params_fixed, TR,  Mzscale) ;
+        end
+        
         Sfit(i,:,:) = Mzfit(1:Nmets,:)  .* Sscale(1:Nmets, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
@@ -255,7 +257,7 @@ if length(Nx) > 1
         end
     end
     
-    Sfit = reshape(Sfit, [Nx, Nmets-1, Nt]);
+    Sfit = reshape(Sfit, [Nx, Nmets, Nt]);
     ufit = reshape(ufit, [Nx, Nt]);
 
     error_metrics.objective_val = reshape(error_metrics.objective_val, Nx);
@@ -263,9 +265,7 @@ if length(Nx) > 1
         error_metrics.(products_string{n}).Rsq = reshape(error_metrics.(products_string{n}).Rsq, Nx);
         error_metrics.(products_string{n}).CHIsq =  reshape(error_metrics.(products_string{n}).CHIsq, Nx);
     end
-    if plot_flag
-        disp('100 % complete')
-    end
+    disp('100 % complete')
 end
 
 end

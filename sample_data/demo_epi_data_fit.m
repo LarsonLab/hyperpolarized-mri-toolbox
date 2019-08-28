@@ -63,7 +63,7 @@ params_est.kPL = kPL_est;
 SNRmask = AUC_pyr > SNR_thresh;
 It_fit = find(flips_lac > 1);
 
-[params_fit Sfit] = fit_kPL(double(data(:,:,:,:,It_fit)), TR, flips_all(:, It_fit), params_fixed, params_est);
+[params_fit Sfit] = fit_pyr_kinetics(double(data(:,:,:,:,It_fit)), TR, flips_all(:, It_fit), params_fixed, params_est);
 
 figure
 subplot(221)

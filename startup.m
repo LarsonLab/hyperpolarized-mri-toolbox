@@ -1,3 +1,6 @@
+global isOctave;
+isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+
 if ~isdeployed
 addpath(genpath(fileparts(mfilename('fullpath'))))
 
@@ -8,7 +11,6 @@ if exist(tmpDir, 'dir')
     rmpath(genpath(tmpDir))
 end
 
-isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
 if ~isOctave % MATLAB
     % Test Optimization toolbox is installed

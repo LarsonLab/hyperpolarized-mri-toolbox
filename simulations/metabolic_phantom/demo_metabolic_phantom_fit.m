@@ -49,7 +49,7 @@ plot_voxels(squeeze(data(:,:,1,1,:)))
 figure('Name', 'Lactate data')
 plot_voxels(squeeze(data(:,:,1,2,:)))
 
-%% Fit data
+%% Fit data - input-less kinetic model
 
 clear params_fixed params_est params_fit
 R1P_est = R1P; R1L_est = R1L;  kPL_est = 0.01;
@@ -57,13 +57,45 @@ params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
 params_est.kPL = kPL_est;
 
 % no noise
-[params_fit_nonoise Sfit_nonoise] = fit_kPL(data_nonoise, TR, flips, params_fixed, params_est);
+[params_fit_nonoise Sfit_nonoise] = fit_pyr_kinetics(data_nonoise, TR, flips, params_fixed, params_est);
 
 %  noisy
-[params_fit Sfit] = fit_kPL(data, TR, flips, params_fixed, params_est);
+[params_fit Sfit] = fit_pyr_kinetics(data, TR, flips, params_fixed, params_est);
 
 Splot = [0 kPL_high];
-figure
+figure('Name', 'Input-less fitting')
+subplot(221)
+imagesc(kPL, Splot), colorbar
+title('Original k_{PL}')
+subplot(222)
+imagesc(kTRANS), colorbar
+title('Original k_{TRANS}')
+subplot(223)
+imagesc(params_fit_nonoise.kPL, Splot), colorbar
+title('Fit k_{PL} (no noise)')
+subplot(224)
+imagesc(params_fit.kPL, Splot), colorbar
+title('Fit k_{PL} (with noise)')
+
+%% Fit data - fitting of input function too
+
+clear params_fixed params_est params_fit
+R1P_est = R1P; R1L_est = R1L;  kPL_est = 0.01;
+params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
+params_est.kPL = kPL_est;
+
+% fit bolus as well
+Tarrival_est = 0; Tbolus_est = 12;  Rinj_est = 0.1;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
+
+% no noise
+[params_fit_nonoise Sfit_nonoise] = fit_pyr_kinetics_and_input(data_nonoise, TR, flips, params_fixed, params_est);
+
+%  noisy
+[params_fit Sfit] = fit_pyr_kinetics_and_input(data, TR, flips, params_fixed, params_est);
+
+Splot = [0 kPL_high];
+figure('Name', 'Fitting including input function')
 subplot(221)
 imagesc(kPL, Splot), colorbar
 title('Original k_{PL}')
