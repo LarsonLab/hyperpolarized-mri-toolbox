@@ -7,7 +7,7 @@ experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment
 experiment.Tarrival = 0;  experiment.Tbolus = 8;
 
 for  est_R1L = 0
-    for fit_input = 0
+    for fit_input = 1
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         
@@ -34,14 +34,14 @@ for  est_R1L = 0
         
         if fit_input
             fit_description = [fit_description, '  Fitting the input function'];
-            fitting.fit_fcn = @fit_kPL_withinput;
+            fitting.fit_fcn = @fit_pyr_kinetics_and_input;
             Tarrival_est = experiment.Tarrival;    Tbolus_est = experiment.Tbolus;  % ... perfect estimates ... how do they perform with variability?
             Rinj_est = 0.1; % looks reasonable
             params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
             params_est.Tarrival_lb = 0; params_est.Tarrival_ub = 12; params_est.Tbolus_lb = 6; params_est.Tbolus_ub = 10;
         else
            fit_description = [fit_description, '  Inputless fitting'];
-           fitting.fit_fcn = @fit_kPL;
+           fitting.fit_fcn = @fit_pyr_kinetics;
         end
         
         
