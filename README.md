@@ -28,9 +28,5 @@ Please let us know if you would like to contribute or have suggestions for conte
 **Initial Project Contributors**: 
 * Jeremy Gordon, University of California - San Francisco
 * Adam Kerr, Stanford University
-* Eugene Milshteyn, University of California - San Francisco
-* Xucheng Zhu, University of California - San Francisco
-* Shuyu Tang, University of California - San Francisco
-* Natalie Korn, University of California - San Francisco
-* John Maidens, University of California - Berkeley
+* Eugene Milshteyn, Xucheng Zhu, Shuyu Tang, Natalie Korn, John Maidens, Hsin-yu Chen, Adam Autry
 * You :)
