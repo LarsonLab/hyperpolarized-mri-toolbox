@@ -9,6 +9,7 @@ kPL = 0.05; kPB = 0.03; kPA = 0.02;
 std_noise = 0.005;
 
 input_condition = 1; % choose from various simulated starting conditions
+input_function = zeros(1,N);
 switch input_condition
     case 1
         % gamma variate input function - most realistic
@@ -68,28 +69,31 @@ end
 % initial parameter guesses
 R1P_est = 1/25; R1L_est = 1/25; R1B_est = 1/15; R1A_est = 1/25;
 kPL_est = .02; kPB_est = .02; kPA_est = .02;
+Tarrival_est = 0; Tbolus_est = 12;  Rinj_est = 0.1;
 plot_fits = 1;
-fit_function = @fit_pyr_kinetics;
+fit_function = @fit_pyr_kinetics_and_input;
 
 %% Test fitting - 2-site
 disp('2-site model: pyruvate -> lactate')
-disp('Fitting kPL with fixed relaxation rates:')
+disp('Fitting kPL with fixed relaxation rates')
+disp('Also fitting bolus input parameters to a gamma-variate shape')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 clear Sfit Snfit_complex Snfit_mag
-params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
-params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
+params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est;
+params_est.kPL = kPL_est; 
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:2,1:N,  Iflips)] = fit_function(Mxy(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1,1:size(Mxy,2),  Iflips)] = fit_function(Sn(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:2,1:N,  Iflips)] = fit_function(Sn(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(1:2,:,Iflips)), TR, flips(1:2,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:2,1:N,  Iflips)] = fit_function(abs(Sn(1:2,:,Iflips)), TR, flips(1:2,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 
 disp('Input:')
@@ -115,12 +119,15 @@ disp([num2str(k_fit.',2), flip_description_array])
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
-subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':')
 plot(t, squeeze(Snfit_mag(1,:,:)),'--'), hold off
+title('Pyruvate signals and fits')
+subplot(122) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+plot(t, squeeze(Snfit_mag(2,:,:)),'--'), hold off
 title('Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
+
 
 disp('Press any key to continue')
 disp(' ')
@@ -133,25 +140,27 @@ disp('Fitting kPL  and T1 of lactate')
 disp('Fitting both parameters leads to increases in variability, which can be')
 disp('alleviated to some extent by constraints on the parameter values')
 disp('(Pyruvate T1 values have very small effect on inputless fitting approach)')
+disp('Also fitting bolus input parameters to a gamma-variate shape')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 clear Sfit Snfit_complex Snfit_mag
 params_fixed.R1P = R1P_est;
 params_est.kPL = kPL_est;  params_est.R1L = R1L_est;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
 % set constraints on lactate T1:
 params_est.R1L_lb = 1/40;
 params_est.R1L_ub = 1/15;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:2,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1,1:size(Mxy,2),  Iflips)] = fit_function(Sn(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:2,1:size(Mxy,2),  Iflips)] = fit_function(Sn(1:2,:,Iflips), TR, flips(1:2,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(1:2,:,Iflips)), TR, flips(1:2,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:2,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(1:2,:,Iflips)), TR, flips(1:2,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 
 disp('Input:')
@@ -177,10 +186,12 @@ disp([num2str(k_fit,2), flip_description_array])
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
-subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':')
 plot(t, squeeze(Snfit_mag(1,:,:)),'--'), hold off
+title('Pyruvate signals and fits')
+subplot(122) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+plot(t, squeeze(Snfit_mag(2,:,:)),'--'), hold off
 title('Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
 
@@ -192,18 +203,20 @@ pause
 %% Test fitting - fit kPX only
 disp('4-site model: pyruvate -> lactate, bicarbonate, alanine')
 disp('Fitting kPL, kPB, and kPA, with fixed relaxation rates:')
+disp('Also fitting bolus input parameters to a gamma-variate shape')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
 params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1:3,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:4,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1:3,1:size(Mxy,2),  Iflips)] = fit_function(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:4,1:size(Mxy,2),  Iflips)] = fit_function(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
  %   [params_fitn_mag(:,Iflips) Snfit_mag(1:3,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(:,:,Iflips)), TR, flips(:,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
@@ -232,18 +245,19 @@ disp([num2str(k_fit,2), flip_description_array])
 
 figure
 subplot(221) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+title('Pyruvate signals and fits')
 subplot(222) , plot(t, squeeze(Sn(2,:,:)))
-hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':')
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
 %plot(t, squeeze(Snfit_mag(1,:,:)),'--'), hold off
 title('Lactate signals and fits')% (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
 subplot(223) , plot(t, squeeze(Sn(3,:,:)))
-hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+hold on, plot(t, squeeze(Snfit_complex(3,:,:)),':')
 %plot(t, squeeze(Snfit_mag(2,:,:)),'--'), hold off
 title('Bicarb signals and fits')
 subplot(224) , plot(t, squeeze(Sn(4,:,:)))
-hold on, plot(t, squeeze(Snfit_complex(3,:,:)),':')
+hold on, plot(t, squeeze(Snfit_complex(4,:,:)),':')
 %plot(t, squeeze(Snfit_mag(3,:,:)),'--'), hold off
 title('Alanine signals and fits')
 
@@ -254,22 +268,24 @@ pause
 %% Test fitting - 3-site
 disp('3-site model: pyruvate -> lactate, bicarbonate')
 disp('Fitting kPL, and kPB, with fixed relaxation rates:')
+disp('Also fitting bolus input parameters to a gamma-variate shape')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 clear Sfit Snfit_complex Snfit_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
 params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
-    [params_fit(:,Iflips) Sfit(1:2,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(1:3,:,Iflips), TR, flips(1:3,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fit(:,Iflips) Sfit(1:3,1:size(Mxy,2),  Iflips)] = fit_function(Mxy(1:3,:,Iflips), TR, flips(1:3,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
-    [params_fitn_complex(:,Iflips) Snfit_complex(1:2,1:size(Mxy,2),  Iflips)] = fit_function(Sn(1:3,:,Iflips), TR, flips(1:3,:,Iflips), params_fixed, params_est, [], plot_fits);
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:3,1:size(Mxy,2),  Iflips)] = fit_function(Sn(1:3,:,Iflips), TR, flips(1:3,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % magnitude fitting with noise
-    [params_fitn_mag(:,Iflips) Snfit_mag(1:2,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(1:3,:,Iflips)), TR, flips(1:3,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
+    [params_fitn_mag(:,Iflips) Snfit_mag(1:3,1:size(Mxy,2),  Iflips)] = fit_function(abs(Sn(1:3,:,Iflips)), TR, flips(1:3,:,Iflips),params_fixed, params_est, std_noise, plot_fits);
 end
 
 disp('Input:')
@@ -295,15 +311,17 @@ disp([num2str(k_fit,2), flip_description_array])
 
 figure
 subplot(131) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
-subplot(132) , plot(t, squeeze(Sn(2,:,:)))
+title('Pyruvate signals and fits')
 hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':')
 plot(t, squeeze(Snfit_mag(1,:,:)),'--'), hold off
+subplot(132) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
+plot(t, squeeze(Snfit_mag(2,:,:)),'--'), hold off
 title('Lactate signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
 subplot(133) , plot(t, squeeze(Sn(3,:,:)))
-hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':')
-plot(t, squeeze(Snfit_mag(2,:,:)),'--'), hold off
+hold on, plot(t, squeeze(Snfit_complex(3,:,:)),':')
+plot(t, squeeze(Snfit_mag(3,:,:)),'--'), hold off
 title('Bicarb signals and fits')
 
 return
