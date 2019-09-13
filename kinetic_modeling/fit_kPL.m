@@ -199,12 +199,13 @@ for i=1:size(S, 1)
         % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
         if exist('sigma', 'var')
             % export goodness of fit parameters (ub, lb, total error, R^2, chi^2)
-            err_vec(i,1)=sigma(1,2);
-            err_vec(i,2)=sigma(1,1);
-            err_vec(i,3)=sigma(1,2)-sigma(1,1);
+            err_vec(i,1)=sigma(1,2); % lb
+            err_vec(i,2)=sigma(1,1); % ub
+            err_vec(i,3)=sigma(1,2)-sigma(1,1); % err
         end
-        err_vec(i,4)=1-mean((S(i,2,:)-Sfit(i,:)).^2./S(i,2,:).^2);
-        err_vec(i,5)=sum((S(i,2,:)-Sfit(i,2,:)).^2);
+
+        err_vec(i,4)=1-sum( (y2-Sfit(i,:)).^2 ) ./ sum( (y2 - mean(y2)).^2 );  % Rsquared
+        err_vec(i,5)= sum( (y2-Sfit(i,:)).^2 ./ (y2 + Sfit(i,:)) ) /2; % CHI squared distance
         
         if plot_flag
             % plot of fit for debugging
