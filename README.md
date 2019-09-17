@@ -4,6 +4,12 @@ The goal of this toolbox is to provide research-level and prototyping software t
 
 It is hosted on this open-source, collaborative platform in order to encourage anyone and everyone in the hyperpolarized MRI research community to contribute tools that will help our field rapidly progress.
 
+## MyBinder online demos
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LarsonLab/hyperpolarized-mri-toolbox/master)
+
+Look for notebooks under recon/EPI demo/ and kinetic_modeling/
+
 ## Additional Resources
 
 This includes, as a subtree, the
