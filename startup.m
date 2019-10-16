@@ -5,7 +5,7 @@ if ~isdeployed
 addpath(genpath(fileparts(mfilename('fullpath'))))
 
 
-% Remove temp temp dir from path if it exists
+% Remove temp dir from path if it exists
 tmpDir = fullfile(pwd, 'tmp');
 if exist(tmpDir, 'dir')
     rmpath(genpath(tmpDir))
@@ -18,7 +18,7 @@ if ~isOctave % MATLAB
     if ~license('test', 'Image_Toolbox'), warning('Image Toolbox is not installed: some display functions will not work. Consider installing <a href="matlab:matlab.internal.language.introspective.showAddon(''IP'');">Image Processing Toolbox</a>'); end
 else % OCTAVE
     % install octave package
-    installlist = {'optim','image','io','statistics'};
+    installlist = {'optim','image','io','statistics', 'signal'};
     for ii=1:length(installlist)
         try
             disp(['loading ' installlist{ii}])
