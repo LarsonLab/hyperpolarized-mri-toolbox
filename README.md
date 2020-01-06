@@ -10,7 +10,14 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 
 Look for notebooks under recon/EPI demo/ and kinetic_modeling/
 
-## Additional Resources
+## Hyperpolarized Metabolic MRI Seminar
+
+For general education on hyperpolarzed cabron-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar (summer 2019) are available
+
+https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
+https://www.slideshare.net/PederLarson1
+
+## Additional Software Resources
 
 This includes, as a subtree, the
 [Spectral-Spatial-RF-Pulse-Design toolbox](https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.
