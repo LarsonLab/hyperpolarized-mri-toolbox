@@ -34,12 +34,8 @@ For enhanced data visualization tools, including optimized implementations of so
 
 This toolbox was created as a part of the UCSF Hyperpolarized MRI Technology Resource Center (http://www.radiology.ucsf.edu/research/labs/hyperpolarized-mri-tech) which is funded by the National Institutes of Health (NIH Grant P41-EB013598).
 
-Please let us know if you would like to contribute or have suggestions for content.
+Please let us know if you would like to contribute or have suggestions for content, contact Peder Larson, University of California - San Francisco
 
-**Project Organizer**: Peder Larson, University of California - San Francisco
+## Cite
 
-**Initial Project Contributors**: 
-* Jeremy Gordon, University of California - San Francisco
-* Adam Kerr, Stanford University
-* Eugene Milshteyn, Xucheng Zhu, Shuyu Tang, Natalie Korn, John Maidens, Hsin-yu Chen, Adam Autry
-* You :)
+Hyperpolarized-MRI-Toolbox. DOI: 10.5281/zenodo.1198915
