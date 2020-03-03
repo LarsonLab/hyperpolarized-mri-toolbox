@@ -38,7 +38,7 @@ noise_data = chim(:,:,1,:,1,1,20);
 %Note that Ch. 23 is 'hot' relative to the other 31 elements
 figure,imagesc(abs(ncm)); axis image off;
 %% Reconstruct using the 'refpeak' method and sum-of-squares
-im_refpeak = RefPeak_cc(chim);
+[im_refpeak, Smap] = RefPeak_cc(chim);
 im_sos = Sum_of_Square_cc(chim);
 
 im_refpeak = squeeze(im_refpeak);
@@ -148,8 +148,8 @@ set(gcf,'units','normalized','outerposition',[0.2 0.2 0.6 0.5])
 figure;
 subplot(121),montage(permute(lp_ratio,[1 2 4 3]),'Size',[3 3], ... 
     'DisplayRange',[0 1].*max(lp_ratio(:)))
-title('k_p_l')
+title('Lactate/Pyruvate Ratio')
 subplot(122),montage(permute(kpl,[1 2 4 3]),'Size',[3 3], ...
     'DisplayRange',[0 1].*max(kpl(:)))
-title('Lactate/Pyruvate Ratio')
+title('k_p_l')
 set(gcf,'units','normalized','outerposition',[0.2 0.2 0.6 0.5])
