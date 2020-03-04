@@ -1,6 +1,8 @@
 octave
 octave-optim
 octave-image
+octave-io
+octave-statistics
 octave-signal
 octave-symbolic
 octave-miscellaneous
