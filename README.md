@@ -38,4 +38,4 @@ Please let us know if you would like to contribute or have suggestions for conte
 
 ## Cite
 
-Hyperpolarized-MRI-Toolbox. DOI: 10.5281/zenodo.1198915
+Hyperpolarized-MRI-Toolbox. DOI: [10.5281/zenodo.1198915](https://dx.doi.org/10.5281/zenodo.1198915)
