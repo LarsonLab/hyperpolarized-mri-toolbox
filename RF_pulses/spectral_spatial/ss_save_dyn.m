@@ -382,6 +382,12 @@ end
     
     
     
+    % add pulse frequency
+    
+    xmlwrite(dad_name,docNode);
+    
+    
+    
     
     
 
