@@ -5,6 +5,7 @@ The goal of this toolbox is to provide research-level and prototyping software t
 It is hosted on this open-source, collaborative platform in order to encourage anyone and everyone in the hyperpolarized MRI research community to contribute tools that will help our field rapidly progress.
 
 **Citation**
+
 Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox  DOI: [10.5281/zenodo.1198915](https://dx.doi.org/10.5281/zenodo.1198915)
 
 ## MyBinder online demos
