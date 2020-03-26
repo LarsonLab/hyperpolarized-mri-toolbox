@@ -39,6 +39,7 @@ This includes, as a subtree, the
 [Spectral-Spatial-RF-Pulse-Design toolbox](https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design) for hyperpolarized MRI RF pulse design.  For reference, here's how to update the subtree with git:
 
 (run from root directory of hyperpolarized-mri-toolbox)
+
     git subtree add --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
     git subtree pull --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
     git subtree push --prefix RF_pulses/spectral_spatial https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design.git master --squash
