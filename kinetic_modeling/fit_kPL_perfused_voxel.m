@@ -18,6 +18,9 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL_perfused_voxel(S_voxe
 % INPUTS
 %	S - signal dynamics [voxels, # of metabolites, # of time points]
 %		Substrate (e.g. Pyruvate) should be the first metabolite, followed by each product
+%   VIF - estimated vascular input function [# of metabolites, # of time points]
+%       Can also just input substrate VIF and all other metabolites then
+%       assumed to be 0
 %   TR - repetition time per time point
 %	flips - all flip angles [# of metabolites, # of time points x # of phase encodes]
 %	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
@@ -54,19 +57,19 @@ end
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
     'S0_P', 'S0_L', 'S0_B', 'S0_A', ...
-    'VIFscale', 'kve', 'vb', 'Rinj', 'Tarrival', 'Tbolus'};
+    'VIFscale', 'kve', 'vb'};
 params_default_est = [0.01, 0.01, 0.01, ...
     1/30, 1/25, 1/25, 1/15, ...
     0, 0, 0, 0,...
-    1, 0.02, 0.1, 0.1, 0, 8];
+    1, 0.02, 0.1];
 params_default_lb = [-Inf, -Inf, -Inf, ...
     1/50, 1/50, 1/50, 1/50, ...
     -Inf, -Inf, -Inf, -Inf, ...
-    0, 0, 0, 0, -30, 0];
+    0, 0, 0];
 params_default_ub = [Inf, Inf, Inf, ...
     1/10, 1/10, 1/10, 1/5 , ...
     Inf, Inf, Inf, Inf, ...
-    Inf, Inf, 1, Inf 30 Inf];
+    Inf, Inf, 1];
 
 if nargin < 6 || isempty(params_fixed)
     params_fixed = struct([]);
@@ -81,22 +84,30 @@ switch Nmets
     case 2 % assume pyruvate & lactate
         params_fixed.kPA = 0;  params_fixed.S0_A = 0;  params_fixed.R1A = 1;
         params_fixed.kPB = 0;  params_fixed.S0_B = 0;  params_fixed.R1B = 1;
+        mets_legend = {'pyruvate', 'lactate'};
         
     case 3 % assume pyruvate & lactate & bicarbonate
         params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
+        mets_legend = {'pyruvate', 'lactate', 'bicarbonate'};
+
+    case 4
+        mets_legend = {'pyruvate', 'lactate', 'bicarbonate', 'alanine'};
+        
 end
 
 
-I_params_est = [];
+I_params_est = []; % index of parameters to be fit
+params_fit_names = {};
 for n = 1:length(params_all)
     if ~isfield(params_fixed, params_all(n))
         I_params_est = [I_params_est, n];
+        params_fit_names = [params_fit_names, params_all(n)]; 
     end
 end
 Nparams_to_fit = length(I_params_est);
 
 for n = 1:Nparams_to_fit
-    param_name = params_all{I_params_est(n)};
+    param_name = params_fit_names{n};
     if isfield(params_est, param_name)
         params_est_vec(n) = params_est.(param_name);
     else
@@ -136,11 +147,16 @@ end
 Sreshape = reshape(S_voxel, [prod(Nx), Nmets, Nt]);  % put all spatial locations in first dimension
 if Nmets < 4
     Sreshape = cat(2, Sreshape, zeros([prod(Nx) 4-Nmets, Nt]));  % add zero data for unused metabolites
-    VIF = cat(1, VIF, ones([4-Nmets, size(VIF,2)]));
     flips = cat(1, flips, ones([4-Nmets, size(flips,2)]));
 end
 
+% expand VIF to be zeros for non-specified metabolites
+if size(VIF,1) < 4
+    VIF = cat(1, VIF, zeros([4-size(VIF,1), size(VIF,2)]));
+end
+
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
+VIF_Mz = VIF./Sscale;
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 Sfit = zeros([prod(Nx),Nmets,Nt]); ufit = zeros([prod(Nx),Nt]);
@@ -164,8 +180,7 @@ for i=1:size(Sreshape, 1)
         Mz_scaled = Mz / Mz_data_scale;
         
         % normalization for VIF 
-        VIF = VIF./Sscale;
-        VIF = VIF./Mz_data_scale;
+        VIF_Mz_scaled = VIF_Mz./Mz_data_scale;
 
         % option to propogate inputless model from various points in time
         Istart = 1;
@@ -176,16 +191,32 @@ for i=1:size(Sreshape, 1)
         
         switch(fit_method)
             case 'ls'
-                obj = @(var) difference_perfused_voxel(var, params_fixed, TR, Mzscale, Sscale, Mz_scaled, VIF, Istart, Nmets) ;  % perform least-squares in signal domain
+                obj = @(var) difference_perfused_voxel(var, params_fixed, TR, Mzscale, Sscale, Mz_scaled, VIF_Mz_scaled, Istart, Nmets) ;  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz_scaled, VIF,noise_level.*(Sscale).^2 / Mz_data_scale, Istart, Nmets);
+                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz_scaled, VIF_Mz_scaled,noise_level.*(Sscale).^2 / Mz_data_scale, Istart, Nmets);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
                 
         end
         
-        Mzfit = trajectories_perfused_voxel(params_fit_vec(i,:), params_fixed, TR,  Mzscale, VIF, Istart);
+        [Mzfit Mz_ev_fit] = trajectories_perfused_voxel(params_fit_vec(i,:), params_fixed, TR,  Mzscale, VIF_Mz_scaled, Istart);
+        Mzfit = Mzfit(1:Nmets,:); Mz_ev_fit = Mz_ev_fit(1:Nmets,:);
+        
+        if isfield(params_fixed, 'vb')
+            vb_fit = params_fixed.vb;
+        else
+            Ivb = find(strcmp(params_fit_names, 'vb'));
+            vb_fit = params_fit_vec(i,Ivb);
+        end
+        ve_fit = 1-vb_fit;
+        
+        if isfield(params_fixed, 'VIFscale')
+            VIFscale_fit = params_fixed.VIFscale;
+        else
+            IVIFscale = find(strcmp(params_fit_names, 'VIFscale'));
+            VIFscale_fit = params_fit_vec(i,IVIFscale);
+        end
         
         Sfit(i,:,:) = Mzfit(1:Nmets,:)*Mz_data_scale .* Sscale(1:Nmets, :);
         
@@ -193,16 +224,31 @@ for i=1:size(Sreshape, 1)
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz, t, Mzfit*Mz_data_scale,'--', t, VIF, 'k:')
+            plot(t, Mz)
+            legend(mets_legend,'AutoUpdate','off');
+            set(gca,'ColorOrderIndex',1)
+            hold on
+            plot(t, Mz_ev_fit*Mz_data_scale*ve_fit,'-.')
+            set(gca,'ColorOrderIndex',1)
+            plot(t, Mzfit*Mz_data_scale,'--')
+            set(gca,'ColorOrderIndex',1)
+            plot(t, VIF_Mz*vb_fit*VIFscale_fit, ':')
+            hold off
             xlabel('time (s)')
-            ylabel('state magnetization (au)')
+            ylabel('state z-magnetization (au)')
+            title('Solid=data, dashed=fit, dot-dashed=extravascular, dot=VIF')
             subplot(2,1,2)
-            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--')
+            plot(t, Mxy)
+            legend(mets_legend,'AutoUpdate','off');
+            set(gca,'ColorOrderIndex',1)
+            hold on
+            plot(t, squeeze(Sfit(i,:,:)),'--')
             xlabel('time (s)')
             ylabel('signal (au)')
+            hold off
 %            title(num2str(params_fit_vec(i,:),2)) % don't display L0_start value
             %            legend('pyruvate', 'lactate', 'lactate fit', 'input estimate')
-            drawnow, pause(0.5)
+%            drawnow, pause(0.5)
         end
     end
 end
@@ -210,7 +256,7 @@ end
 
 params_fit = struct([]);
 nfit = 0;
-for n = 1:length(params_all)-1  % don't output L0_start
+for n = 1:length(params_all)  % don't output L0_start
     if ~isfield(params_fixed, params_all(n))
         nfit = nfit+1;
         params_fit(1).(params_all{n})= params_fit_vec(:,nfit);
@@ -218,7 +264,7 @@ for n = 1:length(params_all)-1  % don't output L0_start
 end
 
 if length(Nx) > 1
-    for n = 1:Nparams_to_fit-1 % don't output L0_start
+    for n = 1:Nparams_to_fit % don't output L0_start
         param_name = params_all{I_params_est(n)};
         params_fit.(param_name) = reshape(params_fit.(param_name), Nx);
     end
