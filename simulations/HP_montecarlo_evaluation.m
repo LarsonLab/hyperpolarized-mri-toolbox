@@ -13,7 +13,7 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exper
 %       TR, flips, N (number of timepoints)
 %   fitting - structure containing fitting parameters, including
 %       fit_fcn, params_est, params_fixed
-%       (for use with fit_kPL* functions)    
+%       (for use with fit_pyr_kinetics* functions)    
 %   experiment - structure containing experimental parameters and ranges for simulations (optional)
 %
 % OUTPUTS:

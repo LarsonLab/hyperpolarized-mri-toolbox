@@ -14,10 +14,10 @@ function [ AUCratio ] = compute_AUCratio( S )
 %   AUCratio = compute_AUCratio(Mxy);
 
 Ns = size(S);
-if Ns > 2
+if length(Ns) > 2
     Stemp = reshape(S, [prod(Ns(1:end-2)), 2, Ns(end)]);
-    AUCratio = sum(Stemp(:,2,:),3)/sum(Stemp(:,1,:),3);
-    if Ns > 3
+    AUCratio = sum(Stemp(:,2,:),3) ./ sum(Stemp(:,1,:),3);
+    if length(Ns) > 3
         AUCratio = reshape(AUCratio, Ns(1:end-2));
     end
 else
