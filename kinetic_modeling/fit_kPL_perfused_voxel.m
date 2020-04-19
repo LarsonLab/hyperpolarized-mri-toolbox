@@ -45,6 +45,7 @@ function [params_fit, Sfit, ufit, objective_val] = fit_kPL_perfused_voxel(S_voxe
 % (c)2015-2018 The Regents of the University of California. All Rights
 % Reserved.
 
+isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
 size_S = size(S_voxel);  ndimsx = length(size_S)-2;
 Nt = size_S(end); t = [0:Nt-1]*TR;
@@ -192,8 +193,16 @@ for i=1:size(Sreshape, 1)
         switch(fit_method)
             case 'ls'
                 obj = @(var) difference_perfused_voxel(var, params_fixed, TR, Mzscale, Sscale, Mz_scaled, VIF_Mz_scaled, Istart, Nmets) ;  % perform least-squares in signal domain
-                [params_fit_vec(i,:),objective_val(i)] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
+                [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
                 
+                if ~isOctave
+                    % extract 95% confidence interval on lactate timecourse fitting
+                    CI = nlparci(params_fit_vec(i,:),resid,'jacobian',J);
+                    lb(i,:) = CI(:,1);
+                    ub(i,:) = CI(:,2);
+                    err(i,:) = CI(:,2)-CI(:,1);
+                end
+
             case 'ml'
                 obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz_scaled, VIF_Mz_scaled,noise_level.*(Sscale).^2 / Mz_data_scale, Istart, Nmets);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
