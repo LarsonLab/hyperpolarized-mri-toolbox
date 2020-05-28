@@ -49,16 +49,15 @@ isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 size_S = size(S);  ndimsx = length(size_S)-2;
 Nt = size_S(end); t = [0:Nt-1]*TR;
 Nx = size_S(1:ndimsx);
-Nmets = size_S(end-1);
 if isempty(Nx)
     Nx = 1;
 end
 
-params_all = {'kPL', 'kPB', 'kPA', ...
-    'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_L', 'S0_B', 'S0_A'};%, ...
+params_all = {'k_aKG_2HG_est', 'k_aKG_C1toC5', 'k_aKG_C5toC1', ...
+    'R1_aKG_C1', 'R1_aKG_C5', 'R1_2HG', ...
+    'S0_aKG_C1', 'S0_aKG_C5', 'S0_2HG'};%, ...
 %    'Rinj', 'Tarrival', 'Tbolus'};
-params_default_est = [0.01, 0.01, 0.01, ...
+params_default_est = [0.01, 0.1, 1, ...
     1/30, 1/25, 1/25, 1/15, ...
     0, 0, 0] ;%, ...
 %    0.1, 0, 8];
@@ -81,17 +80,7 @@ if nargin < 6 || isempty(params_est)
 end
 
 % Supports up to 3 metabolic products (e.g. alanine, lactate, bicarb)
-products_string = {'lactate', 'bicarb', 'alanine'};
-switch Nmets
-    case 2 % assume pyruvate & lactate
-        params_fixed.kPA = 0;  params_fixed.S0_A = 0;  params_fixed.R1A = 1;
-        params_fixed.kPB = 0;  params_fixed.S0_B = 0;  params_fixed.R1B = 1;
-        products_string = {'lactate'};
-    case 3 % assume pyruvate & lactate & bicarbonate
-        params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
-        products_string = {'lactate', 'bicarb'};
-end
-
+products_string = {'2HG'};
 
 I_params_est = [];
 for n = 1:length(params_all)
@@ -140,22 +129,18 @@ if plot_flag
     disp('==== Computing parameter map ====')
 end
 
-Sreshape = reshape(S, [prod(Nx), Nmets, Nt]);  % put all spatial locations in first dimension
-if Nmets < 4
-    Sreshape = cat(2, Sreshape, zeros([prod(Nx) 4-Nmets, Nt]));  % add zero data for unused metabolites
-    flips = cat(1, flips, ones([4-Nmets, size(flips,2)]));
-end
+Sreshape = reshape(S, [prod(Nx), 2, Nt]);  % put all spatial locations in first dimension
 
 [Sscale, Mzscale] = flips_scaling_factors(flips, Nt);
 
 params_fit_vec = zeros([prod(Nx),Nparams_to_fit]);  objective_val = zeros([1,prod(Nx)]);
 lb = zeros([prod(Nx),Nparams_to_fit]); ub = zeros([prod(Nx),Nparams_to_fit]); err = zeros([prod(Nx),Nparams_to_fit]);
-Sfit = zeros([prod(Nx),Nmets-1,Nt]); ufit = zeros([prod(Nx),Nt]);
-Rsq = zeros([prod(Nx),Nmets-1]); CHIsq = zeros([prod(Nx),Nmets-1]);
+Sfit = zeros([prod(Nx),1,Nt]); ufit = zeros([prod(Nx),Nt]);
+Rsq = zeros([prod(Nx),1]); CHIsq = zeros([prod(Nx),1]);
 
 for i=1:size(Sreshape, 1)
     % observed magnetization (Mxy)
-    Mxy = reshape(Sreshape(i, :, :), [4, Nt]);
+    Mxy = reshape(Sreshape(i, :, :), [2, Nt]);
     
     if any(Mxy(:) ~= 0)
 
@@ -165,7 +150,7 @@ for i=1:size(Sreshape, 1)
 
 
         % estimate state magnetization (MZ) based on scaling from RF pulses
-        Mz = Mxy./Sscale;
+        Mz = Mxy./Sscale(1:2,:);
         
         % option to propogate inputless model from various points in time
         Istart = 1;
@@ -177,7 +162,7 @@ for i=1:size(Sreshape, 1)
         
         switch(fit_method)
             case 'ls'
-                obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Istart, Nmets) ;  % perform least-squares in signal domain
+                obj = @(var) difference_inputless(var, params_fixed, TR, Mzscale, Sscale, Mz, Istart) ;  % perform least-squares in signal domain
                 [params_fit_vec(i,:),objective_val(i),resid,~,~,~,J] = lsqnonlin(obj, params_est_vec, params_lb, params_ub, lsq_opts);
     
                 if ~isOctave
@@ -193,27 +178,28 @@ for i=1:size(Sreshape, 1)
         end
         
         [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:), Istart);
-        
-        Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
+        Mxyfit = Mzfit .* Sscale;
+        % account for overlapping resonances
+        Sfit(i,:,:) = Mxyfit(2,:)+Mxyfit(3,:);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
         % Note that Sfit only inlcudes products signals, not pyruvate,
         % hence the difference in indexing here and in plots below
-        Rsq(i,1:Nmets-1) = 1 - sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ,3 ) ...
-            ./ sum( (Sreshape(i,2:Nmets,:) - repmat(mean(Sreshape(i,2:Nmets,:),3),[1 1 Nt])).^2, 3);
+        Rsq(i,1) = 1 - sum( (Sreshape(i,2,:)-Sfit(i,:,:)).^2 ,3 ) ...
+            ./ sum( (Sreshape(i,2,:) - repmat(mean(Sreshape(i,2,:),3),[1 1 Nt])).^2, 3);
         % chi squared distance - also pdist2 in Octave
-        CHIsq(i,1:Nmets-1) = sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ./ ...
-            (Sreshape(i,2:Nmets,:)+Sfit(i,:,:)) ,3) / 2;
+        CHIsq(i,1) = sum( (Sreshape(i,2,:)-Sfit(i,:,:)).^2 ./ ...
+            (Sreshape(i,2,:)+Sfit(i,:,:)) ,3) / 2;
         
         if plot_flag
             % plot of fit for debugging
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz(1:Nmets,:), t, Mzfit(2:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t, Mz, t, Mzfit,'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
             xlabel('time (s)')
             ylabel('state magnetization (au)')
             subplot(2,1,2)
-            plot(t, Mxy(1:Nmets,:), t, squeeze(Sfit(i,1:Nmets-1,:)),'--', t, ufit(i,:), 'k:')
+            plot(t, Mxy, t, squeeze(Sfit(i,:,:)),'--', t, ufit(i,:), 'k:')
             xlabel('time (s)')
             ylabel('signal (au)')
             
@@ -224,23 +210,23 @@ for i=1:size(Sreshape, 1)
             title(fit_results_string)
             disp(fit_results_string)
             
-            products_legend{1} = 'pyruvate';
-            for n = 1:Nmets-1
-                products_legend{n+1} = products_string{n};
-                products_legend{n+Nmets} = [products_string{n} ' fit'];
-            end    
-            products_legend{Nmets*2} = 'input estimate';
-            legend( products_legend)
+%             products_legend{1} = 'pyruvate';
+%             for n = 1:Nmets-1
+%                 products_legend{n+1} = products_string{n};
+%                 products_legend{n+Nmets} = [products_string{n} ' fit'];
+%             end    
+%             products_legend{Nmets*2} = 'input estimate';
+%             legend( products_legend)
             drawnow, pause(0.5)
         end
     end
 end
 
 error_metrics=struct('objective_val', objective_val);
-for n = 1:length(products_string)
-    error_metrics.(products_string{n}).Rsq = Rsq(:,n);
-    error_metrics.(products_string{n}).CHIsq = CHIsq(:,n);
-end
+% for n = 1:length(products_string)
+%     error_metrics.(products_string{n}).Rsq = Rsq(:,n);
+%     error_metrics.(products_string{n}).CHIsq = CHIsq(:,n);
+% end
 
 params_fit = struct([]);
 for n = 1:Nparams_to_fit
@@ -262,7 +248,7 @@ if length(Nx) > 1
         end
     end
     
-    Sfit = reshape(Sfit, [Nx, Nmets-1, Nt]);
+    Sfit = reshape(Sfit, [Nx, 1, Nt]);
     ufit = reshape(ufit, [Nx, Nt]);
 
     error_metrics.objective_val = reshape(error_metrics.objective_val, Nx);
@@ -275,10 +261,14 @@ end
 
 end
 
-function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzscale, Sscale, Mz, Istart, Nmets)
+function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzscale, Sscale, Mz, Istart)
 Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), Istart) ;
-temp_diff = (Mz - Mzfit) .* Sscale; % compute difference in the signal (Mxy) domain
-diff_products = temp_diff(2:Nmets,:); % only differences are in the metabolic products
+Mxyfit = Mzfit .* Sscale;
+% account for overlapping resonances
+Mxyfit_overlapped = [Mxyfit(1,:); Mxyfit(2,:)+Mxyfit(3,:)];
+
+temp_diff = Mz.*Sscale(1:2,:) - Mxyfit_overlapped; % compute difference in the signal (Mxy) domain
+diff_products = temp_diff(2,:); % only fitting allowed at metabolic product resonance
 diff_products = diff_products(:);
 end
 
@@ -322,9 +312,9 @@ Nmets = size(Mzscale,1); N = size(Mzscale,2);
 Mz_all = zeros(Nmets, N);
 u = zeros(1,N);
 
-params_all = {'kPL', 'kPB', 'kPA', ...
-    'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_L', 'S0_B', 'S0_A'};
+params_all = {'k_aKG_2HG', 'k_aKG_C1toC5', 'k_aKG_C5toC1', ...
+    'R1_aKG_C1', 'R1_aKG_C5', 'R1_2HG', ...
+    'S0_aKG_C1', 'S0_aKG_C5', 'S0_2HG'};
 
 nfit = 0;
 for n = 1:length(params_all)
@@ -336,25 +326,29 @@ for n = 1:length(params_all)
     end
 end
 
-Mz_all(1,:) = Mz_pyr;
-Mz_all(2,Istart) = S0_L;
-Mz_all(3,Istart) = S0_B;
-Mz_all(4,Istart) = S0_A;
+Mz_all(1,:) = Mz_pyr; % aKG C1 signal
+%Mz_all(1,Istart) = S0_aKG_C1;
+Mz_all(2,Istart) = S0_aKG_C5;
+Mz_all(3,Istart) = S0_2HG;
 
-A = [-R1P-kPL-kPB-kPA, 0, 0, 0
-    +kPL, -R1L, 0, 0
-    +kPB, 0, -R1B, 0
-    +kPA, 0, 0, -R1A];
+A = [-R1_aKG_C1-k_aKG_C1toC5-k_aKG_2HG, +k_aKG_C5toC1, 0
+    +k_aKG_C1toC5, -R1_aKG_C5-k_aKG_C5toC1-k_aKG_2HG, 0
+    +k_aKG_2HG, +k_aKG_2HG, -R1_2HG];
+
+k_substrate = R1_aKG_C1+k_aKG_2HG;
+ratio_aKG_C1toC5 = k_aKG_C5toC1/k_aKG_C1toC5;
 
 for It=Istart:N-1
     
     Mz_init = Mz_all(:,It) .* Mzscale(:, It);
     
-    % estimate input, assuming this is constant during TR interval
-    % This calculation could be improved for noise stability?
-    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR));
+    % estimate input, assuming this is constant during TR interval and no
+    % conversion into substrate (not true fo aKG model)
+    % some hacks to try and account for C5 too
+    u(It) = ( Mz_pyr(It+1)*(1+1/ratio_aKG_C1toC5) - (Mz_init(1)+Mz_init(2))*exp((-k_substrate)*TR) ) * (k_substrate) / (1 - exp((- k_substrate)*TR));
     
-    xstar = - inv(A)*[u(It),0,0,0].';
+    % assume input for C5 resonance as well
+    xstar = - inv(A)*[u(It)/(1+1/ratio_aKG_C1toC5),u(It)/(1+ratio_aKG_C1toC5),0].';
     
     % solve next time point under assumption of constant input during TR
     Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
@@ -362,17 +356,18 @@ for It=Istart:N-1
     
 end
 
-% reverse in time
+% reverse in time 
 for It=Istart:-1:2
     
     Mz_init = Mz_all(:,It);
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- k_substrate)*-TR) ) * (k_substrate) / (1 - exp((- k_substrate)*-TR));
     
-    xstar = - inv(A)*[u(It-1),0,0,0].';
+    xstar = - inv(A)*[u(It-1),u(It-1)*k_aKG_C1toC5/k_aKG_C5toC1,0].';
     
+    % assume input for C5 resonance as well
     % solve previous time point under assumption of constant input during TR
     Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
     
