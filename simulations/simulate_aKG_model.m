@@ -1,4 +1,4 @@
-function [Mxy, Mz] = simulate_Nsite_model(Tin, R1, k, flips, TR, input_function)
+function [Mxy, Mz] = simulate_aKG_model(Tin, R1, k, flips, TR, input_function)
 % [Mxy, Mz] = simulate_Nsite_model(Mz0, R1, k, flips, TR, [input_function])
 %
 % Simulates the magnetization evolution in a N-site exchange model with
@@ -42,7 +42,7 @@ if length(R1) == 1
     R1 = R1*ones(1,Nmets);
 end
 
-if nargin < 6 || isempty(input_function) || all(input_function == 0)
+if nargin < 6 || isempty(input_function) || all(input_function == 0,'all')
     use_input_function = 0;
 else
     use_input_function = 1;
@@ -54,9 +54,9 @@ switch Nmets
         A = [-R1(1)-k(1,1) +k(1,2)
             +k(1,1) -R1(2)-k(1,2)];
     case 3
-        A = [-R1(1)-k(1,1)-k(2,1) +k(1,2) +k(2,2)
-            +k(1,1) -R1(2)-k(1,2) 0
-            +k(2,1) 0 -R1(3)-k(2,2)];
+        A = [-R1(1)-k(1,1)-k(1,2)   +k(2,1)                 +k(3,1)
+            +k(1,1)                 -R1(2)-k(2,1)-k(2,2)    +k(3,2)
+            +k(1,2)                 +k(2,2)                 -R1(3)-k(3,1)-k(3,2)];
     case 4
         A = [-R1(1)-k(1,1)-k(2,1) +k(1,2) +k(2,2) +k(3,2)
             +k(1,1) -R1(2)-k(1,2) 0 0
@@ -75,7 +75,6 @@ else
     Mz0 = Tin(:);
 end
 
-
 Mxy(1:Nmets,1) = Mz0 .* sin(flips(:,1));
 Mz(1:Nmets,1) = Mz0 .* cos(flips(:,1));
 
@@ -85,7 +84,7 @@ for n = 2:N
         % more accurate to spread out input over a number of samples to
         % avoid unrealistically large signal jumps
         for ni = 1:Nsim
-            Mz_m =  Ad_Nsim * (Mz_m + [input_function(n-1)/Nsim;zeros(Nmets-1,1)]);
+            Mz_m =  Ad_Nsim * (Mz_m + [input_function(:,n-1)/Nsim;zeros(Nmets-size(input_function,1),1)]);
         end
     else
         Mz_m = Ad_TR * (Mz(:,n-1));
