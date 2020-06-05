@@ -1,21 +1,21 @@
-% Script for testing fit_kPL kinetic model fitting functions
+% Script for testing fit_k_aKG_2HG kinetic model fitting functions
 
 clear all
 
 % Test values
 Tin = 0; Tacq = 36; TR = 2; N = Tacq/TR;
 R1_aKG_C1 = 1/20; R1_aKG_C5 = 1/20; R1_2HG = 1/25;
-k_aKG_2HG = 0.02;
+k_aKG_2HG = 0.002;
 
-ratio_aKG_C1toC5 = 10;
+ratio_aKG_C1toC5 = 99;  % natural abundance
 k_aKG_C1toC5 = .1;  %  this is a complete guess
 k_aKG_C5toC1 = k_aKG_C1toC5 *ratio_aKG_C1toC5;   %
 
 k_all = [k_aKG_C1toC5 k_aKG_2HG  % aKG C1 rates to C5 and 2HG
-    k_aKG_C5toC1  k_aKG_2HG  % aKG C5 rates to C1 and 2HG
+    k_aKG_C5toC1  0  % aKG C5 rates to C1 and 2HG
     0 0];  % 2HG rates to aKG
 
-std_noise = 0.005;
+std_noise = 0.0005;
 Nmets = 3;  % aKG_C1, aKG_C5, 2HG
 
 input_condition = 1; % choose from various simulated starting conditions
@@ -36,7 +36,7 @@ end
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*20*pi/180;  flip_descripton{1} = 'constant, single-band';
-flips(1:2,1:N,2) = repmat([10;35]*pi/180,[1 N]);  flip_descripton{2} = 'constant, multi-band';
+flips(1:2,1:N,2) = repmat([5;35]*pi/180,[1 N]);  flip_descripton{2} = 'constant, multi-band';
 
 k12 = 0.05; % for variable flip angle designs
 flips(1:2,1:N,3) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % T1-effective pyruvate variable flip angles
@@ -65,7 +65,7 @@ flip_description_array = [repmat('    ',N_flip_schemes,1),  char(flip_descripton
 
 
 % generate simulated data
-plot_simulated_data = 0;
+plot_simulated_data = 1;
 noise_S = randn([Nmets-1 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy(1:Nmets, 1:N, Iflips), Mz] = simulate_aKG_model(Mz0, [R1_aKG_C1 R1_aKG_C5, R1_2HG], k_all , flips(:,:,Iflips), TR, input_function);
@@ -80,10 +80,15 @@ for Iflips = 1:N_flip_schemes
         figure(99)
         subplot(311)
         plot(t, Mxy(:,:,Iflips))
+        ylabel('M_{XY}'), legend('aKG C1', 'aKG C5', '2-HG')
+        title(flip_descripton{Iflips})
         subplot(312)
         plot(t, Mxy_overlapped(:,:,Iflips))
+        ylabel('Signal'), legend('aKG C1', 'aKG C5 + 2-HG')
         subplot(313)
         plot(t, Sn(:,:,Iflips))
+        ylabel('Signal with noise'), legend('aKG C1', 'aKG C5 + 2-HG')
+        xlabel('time (s)')
         pause
     end
 end
@@ -105,7 +110,7 @@ fit_function = @fit_aKG_kinetics;
 
 %% Test fitting
 disp('2-site model: aKG -> 2HG')
-disp('Fitting kPL with fixed relaxation rates and fixed C1/C5 ratio:')
+disp('Fitting k_aKG_2HG with fixed relaxation rates and fixed C1/C5 ratio:')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
@@ -129,28 +134,31 @@ for Iflips = 1:N_flip_schemes
 end
 
 disp('Input:')
-disp(['KPL  '])
+disp(['k_aKG_2HG  '])
 disp(num2str(k_aKG_2HG,2))
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
 Nparams_fit = length(k_fit)/3;
 k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
-disp(['KPL   '])
+disp(['k_aKG_2HG   '])
 disp([num2str(k_fit.',2), flip_description_array])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
 k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
-disp(['KPL   '])
+disp(['k_aKG_2HG   '])
 disp([num2str(k_fit.',2), flip_description_array])
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
+title('aKG C1 signals')
 subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':'), hold off
-title('Lactate signals and fits (dots=complex fit, dashed=magnitude)')
+title('2HG+aKG C5 signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
+
+
+return 
 
 disp('Press any key to continue')
 disp(' ')
@@ -158,7 +166,8 @@ disp(' ')
 pause
 %% Test fitting
 disp('2-site model: aKG -> 2HG')
-disp('Fitting kPL with fixed relaxation rates and fixed C1/C5 ratio:')
+disp('Fitting k_aKG_2HG with fixed relaxation rates and but fitting C1/C5 ratio:')
+disp('However, C1/C5 ratio should be fixed (natural abundance C13)')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
@@ -170,7 +179,7 @@ params_fixed.R1_2HG = R1_2HG_est;
 % estimate ratio/rates for C1/C5 exchange
 
 % perturb slightly from actual values to look for convergence
-ratio_aKG_C1toC5_est = 6;
+ratio_aKG_C1toC5_est = 10;
 k_aKG_C1toC5_est = .5;
 k_aKG_C5toC1_est = k_aKG_C1toC5_est *ratio_aKG_C1toC5_est;  
 % VERY NICE seems to get this correctly estimated without much issue!
@@ -190,27 +199,29 @@ for Iflips = 1:N_flip_schemes
 end
 
 disp('Input:')
-disp(['KPL  '])
+disp(['k_aKG_2HG  '])
 disp(num2str(k_aKG_2HG,2))
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
 Nparams_fit = length(k_fit)/3;
 k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
-disp(['KPL   '])
+disp(['k_aKG_2HG   '])
 disp([num2str(k_fit.',2), flip_description_array])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
 k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
-disp(['KPL   '])
+disp(['k_aKG_2HG   '])
 disp([num2str(k_fit.',2), flip_description_array])
 
 figure
 subplot(121) , plot(t, squeeze(Sn(1,:,:)))
-title('Pyruvate signals')
+title('aKG C1 signals')
 subplot(122) , plot(t, squeeze(Sn(2,:,:)))
 hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':'), hold off
-title('Lactate signals and fits (dots=complex fit, dashed=magnitude)')
+title('2HG+aKG C5 signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
+
+
 
 
