@@ -4,11 +4,14 @@ clear all
 
 % Test values
 Tin = 0; Tacq = 36; TR = 2; N = Tacq/TR;
-R1_aKG_C1 = 1/20; R1_aKG_C5 = 1/20; R1_2HG = 1/25;
+T1_factor_invivo = .6;  % estimated ratio between in vitro and in vivo T1 
+R1_aKG_C1 = 1/(52*T1_factor_invivo); R1_aKG_C5 = 1/(41*T1_factor_invivo); R1_2HG = 1/(26*T1_factor_invivo);  %T1 values from Chaumeil et al
 k_aKG_2HG = 0.002;
 
+% Should add Glutamate, update model (should it really be exchange between C1/C5???  or just ensure they start with fixed ratio and have fixed ratio in input?)
+
 ratio_aKG_C1toC5 = 99;  % natural abundance
-k_aKG_C1toC5 = .1;  %  this is a complete guess
+k_aKG_C1toC5 = .1;  %  this is a complete guess... relatively rapid equilibrium between C1/C5, but may want to reduce this
 k_aKG_C5toC1 = k_aKG_C1toC5 *ratio_aKG_C1toC5;   %
 
 k_all = [k_aKG_C1toC5 k_aKG_2HG  % aKG C1 rates to C5 and 2HG
@@ -166,8 +169,8 @@ disp(' ')
 pause
 %% Test fitting
 disp('2-site model: aKG -> 2HG')
-disp('Fitting k_aKG_2HG with fixed relaxation rates and but fitting C1/C5 ratio:')
-disp('However, C1/C5 ratio should be fixed (natural abundance C13)')
+disp('Fitting k_aKG_2HG with fixed relaxation rates and but fitting C1/C5 exchange rate:')
+disp('C1/C5 ratio should be fixed (natural abundance C13)')
 disp('')
 
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
@@ -179,9 +182,8 @@ params_fixed.R1_2HG = R1_2HG_est;
 % estimate ratio/rates for C1/C5 exchange
 
 % perturb slightly from actual values to look for convergence
-ratio_aKG_C1toC5_est = 10;
 k_aKG_C1toC5_est = .5;
-k_aKG_C5toC1_est = k_aKG_C1toC5_est *ratio_aKG_C1toC5_est;  
+k_aKG_C5toC1_est = k_aKG_C1toC5_est *ratio_aKG_C1toC5;  
 % VERY NICE seems to get this correctly estimated without much issue!
 
 params_est.k_aKG_C1toC5 = k_aKG_C1toC5_est;
