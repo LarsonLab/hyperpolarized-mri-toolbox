@@ -67,7 +67,7 @@ flip_description_array = [repmat('    ',N_flip_schemes,1),  char(flip_descripton
 
 
 % generate simulated data
-plot_simulated_data = 0;
+plot_simulated_data = 1;
 noise_S = randn([Nmets-1 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy(1:Nmets, 1:N, Iflips), Mz] = simulate_aKG_model(Mz0, [R1_aKG_C1 R1_aKG_C5, R1_2HG], k_all , flips(:,:,Iflips), TR, input_function);
@@ -159,12 +159,123 @@ title('2HG+aKG C5 signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
 
 
-return 
-
 disp('Press any key to continue')
 disp(' ')
 
 pause
+
+%% add in glutamate
+
+R1_Glu = 1/20;
+k_aKG_Glu = 0.001;
+k_all = [k_aKG_C1toC5 k_aKG_C5toC1 % aKG C1 to C5 rates
+    k_aKG_2HG 0 % aKG rates to 2HG, 2HG rates to aKG
+    k_aKG_Glu 0]; % aKG rates to Glu, Glu rates to aKG
+
+
+% dimension 1: aKG_C1, aKG_C5, 2HG, Glu
+% put same flips for 2HG and Glu (could change this
+flips = cat(1, flips, flips(2,:,:));  % duplicate
+Nmets = 4;
+
+% generate simulated data
+plot_simulated_data = 1;
+noise_S = randn([Nmets-1 N])*std_noise;  % same noise for all flip schedules
+Mz0 = zeros(1,Nmets);
+
+for Iflips = 1:N_flip_schemes
+    [Mxy(1:Nmets, 1:N, Iflips), Mz] = simulate_aKG_model(Mz0, [R1_aKG_C1 R1_aKG_C5, R1_2HG, R1_Glu], k_all , flips(:,:,Iflips), TR, input_function);
+
+    % data has overlap of aKG C5 and 2HG resonances
+    Mxy_overlapped(1:Nmets-1, 1:N, Iflips) = [Mxy(1, 1:N, Iflips); ...
+        Mxy(2, 1:N, Iflips) + Mxy(3, 1:N, Iflips); Mxy(4, 1:N, Iflips)];
+    % add noise
+    Sn(1:Nmets-1, 1:size(Mxy,2),  Iflips) = Mxy_overlapped(:,:,Iflips) + noise_S;
+
+    if plot_simulated_data
+        figure(99)
+        subplot(311)
+        plot(t, Mxy(:,:,Iflips))
+        ylabel('M_{XY}'), legend('aKG C1', 'aKG C5', '2-HG', 'Glu')
+        title(flip_descripton{Iflips})
+        subplot(312)
+        plot(t, Mxy_overlapped(:,:,Iflips))
+        ylabel('Signal'), legend('aKG C1', 'aKG C5 + 2-HG', 'Glu')
+        subplot(313)
+        plot(t, Sn(:,:,Iflips))
+        ylabel('Signal with noise'), legend('aKG C1', 'aKG C5 + 2-HG', 'Glu')
+        xlabel('time (s)')
+        pause
+    end
+end
+
+% initial parameter guesses
+R1_aKG_C1_est = R1_aKG_C1; R1_aKG_C5_est = R1_aKG_C5; R1_2HG_est = R1_2HG;  R1_Glu_est = R1_Glu; % same used in simulation
+k_aKG_2HG_est = 0.0 ;
+k_aKG_Glu_est = 0.0 ;
+
+k_aKG_C1toC5_est = k_aKG_C1toC5; % same used in simulation
+k_aKG_C5toC1_est = k_aKG_C5toC1;
+
+plot_fits = 1;
+fit_function = @fit_aKG_kinetics;
+
+% Test fitting
+disp('3-site model: aKG -> 2HG, aKG -> Glutamate')
+disp('Fitting k_aKG_2HG and k_aKG_Glu with fixed relaxation rates and fixed C1/C5 ratio:')
+disp('')
+
+clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
+clear Sfit Snfit_complex Snfit_mag
+params_fixed.R1_aKG_C1 = R1_aKG_C1_est;
+params_fixed.R1_aKG_C5 = R1_aKG_C5_est;
+params_fixed.R1_2HG = R1_2HG_est;
+params_fixed.R1_Glu = R1_Glu_est;
+% known ratio/rates for C1/C5 exchange
+params_fixed.k_aKG_C1toC5 = k_aKG_C1toC5_est;
+params_fixed.k_aKG_C5toC1 = k_aKG_C5toC1_est;
+
+% just fit aKG 2HG rate
+params_est.k_aKG_2HG = k_aKG_2HG_est;
+params_est.k_aKG_Glu = k_aKG_Glu_est;
+
+for Iflips = 1:N_flip_schemes
+    % no noise
+    [params_fit(:,Iflips) Sfit(1:2,1:N,  Iflips)] = fit_function(Mxy_overlapped(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+    
+    % add noise
+    [params_fitn_complex(:,Iflips) Snfit_complex(1:2,1:N,  Iflips)] = fit_function(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
+end
+
+disp('Input:')
+disp(['k_aKG_2HG   k_aKG_Glu '])
+disp(num2str([k_aKG_2HG k_aKG_Glu],2))
+
+disp('Noiseless fit results:')
+k_fit = struct2array(params_fit);
+Nparams_fit = length(k_fit)/3;
+k_fit = k_fit([[1:2];[1:2] + Nparams_fit;[1:2] + 2*Nparams_fit]); 
+disp(['k_aKG_2HG   k_aKG_Glu '])
+disp([num2str(k_fit,2), flip_description_array])
+disp('Noisy complex fit results:')
+k_fit = struct2array(params_fitn_complex);
+k_fit = k_fit([[1:2];[1:2] + Nparams_fit;[1:2] + 2*Nparams_fit]); 
+disp(['k_aKG_2HG   k_aKG_Glu '])
+disp([num2str(k_fit,2), flip_description_array])
+
+figure
+subplot(131) , plot(t, squeeze(Sn(1,:,:)))
+title('aKG C1 signals')
+subplot(132) , plot(t, squeeze(Sn(2,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':'), hold off
+title('2HG+aKG C5, ')
+subplot(133) , plot(t, squeeze(Sn(3,:,:)))
+hold on, plot(t, squeeze(Snfit_complex(2,:,:)),':'), hold off
+title('Glu signals and fits (dots=complex fit, dashed=magnitude)')
+legend(flip_descripton)
+
+
+return 
 %% Test fitting
 disp('2-site model: aKG -> 2HG')
 disp('Fitting k_aKG_2HG with fixed relaxation rates and but fitting C1/C5 exchange rate:')
