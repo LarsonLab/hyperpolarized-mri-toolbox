@@ -10,15 +10,14 @@ k_aKG_2HG = 0.002;
 
 % Should add Glutamate, update model (should it really be exchange between C1/C5???  or just ensure they start with fixed ratio and have fixed ratio in input?)
 
-ratio_aKG_C1toC5 = 99;  % natural abundance
-k_aKG_C1toC5 = .1;  %  this is a complete guess... relatively rapid equilibrium between C1/C5, but may want to reduce this
+ratio_aKG_C1toC5 = 99./1.109;  % 13C enriched to 99% vs natural abundance
+k_aKG_C1toC5 = 0;  %  this is a complete guess... do we expect much exchange between C1/C5?
 k_aKG_C5toC1 = k_aKG_C1toC5 *ratio_aKG_C1toC5;   %
 
-k_all = [k_aKG_C1toC5 k_aKG_2HG  % aKG C1 rates to C5 and 2HG
-    k_aKG_C5toC1  0  % aKG C5 rates to C1 and 2HG
-    0 0];  % 2HG rates to aKG
+k_all = [k_aKG_C1toC5 k_aKG_C5toC1 % aKG C1 to C5 rates
+    k_aKG_2HG 0]; % aKG rates to 2HG, 2HG rates to aKG
 
-std_noise = 0.0005;
+std_noise = 0.001;
 Nmets = 3;  % aKG_C1, aKG_C5, 2HG
 
 input_condition = 1; % choose from various simulated starting conditions
@@ -39,7 +38,7 @@ end
 
 % Test over multiple combinations of flip angle schemes
 flips(1:2,1:N,1) = ones(2,N)*20*pi/180;  flip_descripton{1} = 'constant, single-band';
-flips(1:2,1:N,2) = repmat([5;35]*pi/180,[1 N]);  flip_descripton{2} = 'constant, multi-band';
+flips(1:2,1:N,2) = repmat([3;35]*pi/180,[1 N]);  flip_descripton{2} = 'constant, multi-band';
 
 k12 = 0.05; % for variable flip angle designs
 flips(1:2,1:N,3) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % T1-effective pyruvate variable flip angles
@@ -50,8 +49,8 @@ flip_descripton{3} = 'max product SNR variable flip, multi-band';
 % put same flips for C5 and 2HG
 flips = cat(1, flips, flips(2,:,:));  % duplicate
 
-% input includes both C1 and C5 label
-input_function = [input_function; input_function/ratio_aKG_C1toC5 ];
+% input includes both C1 and C5 label - now in simulate function
+%input_function = [input_function; input_function/ratio_aKG_C1toC5 ];
 
 N_flip_schemes = size(flips,3);
 
@@ -68,7 +67,7 @@ flip_description_array = [repmat('    ',N_flip_schemes,1),  char(flip_descripton
 
 
 % generate simulated data
-plot_simulated_data = 1;
+plot_simulated_data = 0;
 noise_S = randn([Nmets-1 N])*std_noise;  % same noise for all flip schedules
 for Iflips = 1:N_flip_schemes
     [Mxy(1:Nmets, 1:N, Iflips), Mz] = simulate_aKG_model(Mz0, [R1_aKG_C1 R1_aKG_C5, R1_2HG], k_all , flips(:,:,Iflips), TR, input_function);
@@ -101,12 +100,11 @@ end
 
 %%
 % initial parameter guesses
-R1_aKG_C1_est = 1/20; R1_aKG_C5_est = 1/20; R1_2HG_est = 1/25;  % same used in simulation
+R1_aKG_C1_est = R1_aKG_C1; R1_aKG_C5_est = R1_aKG_C5; R1_2HG_est = R1_2HG;  % same used in simulation
 k_aKG_2HG_est = 0.0 ;
 
-ratio_aKG_C1toC5_est = ratio_aKG_C1toC5;
 k_aKG_C1toC5_est = k_aKG_C1toC5; % same used in simulation
-k_aKG_C5toC1_est = k_aKG_C1toC5_est *ratio_aKG_C1toC5_est;   %
+k_aKG_C5toC1_est = k_aKG_C5toC1;
 
 plot_fits = 1;
 fit_function = @fit_aKG_kinetics;

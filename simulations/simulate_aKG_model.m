@@ -42,26 +42,28 @@ if length(R1) == 1
     R1 = R1*ones(1,Nmets);
 end
 
+ratio_aKG_C1toC5 = 99./1.109;  % 13C enriched to 99% vs natural abundance
+
 if nargin < 6 || isempty(input_function) || all(input_function == 0,'all')
     use_input_function = 0;
 else
     use_input_function = 1;
     Nsim = 100;
+    % force same ratio in input function for C1/C5
+    input_function = [input_function;input_function/ratio_aKG_C1toC5;zeros(Nmets-2,size(input_function,2))];
 end
 
+% aKG C1, aKG C5, 2HG, Glutamate
 switch Nmets
-    case 2
-        A = [-R1(1)-k(1,1) +k(1,2)
-            +k(1,1) -R1(2)-k(1,2)];
     case 3
-        A = [-R1(1)-k(1,1)-k(1,2)   +k(2,1)                 +k(3,1)
-            +k(1,1)                 -R1(2)-k(2,1)-k(2,2)    +k(3,2)
-            +k(1,2)                 +k(2,2)                 -R1(3)-k(3,1)-k(3,2)];
+        A = [-R1(1)-k(1,1)-k(2,1)   +k(1,2)                 +k(2,2)
+            +k(1,1)                 -R1(2)-k(1,2)-k(2,1)    0
+            +k(2,1)                0                 -R1(3)-k(2,2)];
     case 4
-        A = [-R1(1)-k(1,1)-k(2,1) +k(1,2) +k(2,2) +k(3,2)
-            +k(1,1) -R1(2)-k(1,2) 0 0
-            +k(2,1) 0 -R1(3)-k(2,2) 0
-            +k(3,1) 0 0 -R1(4)-k(3,2)];
+        A = [-R1(1)-k(1,1)-k(2,1)-k(3,1)    +k(1,2)                        +k(2,2)      +k(3,2)
+            +k(1,1)                         -R1(2)-k(1,2)-k(2,1)-k(3,1)    0            0
+            +k(2,1)                         0                              -R1(3)-k(2,2) 0];
+            +k(3,1)                         0                              0              -R1(4)-k(3,2)];
 end
 
 Ad_TR = expm(A*TR);
@@ -84,7 +86,7 @@ for n = 2:N
         % more accurate to spread out input over a number of samples to
         % avoid unrealistically large signal jumps
         for ni = 1:Nsim
-            Mz_m =  Ad_Nsim * (Mz_m + [input_function(:,n-1)/Nsim;zeros(Nmets-size(input_function,1),1)]);
+            Mz_m =  Ad_Nsim * (Mz_m + input_function(:,n-1)/Nsim);
         end
     else
         Mz_m = Ad_TR * (Mz(:,n-1));
