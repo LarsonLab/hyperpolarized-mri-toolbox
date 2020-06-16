@@ -1,0 +1,57 @@
+IMAGE DESCRIPTOR FILE version 5
+studyid: t10798              
+study #:  t10798         
+series #:       6
+position: Head First, Supine  
+coil:                     
+orientation:  13     ax RLxAPxSI         
+echo/time/met index:     1     value:       1.00
+rootname: t10798_dynout_mrs_mask                                      
+comment: b2284 - Sag CUBE T2 FLAIR Aligned Aligned - 01/01/2006                
+filetype:   7     entry/pixel:  1     float real          
+dimension:  1     columns     itype:  1
+npix:    12   fov(mm):  180.00  center(mm):    6.12  pixelsize(mm):   15.00000
+dimension:  2     rows        itype:  2
+npix:    18   fov(mm):  270.00  center(mm):  -64.00  pixelsize(mm):   15.00000
+dimension:  3     slices      itype:  3
+npix:     1   fov(mm):   20.00  center(mm):    6.88  pixelsize(mm):   20.00000
+slice thickness (mm):       20.00000
+minimum:    0.000         maximum:    1.000    
+scale:    1.000    
+first slice read:    0   last slice read:    0   sliceskip:    0
+LOCATION DATA IN LPS COORDINATES
+center:        6.12500     -64.00000      -6.87500
+toplc:       -76.37500    -191.50000      -6.87500
+dcos1:         1.00000       0.00000       0.00000
+dcos2:         0.00000       1.00000       0.00000
+dcos3:         0.00000       0.00000      -1.00000
+
+RESAMPLED USING resample_image_v5
+INPUT IDF INFORMATION
+IMAGE DESCRIPTOR FILE version 5
+studyid: t10798              
+study #:  t10798         
+series #:       6
+position: Head First, Supine  
+coil:                     
+orientation:  13     axial normal        
+echo/time/met index:     1     value:       1.00
+rootname: t10798_mask                                                 
+comment: b2284 - Sag CUBE T2 FLAIR Aligned Aligned - 01/01/2006                
+filetype:   2     entry/pixel:  1     DICOM format images 
+dimension:  1     columns     itype:  1
+npix:   512   fov(mm):  256.00  center(mm):    6.30  pixelsize(mm):    0.50000
+dimension:  2     rows        itype:  2
+npix:   512   fov(mm):  256.00  center(mm):  -65.63  pixelsize(mm):    0.50000
+dimension:  3     slices      itype:  3
+npix:    30   fov(mm):  165.00  center(mm):   31.25  pixelsize(mm):    5.50000
+slice thickness (mm):        5.49999
+minimum:    0.000         maximum:    255.0    
+scale:    1.000    
+first slice read:    1   last slice read:   30   sliceskip:    1
+LOCATION DATA IN LPS COORDINATES
+center:        6.30000     -65.62601     -31.24920
+toplc:      -121.45000    -193.37601      48.50080
+dcos1:         1.00000       0.00000       0.00000
+dcos2:         0.00000       1.00000       0.00000
+dcos3:         0.00000       0.00000      -1.00000

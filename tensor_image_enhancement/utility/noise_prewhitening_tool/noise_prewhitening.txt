@@ -1,0 +1,18 @@
+Hi Hsin-Yu,
+
+    Here is what you need to pre-whiten your EPSI data:
+
+    For the noise covariance matrix: /home/jgordon/matlab/noise_correlation.m
+    For the noise decorrelation matrix: /home/jgordon/matlab/epi_helper/ismrm_calculate_noise_decorrelation_mtx_from_covariance_mtx.m
+    To apply the decorrelation matrix: /home/jgordon/matlab/epi_helper/ismrm_apply_noise_decorrelation_mtx.m
+
+
+      Like we discussed, use the noise_correlation function to calculate the covariance matrix from noise only data. Given that, use the second function to calculate the decorrelation matrix from the noise covariance and then apply it to the raw data as so:
+
+    dmtx = ismrm_calculate_noise_decorrelation_mtx_from_covariance_mtx(ncm);
+    kspace_corrected = ismrm_apply_noise_decorrelation_mtx(kspace, dmtx);
+
+
+     Let me know how it goes, or if you have any further questions.
+
+-Jeremy
