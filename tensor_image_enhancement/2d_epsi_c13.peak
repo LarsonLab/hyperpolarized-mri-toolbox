@@ -1,0 +1,19 @@
+PEAK REGION PARAMETERS
+
+rootname: 
+comments: estimated peaks from csi_image_v14                                    
+number of data pts:   256
+spec reference pt:    128
+number of peak regions:  5
+start,width,iphase:        9      31      25       0
+start,width,iphase:       71      21      82       0
+start,width,iphase:       93      21     104       0
+start,width,iphase:      113      27     127       0
+start,width,iphase:      188      45     211       3
+number of sat regions:   0
+number of peak regions:  5
+start,width,iphase:        9      31      25       0
+start,width,iphase:       71      21      82       0
+start,width,iphase:       93      21     104       0
+start,width,iphase:      113      27     127       0
+start,width,iphase:      188      45     211       3

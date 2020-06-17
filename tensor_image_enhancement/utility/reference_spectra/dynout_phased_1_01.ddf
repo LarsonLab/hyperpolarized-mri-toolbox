@@ -1,0 +1,94 @@
+DATA DESCRIPTOR FILE
+version: 6.1
+object type: MR Spectroscopy
+patient id: 11111111
+patient name: DOE J
+patient code: 
+date of birth: 01/01/1990
+sex: M
+study id: 4047
+study code: 
+study date: 01/01/2016
+accession number: 11111111
+root name: spectra/dyn24
+series number: 5
+series description: 2D dynamic FID C13
+comment: 
+patient entry: head first
+patient position: supine
+orientation: axial
+data type: floating point
+number of components: 2
+source description: 
+number of dimensions: 4
+dimension 1: type: frequency npoints: 256
+dimension 2: type: space npoints: 12 pixel spacing(mm): 15.000000
+dimension 3: type: space npoints: 18 pixel spacing(mm): 15.000000
+dimension 4: type: space npoints: 1 pixel spacing(mm): 20.000000
+center(lps, mm):        6.12500     -64.00000      -6.87500
+toplc(lps, mm):       -76.37500    -191.50000      -6.87500
+dcos0:        1.00000       0.00000       0.00000
+dcos1:        0.00000       1.00000       0.00000
+dcos2:        0.00000       0.00000      -1.00000
+===================================================
+MR Parameters
+coil name: RM: DD-Tx_8CH-Rx
+slice gap(mm): 0.000000
+echo time(ms): 3.191000
+repetition time(ms): 130.000000
+inversion time(ms): 
+flip angle: 90.000000
+pulse sequence name: fidcsi_dev0
+transmitter frequency(MHz): 32.135452
+isotope: 13C
+field strength(T): 3.000000
+number of sat bands: 0
+===================================================
+Spectroscopy Parameters
+localization type: NONE
+center frequency(MHz): 32.135452
+ppm reference: 178.000000
+sweepwidth(Hz): 543.478261
+dwelltime(ms): 1.840000
+frequency offset(Hz): 0.000000
+centered on water: 
+suppression technique: 
+residual water: 
+number of acquisitions: 1
+chop: yes
+even symmetry: yes
+data reordered: 
+acq. toplc(lps, mm):      -76.37500    -191.50000      -6.87500
+acq. spacing(mm):          15.00000      15.00000      20.00000
+acq. number of data points: 256
+acq. number of points: 12 18 1
+acq. dcos1:        1.00000       0.00000       0.00000
+acq. dcos2:        0.00000       1.00000       0.00000
+acq. dcos3:        0.00000       0.00000      -1.00000
+selection center(lps, mm):        0.00000       0.00000       0.00000
+selection size(mm):             180.00000     270.00000      20.00000
+selection dcos1:        0.00000       0.00000       0.00000
+selection dcos2:        0.00000       0.00000       0.00000
+selection dcos3:        0.00000       0.00000       0.00000
+reordered toplc(lps, mm):       -76.37500     -64.00000      -6.87500
+reordered center(lps, mm):        6.12500     -64.00000      -6.87500
+reordered spacing(mm):           15.00000      15.00000      15.00000
+reordered number of points: 12 1 1
+reordered dcos1:        1.00000       0.00000       0.00000
+reordered dcos2:        0.00000       1.00000       0.00000
+reordered dcos3:        0.00000       0.00000      -1.00000
+===================================================
+<SVK_PROVENANCE>
+  <SVK_VERSION version="0.9.77" platform="NA">
+  </SVK_VERSION>
+  <SVK_CMD_LINE cmd="svk_gepfile_reader -i dyn24 -o dyn24 -t 2 ">
+  </SVK_CMD_LINE>
+  <SVK_ALGORITHM algoName="svkGEPFileReader">
+    <SVK_ALGORITHM_ARG argName="MapperBehavior" argNumber="0" argValue="1">
+    </SVK_ALGORITHM_ARG>
+  </SVK_ALGORITHM>
+  <SVK_ALGORITHM algoName="svkCorrectDCOffset">
+  </SVK_ALGORITHM>
+  <SVK_ALGORITHM algoName="svkDdfVolumeWriter">
+  </SVK_ALGORITHM>
+</SVK_PROVENANCE>
