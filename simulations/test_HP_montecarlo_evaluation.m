@@ -1,5 +1,6 @@
 clear all
 NMC = 20;  % less for quicker testing
+flip_scheme = 1;  % see below
 
 % default experiment values
 
@@ -45,17 +46,27 @@ for  est_R1L = 0
         end
         
         
-        
-        % 2D dynamic 10/20 flips
-        Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
-        Npe = 8; Nall = acq.N * Npe;
-        acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
-        
-        
-        Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
-        R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
-
-                            acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
+        switch flip_scheme
+            case 1
+                % EPI protocol with pyr/lac flips of 10/40 degrees (one pulse per
+                % image
+                Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
+                R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
+                acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
+            case 2
+                % 2D dynamic 10/20 flips with 8 phase encodes
+                Tacq = 90; acq.TR = 5; acq.N = Tacq/acq.TR;
+                Npe = 8; Nall = acq.N * Npe;
+                acq.flips(1:2,1:acq.N) = repmat(acos(cos([10*pi/180; 20*pi/180]).^Npe), [1 acq.N]);
+            case 3
+                % 2D dynamic 10/20 flips with 8 phase encodes
+                Tacq = 90; 
+                Npe = 8;
+                % alternatively, could simulate each TR
+                acq.TR = 5/Npe;
+                acq.N = Tacq/acq.TR;
+                acq.flips = repmat([10*pi/180; 20*pi/180], [1, acq.N]);
+        end
         
         
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
