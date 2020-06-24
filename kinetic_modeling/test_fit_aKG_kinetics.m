@@ -143,9 +143,17 @@ params_est.k_aKG_2HG = k_aKG_2HG_est;
 
 for Iflips = 1:N_flip_schemes
     % no noise
+    if delay_start
+        params_est.S0_aKG_C1 = Mxy_overlapped(1,1,Iflips)./sin(flips(1,1,Iflips));
+        params_est.S0_2HG =  Mxy_overlapped(2,1,Iflips)./sin(flips(2,1,Iflips)) - params_est.S0_aKG_C1/ratio_aKG_C1toC5;
+    end
     [params_fit(:,Iflips) Sfit(1,1:N,  Iflips)] = fit_function(Mxy_overlapped(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
     
     % add noise
+    if delay_start
+        params_est.S0_aKG_C1 = Sn(1,1,Iflips)./sin(flips(1,1,Iflips));
+        params_est.S0_2HG =  Sn(2,1,Iflips)./sin(flips(2,1,Iflips)) - params_est.S0_aKG_C1/ratio_aKG_C1toC5;
+    end
     [params_fitn_complex(:,Iflips) Snfit_complex(1,1:N,  Iflips)] = fit_function(Sn(:,:,Iflips), TR, flips(:,:,Iflips), params_fixed, params_est, [], plot_fits);
 end
 

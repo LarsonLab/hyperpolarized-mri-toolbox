@@ -343,10 +343,10 @@ end
 
 ratio_aKG_C1toC5 = 99./1.109;  % 13C enriched to 99% vs natural abundance
 
-Mz_all(1,:) = Mz_pyr; % aKG C1 signal
-Mz_all(2,Istart) = Mz_pyr(1)/ratio_aKG_C1toC5;
-%Mz_all(1,Istart) = S0_aKG_C1;
-%Mz_all(2,Istart) = S0_aKG_C1/ratio_aKG_C1toC5;
+%Mz_all(1,:) = Mz_pyr; % aKG C1 signal
+%Mz_all(2,Istart) = Mz_pyr(1)/ratio_aKG_C1toC5;
+Mz_all(1,Istart) = S0_aKG_C1;
+Mz_all(2,Istart) = S0_aKG_C1/ratio_aKG_C1toC5;
 Mz_all(3,Istart) = S0_2HG;
 Mz_all(4,Istart) = S0_Glu;
 
