@@ -45,6 +45,13 @@ flips(1:2,1:N,3) = [vfa_const_amp(N, pi/2, exp(-TR * ( k12))); ... % T1-effectiv
     vfa_opt_signal(N, exp(-TR * ( R1_2HG)))]; % max lactate SNR variable flip angle
 flip_descripton{3} = 'max product SNR variable flip, multi-band';
 
+delay_start = 0;
+if delay_start
+    Tdelay = 10;
+    Ndelay = round(Tdelay/TR);
+    flips(:,1:Ndelay,:) = eps;
+end
+
 % dimension 1: aKG_C1, aKG_C5, 2HG
 % put same flips for C5 and 2HG
 flips = cat(1, flips, flips(2,:,:));  % duplicate
@@ -95,6 +102,14 @@ for Iflips = 1:N_flip_schemes
     end
 end
 
+
+if delay_start
+    Mxy_overlapped = Mxy_overlapped(:,Ndelay+1:end,:);
+    Sn = Sn(:,Ndelay+1:end,:);
+    flips = flips(:,Ndelay+1:end,:);
+    t= t(Ndelay+1:end);
+    N = N-Ndelay;
+end
 
 
 
@@ -158,6 +173,10 @@ hold on, plot(t, squeeze(Snfit_complex(1,:,:)),':'), hold off
 title('2HG+aKG C5 signals and fits (dots=complex fit, dashed=magnitude)')
 legend(flip_descripton)
 
+if delay_start
+    % not compatible with glutamate simulation below
+    return
+end
 
 disp('Press any key to continue')
 disp(' ')
