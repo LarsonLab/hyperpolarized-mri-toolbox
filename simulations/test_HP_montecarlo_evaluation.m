@@ -1,5 +1,5 @@
 clear all
-NMC = 20;  % less for quicker testing
+experiment.NMC = 20;  % less for quicker testing
 flip_scheme = 1;  % see below
 
 % default experiment values
@@ -7,6 +7,7 @@ flip_scheme = 1;  % see below
 experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.005;
 experiment.Tarrival = 0;  experiment.Tbolus = 8;
 
+%%
 for  est_R1L = 0
     for fit_input = 1
         disp('Running Monte Carlo Simulation')
@@ -50,8 +51,7 @@ for  est_R1L = 0
             case 1
                 % EPI protocol with pyr/lac flips of 10/40 degrees (one pulse per
                 % image
-                Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
-                R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
+                Tin = 0; Tacq = 48; acq.TR = 3; acq.N = Tacq/acq.TR;
                 acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
             case 2
                 % 2D dynamic 10/20 flips with 8 phase encodes
@@ -70,7 +70,6 @@ for  est_R1L = 0
         
         
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
-        fitting.NMC = NMC;
         
         disp(fit_description)
         [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
@@ -79,4 +78,42 @@ for  est_R1L = 0
     end
 end
 
+return
+%%
+
+        clear params_est params_fixed acq fitting
+        
+        % default fitting parameters
+        R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
+            Tarrival_est = experiment.Tarrival;    Tbolus_est = experiment.Tbolus;  % ... perfect estimates ... how do they perform with variability?
+            Rinj_est = 0.1; % looks reasonable
+
+            params_fixed.R1P = R1P_est;
+        params_est.kPL = kPL_est;
+        params_fixed.R1L = R1L_est;
+        fitting(1).fit_fcn = @fit_pyr_kinetics;
+        fitting(1).params_fixed = params_fixed;
+        fitting(1).params_est = params_est;
+        fitting(1).fit_description = ['Inputless fitting'];
+        fitting(1).metric = 'kPL';
+        fitting(2).fit_fcn = @fit_pyr_kinetics_and_input;
+        params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
+            params_est.Tarrival_lb = 0; params_est.Tarrival_ub = 12; params_est.Tbolus_lb = 6; params_est.Tbolus_ub = 10;
+        fitting(2).params_fixed = params_fixed;
+        fitting(2).params_est = params_est;
+        fitting(2).fit_description = ['Fitting the input function'];
+        fitting(2).metric = 'kPL';
+                
+        fitting(3).fit_fcn = @compute_AUCratio;
+        fitting(3).metric = 'AUCratio';  %
+        fitting(3).fit_description = ['AUC Ratio'];
+        
+                Tacq = 48; 
+                acq.TR = 3; acq.N = Tacq/acq.TR;
+                acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
+        
+        
+        [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
+        
+    
 

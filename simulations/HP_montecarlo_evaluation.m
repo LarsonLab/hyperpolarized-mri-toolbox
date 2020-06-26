@@ -4,17 +4,21 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exper
 % Evaluate hyperpolarized carbon-13 MRI experiment using Monte Carlo
 % simulations.
 % Evaluation is performed considering a given set of acquisition
-% parameters and kinetic modeling method.  A calibrated Area-under-curve ratio
+% parameters and kinetic modeling method.  
+% A calibrated Area-under-curve ratio
 % (cAUCratio) derived in Hill et al. PLoS One, doi:
 % 10.1371/journal.pone.0071996 , is always computed as a reference.
 %
 % INPUTS:
 %   acq - structure containing acquisition parameters, must include
 %       TR, flips, N (number of timepoints)
-%   fitting - structure containing fitting parameters, including
+%   fitting - structure containing fitting/modeling function and relevant
+%       parameters, including
 %       fit_fcn, params_est, params_fixed
 %       (for use with fit_pyr_kinetics* functions)    
+%       To compare multiple
 %   experiment - structure containing experimental parameters and ranges for simulations (optional)
+%       USE THIS TO SPECIFY WHICH SIMULATIONS TO RUN?
 %
 % OUTPUTS:
 %   results - structure containing summary of results
@@ -26,16 +30,19 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exper
 % Author: Peder E. Z. Larson
 
 % simulation and plotting parameters
-NMC = 250;  % 100 maybe ok
 Nexp_values = 8;
 ratio_limits = [-.2 .2];
 
 % fitting
-fit_fcn = fitting.fit_fcn;
-params_fixed = fitting.params_fixed;
-params_est = fitting.params_est;
-if isfield(fitting, 'NMC')
-    NMC = fitting.NMC;
+N_fitting_methods = length(fitting);
+
+for f = 1:N_fitting_methods
+    switch func2str(fitting(f).fit_fcn)
+        case 'compute_AUCratio'
+            fitting(f).input_arguments = {};
+        otherwise
+            fitting(f).input_arguments = {acq.TR, acq.flips, fitting(f).params_fixed, fitting(f).params_est, [], 0};
+    end
 end
 
 
@@ -49,11 +56,11 @@ end
 exp_params_all = {'kPL', 'R1L', 'R1P', 'std_noise', 'Tbolus', 'Tarrival', ... % nominal values
     'kPL_min', 'kPL_max', 'R1L_min', 'R1L_max', 'R1P_min', 'R1P_max', ...
     'std_noise_min', 'std_noise_max', 'Tbolus_min', 'Tbolus_max', 'Tarrival_min', 'Tarrival_max', ...
-    'B1error_min', 'B1error_max', 'B1diff_min', 'B1diff_max'}; % experiment simulation ranges
+    'B1error_min', 'B1error_max', 'B1diff_min', 'B1diff_max', 'NMC'}; % experiment simulation ranges
 exp_params_default = [0.02, 1/25, 1/30, 0.005, 8, 4 ... % nominal values
     0.001, 0.04, 1/35, 1/15, 1/40, 1/20, ...
     0, 0.01, 6, 10, 0, 8, ...
-    -.2, .2, -.2, .2]; % experiment simulation ranges
+    -.2, .2, -.2, .2, 250]; % experiment simulation ranges
 % exp.kPL_min = 0.001; exp.kPL_max = 0.04;    % approx kpL max in human studies
 % exp.std_noise_min = 0; exp.std_noise_max = 0.01;
 % exp.Tarrival_min = 0; exp.Tarrival_max = 8;
@@ -70,7 +77,7 @@ for n = 1:length(exp_params_all)
     end
 end
 
-R1 = [experiment.R1P, experiment.R1L]; kPL = experiment.kPL; std_noise = experiment.std_noise;
+R1 = [experiment.R1P, experiment.R1L]; kPL = experiment.kPL;
 Tbolus = experiment.Tbolus;
 
 Nplot1 = 4; Nplot2 = 2;
@@ -93,7 +100,7 @@ AUC_predicted = compute_AUCratio(Mxy);
 %% sample data
 
 [Mxy Mz] = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-results.sample_data = Mxy + randn(size(Mxy))*std_noise;
+results.sample_data = Mxy + randn(size(Mxy))*experiment.std_noise;
 results.sample_data_time = t;
 
 hdata = figure;
@@ -106,19 +113,30 @@ xlabel('time (s)'), ylabel('Signal')
 hsim = figure;
 Iplot = 1;
 
+for f = 1:N_fitting_methods
+    legend_description{f} = fitting(f).fit_description;
+end
 
 %% KPL test
 
 kPL_test = linspace(experiment.kPL_min, experiment.kPL_max, Nexp_values).';
 
-kPL_fit = zeros(length(kPL_test), NMC); AUC_fit = kPL_fit;
 
 for Itest = 1:length(kPL_test)
     Mxy = simulate_Nsite_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
-    [kPL_fit(Itest,:), AUC_fit(Itest,:)] = fitting_simulation(fit_fcn,Mxy, acq.TR, acq.flips, NMC, std_noise, params_fixed, params_est);
-    
-    AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
+    [metric_mean(:,Itest), metric_std(:, Itest) metric_fits(:,:,Itest)] = fitting_simulation(fitting,Mxy, acq.TR, acq.flips, experiment.NMC, experiment.std_noise);
+
+    % how to do predicted metric?
+%    AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
 end
+
+figure
+for f = 1:N_fitting_methods
+    subplot(1, N_fitting_methods, f)
+    shadedErrorBar(kPL_test, squeeze(metric_fits(f,:,:)), {@mean, @std})
+    xlabel('k_{PL} (1/s)'), ylabel(fitting(f).metric), title(fitting(f).fit_description)
+end
+
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
@@ -361,17 +379,26 @@ plot(x, Y1, 'b-', x, Y2, 'g-', ...  % means
 end
 
 
-function [kPL_fit, AUC_fit] = fitting_simulation(fit_fcn, Mxy, TR, flips, NMC, std_noise, params_fixed, params_est);
+function [metric_mean, metric_std, metric_fits] = fitting_simulation(fitting, Mxy, TR, flips, NMC, std_noise);
 
-kPL_fit = zeros(1,NMC); AUC_fit = zeros(1,NMC);
-parfor n = 1:NMC
+N_fitting_methods = length(fitting);
+metric_fits = zeros(N_fitting_methods,NMC);
+for n = 1:NMC
     Sn = Mxy + randn(size(Mxy))*std_noise;
     
-    params_fit = fit_fcn(Sn, TR, flips, params_fixed, params_est, [], 0);
-
-    kPL_fit(n) = params_fit.kPL;
-    
-    AUC_fit(n) = compute_AUCratio(Sn);
+    for f = 1:N_fitting_methods
+        params_fit = fitting(f).fit_fcn(Sn, fitting(f).input_arguments{:});
+        if isstruct(params_fit)
+            metric_fits(f,n) = params_fit.(fitting(f).metric);
+        else
+            metric_fits(f,n) = params_fit;
+        end
+    end
 end
 
+metric_mean = mean(metric_fits, 2);
+metric_std = std(metric_fits, [], 2);
+
+
 end
+
