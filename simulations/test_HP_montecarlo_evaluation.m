@@ -1,5 +1,5 @@
 clear all
-NMC = 20;  % less for quicker testing
+fitting.NMC = 20;  % use less for quicker testing
 flip_scheme = 1;  % see below
 
 % default experiment values
@@ -8,7 +8,7 @@ experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment
 experiment.Tarrival = 0;  experiment.Tbolus = 8;
 
 for  est_R1L = 0
-    for fit_input = 1
+    for fit_input = 0
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         
@@ -50,7 +50,7 @@ for  est_R1L = 0
             case 1
                 % EPI protocol with pyr/lac flips of 10/40 degrees (one pulse per
                 % image
-                Tin = 0; Tacq = 48; TR = 3; N = Tacq/TR;
+                Tacq = 48; acq.TR = 3; acq.N = Tacq/acq.TR;
                 R1P = 1/25; R1L = 1/25; KPL = 0.05; std_noise = 0.01;
                 acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
             case 2
@@ -70,7 +70,6 @@ for  est_R1L = 0
         
         
         fitting.params_est = params_est; fitting.params_fixed = params_fixed;
-        fitting.NMC = NMC;
         
         disp(fit_description)
         [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );

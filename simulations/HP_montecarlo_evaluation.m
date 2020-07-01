@@ -106,6 +106,7 @@ xlabel('time (s)'), ylabel('Signal')
 hsim = figure;
 Iplot = 1;
 
+warnStruct = warning('off','all');
 
 %% KPL test
 
@@ -344,6 +345,8 @@ results.B1diff_test.AUC_avg_error = mean(AUC_std);  % precision measurement
 results.B1diff_test.AUC_avg_bias = mean(abs(AUC_mean));  % accuracy measurement
 results.B1diff_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 
+%%
+warning(warnStruct);
 
 end
 

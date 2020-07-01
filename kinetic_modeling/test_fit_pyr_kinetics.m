@@ -25,6 +25,7 @@ switch input_condition
         Mz0 = [1.5,0,0,0]; % no input function
     case 4
         Tin = 6; Mz0 = Tin; % no input function, delayed start
+        input_function = [];
 end
 
 % Test over multiple combinations of flip angle schemes
@@ -79,7 +80,7 @@ disp('')
 clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 clear Sfit Snfit_complex Snfit_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
-params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;
+params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;  
 
 for Iflips = 1:N_flip_schemes
     % no noise
@@ -98,18 +99,19 @@ disp(num2str(kPL,2))
 
 disp('Noiseless fit results:')
 k_fit = struct2array(params_fit);
-Nparams_fit = length(k_fit)/3;
-k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
+Nparams_fit = length(k_fit)/N_flip_schemes;
+params_index = [0:N_flip_schemes-1]*Nparams_fit + 1;
+k_fit = k_fit(params_index); 
 disp(['KPL   '])
 disp([num2str(k_fit.',2), flip_description_array])
 disp('Noisy complex fit results:')
 k_fit = struct2array(params_fitn_complex);
-k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
+k_fit = k_fit(params_index); 
 disp(['KPL   '])
 disp([num2str(k_fit.',2), flip_description_array])
 disp('Noisy magnitude fit results:')
 k_fit = struct2array(params_fitn_mag);
-k_fit = k_fit([1;1 + Nparams_fit;1 + 2*Nparams_fit]); 
+k_fit = k_fit(params_index); 
 disp(['KPL   '])
 disp([num2str(k_fit.',2), flip_description_array])
 
