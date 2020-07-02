@@ -77,9 +77,7 @@ else
 end
 results.input_function = input_function;
 
-Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-
-%% sample data
+%% sample data at nominal parameter values
 
 [Mxy Mz] = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
 results.sample_data = Mxy + randn(size(Mxy))*experiment.std_noise;
@@ -92,25 +90,20 @@ subplot(122) , plot(t, squeeze(results.sample_data(2,:))), title('sample simulat
 xlabel('time (s)'), ylabel('Signal')
 
 %% setup for plots
-hsim = figure;
-Iplot = 1;
-
 for f = 1:N_fitting_methods
     legend_description{f} = fitting(f).fit_description;
-end
-
-for f = 1:N_fitting_methods
+    fitting(f).nominal_metric_value = compute_nominal_metric_value(fitting(f).fit_fcn, Mxy, kPL);
+    nominal_metric(f) = compute_nominal_metric_value(fitting(f).fit_fcn, Mxy, kPL);
+    
     switch func2str(fitting(f).fit_fcn)
         case 'compute_AUCratio'
             fitting(f).input_arguments = {};
-            % Compute predicted values with noiseless data
-            Mxy_kPL0 = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-            Mxy = simulate_Nsite_model(Mz0, R1, [kPL 0], acq.flips, acq.TR, input_function);
-            fitting(f).predicted_range = [compute_AUCratio(Mxy_kPL0), compute_AUCratio(Mxy)];
         otherwise
             fitting(f).input_arguments = {acq.TR, acq.flips, fitting(f).params_fixed, fitting(f).params_est, [], 0};
     end
 end
+
+nominal_metric_matrix=  repmat( nominal_metric(:), [1, experiment.NMC Nexp_values]);
 
 
 %% KPL test
@@ -122,10 +115,14 @@ for Itest = 1:length(kPL_test)
     [metric_mean(:,Itest), metric_std(:, Itest) metric_fits(:,:,Itest)] = fitting_simulation(fitting,Mxy, acq.TR, acq.flips, experiment.NMC, experiment.std_noise);
 
     % how to do predicted metric?
-%    AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
+    for f = 1:N_fitting_methods
+        nominal_metric_kPL_test(f,Itest) = compute_nominal_metric_value(fitting(f).fit_fcn, Mxy, kPL_test(Itest));
+    end
+    
+    %    AUC_predicted_test(Itest) = compute_AUCratio(Mxy);
 end
 
-figure
+hsim{1} = figure;
 plot_fit_results(fitting, kPL_test, metric_fits, 'k_{PL} (1/s)');
 % for f = 1:N_fitting_methods
 %     subplot(1, N_fitting_methods, f)
@@ -133,15 +130,18 @@ plot_fit_results(fitting, kPL_test, metric_fits, 'k_{PL} (1/s)');
 %     xlabel('k_{PL} (1/s)'), ylabel(fitting(f).metric), title(fitting(f).fit_description)
 % end
 
+hsim{2} = figure;
+Iplot = 1;
 
-% subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-% [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
-% ylim(ratio_limits)
-% xlabel('k_{PL} (1/s)'),  xlim([experiment.kPL_min, experiment.kPL_max])
-% 
-% % add legend
-% legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
-% legh.Position = [.35 0.01 .3 .1];
+subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
+%[~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(kPL_test, kPL_fit./repmat(kPL_test(:),[1,NMC])-1,AUC_fit./repmat(AUC_predicted_test(:), [1, NMC])-1);
+plot_fit_results_normalized(fitting, kPL_test, ...
+    metric_fits./repmat( reshape(nominal_metric_kPL_test, [N_fitting_methods 1 Nexp_values]), [1, experiment.NMC 1])-1, 'k_{PL} (1/s)')
+xlim([experiment.kPL_min, experiment.kPL_max])
+
+% add legend
+%legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
+%legh.Position = [.35 0.01 .3 .1];
 % 
 % results.kPL_test.kPL_avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
 % results.kPL_test.kPL_avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
@@ -163,13 +163,16 @@ for Itest = 1:length(std_noise_test)
     [metric_mean(:,Itest), metric_std(:, Itest) metric_fits(:,:,Itest)] = fitting_simulation(fitting,Mxy, acq.TR, acq.flips, experiment.NMC, std_noise_test(Itest));    
 end
 
-figure
-plot_fit_results(fitting, std_noise_test, metric_fits, '\sigma');
+% figure
+% plot_fit_results(fitting, std_noise_test, metric_fits, '\sigma');
+% 
+% figure
+subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
+plot_fit_results_normalized(fitting, std_noise_test, metric_fits./nominal_metric_matrix-1, '\sigma');
+xlim([experiment.std_noise_min, experiment.std_noise_max])
 
-
-% subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 % [~,kPL_mean,AUC_mean,kPL_std,AUC_std]=plot_with_mean_and_std(std_noise_test, kPL_fit./kPL-1, AUC_fit./AUC_predicted-1);
-% xlabel('\sigma'),  xlim([experiment.std_noise_min, experiment.std_noise_max])
+% xlabel('\sigma'),  
 % ylim(ratio_limits)
 % 
 % 
@@ -403,6 +406,32 @@ for f = 1:N_fitting_methods
     shadedErrorBar(xvalues, squeeze(metric_fits(f,:,:)), {@mean, @std})
     xlabel(xlabel_string), ylabel(fitting(f).metric), title(fitting(f).fit_description)
 end
+
+end
+
+function plot_fit_results_normalized(fitting, xvalues, metric_fits, xlabel_string)
+    
+    lineprops = {'b', 'g', 'r', 'c', 'm', 'y'};
+for f = 1:N_fitting_methods
+    shadedErrorBar(xvalues, squeeze(metric_fits(f,:,:)), {@mean, @std}, 'lineprops', lineprops{f})
+    if f == 1
+        ylim(ratio_limits)
+        hold on
+    end
+end
+
+xlabel(xlabel_string)
+ylabel('relative metric error')
+%legend?
+hold off
+end
+function nominal_metric_value = compute_nominal_metric_value(fit_fcn, Mxy, kPL)
+    switch func2str(fit_fcn)
+        case 'compute_AUCratio'
+            nominal_metric_value = compute_AUCratio(Mxy);
+        otherwise
+            nominal_metric_value = kPL;
+    end
 
 end
 
