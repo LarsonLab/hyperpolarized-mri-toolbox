@@ -15,10 +15,14 @@ Nt = Ns(tdim);
 TTP = (Imax-1) * dT;  % basic
 
 % quadratic peak fit
-if Imax < Nt && Imax > 1
-    Ipeak = 0.5 * (S(Imax-1) - S(Imax+1) ) ./ (S(Imax-1) - 2*S(Imax) + S(Imax+1) );
-else
-    Ipeak = 0;
+Ipeak = zeros(size(Imax));
+
+for n = 1:length(Imax(:))
+    if Imax(n) < Nt && Imax(n) > 1
+        Ipeak(n) = 0.5 * (S(n,Imax(n)-1) - S(n,Imax(n)+1) ) ./ (S(n,Imax(n)-1) - 2*S(n,Imax(n)) + S(n,Imax(n)+1) );
+    else
+        Ipeak(n) = 0;
+    end
 end
 
 TTP = (Imax+Ipeak-1) * dT;
