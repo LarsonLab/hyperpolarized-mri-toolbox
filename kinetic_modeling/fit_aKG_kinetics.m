@@ -351,7 +351,7 @@ Mz_all(3,Istart) = S0_2HG;
 Mz_all(4,Istart) = S0_Glu;
 
 A = [-R1_aKG_C1-k_aKG_C1toC5-k_aKG_2HG-k_aKG_Glu, +k_aKG_C5toC1, 0 0
-    +k_aKG_C1toC5, -R1_aKG_C5-k_aKG_C5toC1-k_aKG_2HG, 0 0
+    +k_aKG_C1toC5, -R1_aKG_C5-k_aKG_C5toC1-k_aKG_2HG-k_aKG_Glu, 0 0
     +k_aKG_2HG, 0, -R1_2HG 0
     +k_aKG_Glu, 0, 0 -R1_Glu];
 
