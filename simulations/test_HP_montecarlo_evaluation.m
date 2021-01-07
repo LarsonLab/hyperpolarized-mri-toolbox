@@ -1,5 +1,7 @@
 clear all
+
 experiment.NMC = 20;  % less for quicker testing
+
 flip_scheme = 1;  % see below
 
 % default experiment values
@@ -9,7 +11,7 @@ experiment.Tarrival = 0;  experiment.Tbolus = 8;
 
 %%
 for  est_R1L = 0
-    for fit_input = 1
+    for fit_input = 0
         disp('Running Monte Carlo Simulation')
         fit_description = [];
         

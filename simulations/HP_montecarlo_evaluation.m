@@ -29,6 +29,9 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exper
 %
 % Author: Peder E. Z. Larson
 
+global isOctave;
+isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+
 % simulation and plotting parameters
 Nexp_values = 8;
 ratio_limits = [-.2 .2];
@@ -107,6 +110,8 @@ end
 
 nominal_metric_matrix=  repmat( nominal_metric(:), [1, experiment.NMC Nexp_values]);
 
+warnStruct = warning('off','all');
+
 
 %% KPL test
 clear metric_mean metric_std metric_fits
@@ -134,8 +139,13 @@ plot_fit_results_normalized(fitting, kPL_test(2:end), ...
 xlim([kPL_test(2), experiment.kPL_max])
 
 % add legend
+
 legh = legend;
-legh.Position = [.35 0.01 .3 .1];
+if isOctave
+    set(legh,'Location','northeastoutside');
+else
+    legh.Position = [0.35 0.01 0.3 0.1];
+end
 % 
 results.kPL_test.kPL_test = kPL_test;
 results.kPL_test.metric_mean = metric_mean;
@@ -412,6 +422,8 @@ results.B1diff_test.metric_std = metric_std;
 % results.B1diff_test.AUC_std_bias = std(AUC_mean);  % accuracy measurement
 % 
 %
+
+warning(warnStruct);
 
 %% HELPER FUNCTIONS
 

@@ -64,7 +64,7 @@ if use_input_function
 end
 
 if length(Tin) == 1  % remove Tin feature?
-    Mz0 = expm(A*Tin) * [1;0];
+    Mz0 = expm(A*Tin) * [1;zeros(Nmets-1,1)];
 else
     Mz0 = Tin(:);
 end
