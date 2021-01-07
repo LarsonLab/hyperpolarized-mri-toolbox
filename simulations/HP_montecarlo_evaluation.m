@@ -25,6 +25,9 @@ function [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, exper
 %
 % Author: Peder E. Z. Larson
 
+global isOctave;
+isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+
 % simulation and plotting parameters
 NMC = 250;  % 100 maybe ok
 Nexp_values = 8;
@@ -128,7 +131,11 @@ xlabel('k_{PL} (1/s)'),  xlim([experiment.kPL_min, experiment.kPL_max])
 
 % add legend
 legh = legend('kPL fitting', 'calibrated AUC_{ratio}');
-legh.Position = [.35 0.01 .3 .1];
+if isOctave
+    set(legh,'Location','northeastoutside');
+else
+    legh.Position = [0.35 0.01 0.3 0.1];
+end
 
 results.kPL_test.kPL_avg_error = mean(kPL_std) ;  % precision measurement - normalized for comparison with other parameters
 results.kPL_test.kPL_avg_bias = mean(abs(kPL_mean)) ;  % accuracy measurement
