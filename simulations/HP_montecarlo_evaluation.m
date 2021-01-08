@@ -37,7 +37,6 @@ Nexp_values = 8;
 ratio_limits = [-.2 .2];
 
 % fitting
-global N_fitting_methods;
 N_fitting_methods = length(fitting);
 
 % experimental parameters
@@ -112,12 +111,13 @@ nominal_metric_matrix=  repmat( nominal_metric(:), [1, experiment.NMC Nexp_value
 
 warnStruct = warning('off','all');
 
-
 %% KPL test
 clear metric_mean metric_std metric_fits
+
 kPL_test = linspace(experiment.kPL_min, experiment.kPL_max, Nexp_values).';
 
 for Itest = 1:length(kPL_test)
+
     Mxy = simulate_Nsite_model(Mz0, R1, [kPL_test(Itest) 0], acq.flips, acq.TR, input_function);
     [metric_mean(:,Itest), metric_std(:, Itest) metric_fits(:,:,Itest)] = fitting_simulation(fitting,Mxy, acq.TR, acq.flips, experiment.NMC, experiment.std_noise);
 
@@ -141,11 +141,10 @@ xlim([kPL_test(2), experiment.kPL_max])
 % add legend
 
 legh = legend;
-if isOctave
-    set(legh,'Location','northeastoutside');
-else
+if ~isOctave
     legh.Position = [0.35 0.01 0.3 0.1];
 end
+
 % 
 results.kPL_test.kPL_test = kPL_test;
 results.kPL_test.metric_mean = metric_mean;

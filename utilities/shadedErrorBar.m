@@ -173,12 +173,12 @@ function H = makePlot(x,y,errBar,lineProps,transparent,patchSaturation)
     xP(isnan(yP))=[];
     yP(isnan(yP))=[];
 
-
-    if(isdatetime(x))
-        H.patch=patch(datenum(xP),yP,1);
-    else
+    % Octave - removed
+%    if(isdatetime(x))
+%        H.patch=patch(datenum(xP),yP,1);
+%    else
         H.patch=patch(xP,yP,1);
-    end
+%    end
 
     set(H.patch,'facecolor',patchColor, ...
         'edgecolor','none', ...
@@ -190,7 +190,11 @@ function H = makePlot(x,y,errBar,lineProps,transparent,patchSaturation)
     H.edge(2)=plot(x,uE,'-','color',edgeColor);
 
 
-
-    uistack(H.mainLine,'top') % Bring the main line to the top
+    % Octave - removed
+%    uistack(H.mainLine,'top') % Bring the main line to the top
+    h_axes = gca;
+    h_axes_Children = get(h_axes, 'Children');
+    ChildrenNewOrder = [h_axes_Children(end); h_axes_Children(1:end-1)];
+    set(h_axes, 'Children', ChildrenNewOrder);
 
 
