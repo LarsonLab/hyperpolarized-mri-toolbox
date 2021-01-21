@@ -36,11 +36,17 @@ if length(R1) == 1
     R1 = R1*ones(1,Nmets);
 end
 
-if nargin < 6 || isempty(input_function) || all(input_function == 0)
+if nargin < 6 || isempty(input_function) || all(input_function == 0,'all')
     use_input_function = 0;
 else
     use_input_function = 1;
     Nsim = 100;
+    
+    % allow for input to multiple sites, but assume typical case of just
+    % input to first site:
+    if size(input_function,1) == 1
+        input_function = [input_function; zeros(Nmets-1,size(input_function,2))];
+    end
 end
 
 switch Nmets
@@ -79,7 +85,7 @@ for n = 2:N
         % more accurate to spread out input over a number of samples to
         % avoid unrealistically large signal jumps
         for ni = 1:Nsim
-            Mz_m =  Ad_Nsim * (Mz_m + [input_function(n-1)/Nsim;zeros(Nmets-1,1)]);
+            Mz_m =  Ad_Nsim * (Mz_m + input_function(:,n-1)/Nsim);
         end
     else
         Mz_m = Ad_TR * (Mz(:,n-1));
