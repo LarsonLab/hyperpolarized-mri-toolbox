@@ -86,10 +86,10 @@ results.sample_data = Mxy + randn(size(Mxy))*experiment.std_noise;
 results.sample_data_time = t;
 
 hdata = figure;
-subplot(121) , plot(t, squeeze(results.sample_data(1,:))), title('sample simulated pyruvate')
-xlabel('time (s)'), ylabel('Signal')
-subplot(122) , plot(t, squeeze(results.sample_data(2,:))), title('sample simulated lactate')
-xlabel('time (s)'), ylabel('Signal')
+subplot(121) , plot(t, squeeze(results.sample_data(1,:))/experiment.std_noise), title('sample simulated pyruvate')
+xlabel('time (s)'), ylabel('Signal (SNR)')
+subplot(122) , plot(t, squeeze(results.sample_data(2,:))/experiment.std_noise), title('sample simulated lactate')
+xlabel('time (s)'), ylabel('Signal (SNR)')
 
 %% setup for plots
 for f = 1:N_fitting_methods
@@ -140,8 +140,9 @@ xlim([kPL_test(2), experiment.kPL_max])
 
 % add legend
 
-legh = legend;
+% In Octave I wasn't able to handle the legend with so many subplots 
 if ~isOctave
+    legh = legend;
     legh.Position = [0.35 0.01 0.3 0.1];
 end
 
