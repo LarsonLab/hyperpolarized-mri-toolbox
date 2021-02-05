@@ -10,9 +10,7 @@ Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/h
 
 ## MyBinder online demos
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LarsonLab/hyperpolarized-mri-toolbox/master)
-
-Look for notebooks under recon/EPI demo/ and kinetic_modeling/
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LarsonLab/hyperpolarized-mri-toolbox/master?filepath=demo_notebooks)
 
 ## Hyperpolarized Metabolic MRI Seminar
 
