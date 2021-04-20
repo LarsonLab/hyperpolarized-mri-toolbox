@@ -4,7 +4,7 @@ clear all
 %% Load data
 
 
-I_sample_data = 1;
+I_sample_data = 3;
 
 switch I_sample_data
     case 1
@@ -68,13 +68,17 @@ It_fit = find(flips_lac > 1);
 figure
 subplot(221)
 imagesc(AUC_pyr(:,:,zplot))
+axis equal tight
 title('AUC pyruvate')
 subplot(222)
 imagesc(AUC_lac(:,:,zplot))
+axis equal tight
 title('AUC lactate')
 subplot(223)
 imagesc(AUC_ratio(:,:,zplot) .* SNRmask(:,:,zplot)), colorbar
+axis equal tight
 title('AUC lactate / AUC pyruvate')
 subplot(224)
 imagesc(params_fit.kPL(:,:,zplot) .* SNRmask(:,:,zplot)), colorbar
+axis equal tight
 title('Fit k_{PL}')

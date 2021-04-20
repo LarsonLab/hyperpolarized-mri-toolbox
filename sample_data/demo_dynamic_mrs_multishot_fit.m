@@ -2,8 +2,9 @@
 
 % Data and studies described in
 % Hu, Simon, Peder E Z Larson, Mark Vancriekinge, Andrew M Leach, Ilwoo Park, Christine Leon,  et al.
-% “Rapid Sequential Injections of Hyperpolarized [1-¹³C]pyruvate in Vivo Using a Sub-Kelvin, Multi-Sample DNP Polarizer.�?
-% Magn Reson Imaging 31, no. 4 (May 2013): 490–96.
+% "Rapid Sequential Injections of Hyperpolarized [1-13C]pyruvate in Vivo
+% Using a Sub-Kelvin, Multi-Sample DNP Polarizer"
+% Magn Reson Imaging 31, no. 4 (May 2013): 490-96.
 % https://doi.org/10.1016/j.mri.2012.09.002.
 
 clear all
