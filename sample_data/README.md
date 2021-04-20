@@ -2,6 +2,8 @@
 
 The in vivo hyperpolarized MRI data contained in the folders here comes from animal and human studies, and was acquired with different methods that are described below.
 
+Note that additional in vivo Hyperpolarized datasets are available through the SIVIC suite Tutorials: https://sourceforge.net/p/sivic/sivicwiki/Tutorials/
+
 ## Rat Kidneys Dynamic MRS
 
 This dataset contains slab-selective dynamic MR spectroscopy, acquired in normal rat kidneys.  There are repeated injections ("shots") for each animal (originally to look for stability or changes in metabolism across injections).
