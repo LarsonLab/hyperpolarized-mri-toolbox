@@ -41,7 +41,14 @@ Park, Ilwoo, Peder E Z Larson, James L Tropp, Lucas Carvajal, Galen Reed, Robert
 
 ## Human Prostate Dynamic MRSI
 
-This dataset contains dynamic MR spectroscopic imaging in 3 human subjects with prostate cancer.  The `spectra` are the full spectral and spatial data, while the `extracted_data` are the peak heights of pyruvate and lactate, extracted from the spectra.  The files also contain excitation flip angles for each TR.
+This dataset contains dynamic MR spectroscopic imaging in 3 human subjects with prostate cancer.  The `spectra` are the full spectral and spatial data, while the `extracted_data` are the peak heights Brain pyruvate EPI lactate, extracted from the spectra.  The files also contain excitation flip angles for each TR.
 
 Further details and analysis can be found in:
 Nelson, Sarah J, John Kurhanewicz, Daniel B Vigneron, Peder E Z Larson, Andrea L Harzstark, Marcus Ferrone, Mark van Criekinge, et al. “Metabolic Imaging of Patients with Prostate Cancer Using Hyperpolarized [1-13C]Pyruvate.” Sci Transl Med 5, no. 198 (August 2013): 198ra108. https://doi.org/10.1126/scitranslmed.3006070. https://www.ncbi.nlm.nih.gov/pubmed/23946197
+
+## Human Brain Dynamic EPI
+
+This dataset contains pyruvate, lactate, and bicarbonate dynamic imaging using metabolite-specific imaging with EPI in the head of a healthy volunteer.  It was acquired with flip angles of 20-degrees for pyruvate and 30-degrees for lactate and bicarbonate, and TR=3s.
+
+Further details and analysis can be found in:
+Gordon, Jeremy W., Hsin-Yu Chen, Adam Autry, Ilwoo Park, Mark Van Criekinge, Daniele Mammoli, Eugene Milshteyn, et al. “Translation of Carbon-13 EPI for Hyperpolarized MR Molecular Imaging of Prostate and Brain Cancer Patients.” Magnetic Resonance in Medicine 81, no. 4 (April 2019): 2702–9. https://doi.org/10.1002/mrm.27549.  http://www.ncbi.nlm.nih.gov/pmc/articles/pmc6372313/
