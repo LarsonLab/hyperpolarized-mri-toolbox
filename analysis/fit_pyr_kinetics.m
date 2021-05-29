@@ -197,23 +197,39 @@ for i=1:size(Sreshape, 1)
         Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
         ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
         
+        I_flip = isfinite(Mz);
+ 
         % Note that Sfit only inlcudes products signals, not pyruvate,
         % hence the difference in indexing here and in plots below
-        Rsq(i,1:Nmets-1) = 1 - sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ,3 ) ...
-            ./ sum( (Sreshape(i,2:Nmets,:) - repmat(mean(Sreshape(i,2:Nmets,:),3),[1 1 Nt])).^2, 3);
-        % chi squared distance - also pdist2 in Octave
-        CHIsq(i,1:Nmets-1) = sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ./ ...
-            (Sreshape(i,2:Nmets,:)+Sfit(i,:,:)) ,3) / 2;
+        for I = 2:Nmets
+            Rsq(i,I-1) = 1 - sum( (Sreshape(i,I,I_flip(I,:))-Sfit(i,I-1,I_flip(I,:))).^2 ,3 ) ...
+                ./ sum( (Sreshape(i,I,I_flip(I,:)) - repmat(mean(Sreshape(i,I,I_flip(I,:)),3),[1 1 length(find(I_flip(I,:)))])).^2, 3);
+            % chi squared distance - also pdist2 in Octave
+            CHIsq(i,I-1) = sum( (Sreshape(i,I,I_flip(I,:))-Sfit(i,I-1,I_flip(I,:))).^2 ./ ...
+                (Sreshape(i,I,I_flip(I,:))+Sfit(i,I-1,I_flip(I,:))) ,3) / 2;
+        end
         
         if plot_flag
             % plot of fit for debugging
+           
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz(1:Nmets,:), t, Mzfit(2:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t(I_flip(1,:)), Mz(1,I_flip(1,:)), '-x',t(I_flip(1,:)), ufit(i,I_flip(1,:))./ Sscale(1, I_flip(1,:)), 'k:')
+            hold on
+            for I = 2:Nmets
+                plot(t(I_flip(I,:)), Mz(I,I_flip(I,:)), '-x', t, Mzfit(I,:), '--');
+            end
+            hold off
             xlabel('time (s)')
             ylabel('state magnetization (au)')
+
             subplot(2,1,2)
-            plot(t, Mxy(1:Nmets,:), t, squeeze(Sfit(i,1:Nmets-1,:)),'--', t, ufit(i,:), 'k:')
+            plot(t(I_flip(1,:)), Mxy(1,I_flip(1,:)), '-x',t(I_flip(1,:)), ufit(i,I_flip(1,:)), 'k:')
+            hold on
+            for I = 2:Nmets
+                plot(t(I_flip(I,:)), Mxy(I,I_flip(I,:)), '-x', t(I_flip(I,:)),  squeeze(Sfit(i,I-1,I_flip(I,:))), '--')
+            end
+            hold off
             xlabel('time (s)')
             ylabel('signal (au)')
             
@@ -225,11 +241,11 @@ for i=1:size(Sreshape, 1)
             disp(fit_results_string)
             
             products_legend{1} = 'pyruvate';
+            products_legend{2} = 'input estimate';
             for n = 1:Nmets-1
-                products_legend{n+1} = products_string{n};
-                products_legend{n+Nmets} = [products_string{n} ' fit'];
+                products_legend{2*n+1} = products_string{n};
+                products_legend{2*n+2} = [products_string{n} ' fit'];
             end    
-            products_legend{Nmets*2} = 'input estimate';
             legend( products_legend)
             drawnow, pause(0.5)
         end
@@ -279,7 +295,7 @@ function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzsc
 Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), Istart) ;
 temp_diff = (Mz - Mzfit) .* Sscale; % compute difference in the signal (Mxy) domain
 diff_products = temp_diff(2:Nmets,:); % only differences are in the metabolic products
-diff_products = diff_products(:);
+diff_products = diff_products(isfinite(diff_products));
 end
 
 function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fixed, TR, Mzscale, Mz, noise_level, Istart, Nmets)
@@ -298,12 +314,14 @@ Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), 
 l1 = 0;
 for t = 1:N
     for k = 2:Nmets
-        l1 = l1 - (...
-            log(Mz(k, t)) - log(noise_level(k,t)) ...
-            - (Mz(k, t)^2 + Mzfit(k, t)^2)/(2*noise_level(k,t)) ...
-            + Mz(k, t)*Mzfit(k, t)/noise_level(k,t) ...
-            + log(besseli(0, Mz(k, t)*Mzfit(k, t)/noise_level(k,t), 1))...
-            );
+        if isfinite(Mz(k,t))
+            l1 = l1 - (...
+                log(Mz(k, t)) - log(noise_level(k,t)) ...
+                - (Mz(k, t)^2 + Mzfit(k, t)^2)/(2*noise_level(k,t)) ...
+                + Mz(k, t)*Mzfit(k, t)/noise_level(k,t) ...
+                + log(besseli(0, Mz(k, t)*Mzfit(k, t)/noise_level(k,t), 1))...
+                );
+        end
     end
 end
 end
@@ -335,6 +353,10 @@ for n = 1:length(params_all)
         eval([params_all{n} '= params_fit(nfit);']);
     end
 end
+
+% account for timepoints where no pyruvate flip applied
+I_pyruvate_flip = isfinite(Mz_pyr);
+Mz_pyr = interp1(find(I_pyruvate_flip), Mz_pyr(I_pyruvate_flip), 1:length(Mz_pyr),'linear',0);
 
 % force Mz pyruvate based on signal
 Mz_all(1,:) = Mz_pyr;
