@@ -38,16 +38,16 @@ for  est_R1L = 0
         
         if fit_input
             fit_description = [fit_description, '  Fitting the input function'];
-            fitting.fit_fcn = @fit_pyr_kinetics_and_input;
+            fitting(1).fit_fcn = @fit_pyr_kinetics_and_input;
             Tarrival_est = experiment.Tarrival;    Tbolus_est = experiment.Tbolus;  % ... perfect estimates ... how do they perform with variability?
             Rinj_est = 0.1; % looks reasonable
             params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
             params_est.Tarrival_lb = 0; params_est.Tarrival_ub = 12; params_est.Tbolus_lb = 6; params_est.Tbolus_ub = 10;
         else
            fit_description = [fit_description, '  Inputless fitting'];
-           fitting.fit_fcn = @fit_pyr_kinetics;
+           fitting(1).fit_fcn = @fit_pyr_kinetics;
         end
-        
+        fitting(1).metric = 'kPL';
         
         switch flip_scheme
             case 1
@@ -71,51 +71,55 @@ for  est_R1L = 0
         end
         
         
-        fitting.params_est = params_est; fitting.params_fixed = params_fixed;
+        fitting(1).params_est = params_est; fitting(1).params_fixed = params_fixed;
+        fitting(1).fit_description = fit_description;
         
+        fitting(2).fit_fcn = @compute_AUCratio;
+        fitting(2).metric = 'AUCratio';  %
+        fitting(2).fit_description = ['AUC Ratio'];
+
         disp(fit_description)
         [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
-        hdata.Name = fit_description; hsim.Name =fit_description;
         
     end
 end
 
 return
-%%
+%%  Example for comparing multiple fitting methods
 
-        clear params_est params_fixed acq fitting
-        
-        % default fitting parameters
-        R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
-            Tarrival_est = experiment.Tarrival;    Tbolus_est = experiment.Tbolus;  % ... perfect estimates ... how do they perform with variability?
-            Rinj_est = 0.1; % looks reasonable
+clear params_est params_fixed acq fitting
 
-            params_fixed.R1P = R1P_est;
-        params_est.kPL = kPL_est;
-        params_fixed.R1L = R1L_est;
-        fitting(1).fit_fcn = @fit_pyr_kinetics;
-        fitting(1).params_fixed = params_fixed;
-        fitting(1).params_est = params_est;
-        fitting(1).fit_description = ['Inputless fitting'];
-        fitting(1).metric = 'kPL';
-        fitting(2).fit_fcn = @fit_pyr_kinetics_and_input;
-        params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
-            params_est.Tarrival_lb = 0; params_est.Tarrival_ub = 12; params_est.Tbolus_lb = 6; params_est.Tbolus_ub = 10;
-        fitting(2).params_fixed = params_fixed;
-        fitting(2).params_est = params_est;
-        fitting(2).fit_description = ['Fitting the input function'];
-        fitting(2).metric = 'kPL';
-                
-        fitting(3).fit_fcn = @compute_AUCratio;
-        fitting(3).metric = 'AUCratio';  %
-        fitting(3).fit_description = ['AUC Ratio'];
-        
-                Tacq = 48; 
-                acq.TR = 3; acq.N = Tacq/acq.TR;
-                acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
-        
-        
-        [results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
-        
-    
+% default fitting parameters
+R1P_est = 1/25; R1L_est = 1/25; kPL_est = .02;
+Tarrival_est = experiment.Tarrival;    Tbolus_est = experiment.Tbolus;  % ... perfect estimates ... how do they perform with variability?
+Rinj_est = 0.1; % looks reasonable
+
+params_fixed.R1P = R1P_est;
+params_est.kPL = kPL_est;
+params_fixed.R1L = R1L_est;
+fitting(1).fit_fcn = @fit_pyr_kinetics;
+fitting(1).params_fixed = params_fixed;
+fitting(1).params_est = params_est;
+fitting(1).fit_description = ['Inputless fitting'];
+fitting(1).metric = 'kPL';
+fitting(2).fit_fcn = @fit_pyr_kinetics_and_input;
+params_est.Tarrival = Tarrival_est; params_est.Rinj = Rinj_est; params_est.Tbolus = Tbolus_est;
+params_est.Tarrival_lb = 0; params_est.Tarrival_ub = 12; params_est.Tbolus_lb = 6; params_est.Tbolus_ub = 10;
+fitting(2).params_fixed = params_fixed;
+fitting(2).params_est = params_est;
+fitting(2).fit_description = ['Fitting the input function'];
+fitting(2).metric = 'kPL';
+
+fitting(3).fit_fcn = @compute_AUCratio;
+fitting(3).metric = 'AUCratio';  %
+fitting(3).fit_description = ['AUC Ratio'];
+
+Tacq = 48;
+acq.TR = 3; acq.N = Tacq/acq.TR;
+acq.flips = repmat([10*pi/180; 40*pi/180], [1 acq.N]);
+
+
+[results, hdata, hsim ] = HP_montecarlo_evaluation( acq, fitting, experiment );
+
+
 
