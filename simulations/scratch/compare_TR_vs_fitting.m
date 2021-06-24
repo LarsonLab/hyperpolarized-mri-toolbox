@@ -2,12 +2,12 @@ clear all
 
 experiment.NMC = 500;  % less for quicker testing
 
-flip_scheme = 3;  % see below
+flip_scheme = 4;  % see below
 
 % default experiment values
 
 experiment.R1P = 1/25;  experiment.R1L =1/25;  experiment.kPL = 0.02; experiment.std_noise = 0.015;
-experiment.Tarrival = -4;  % negative is bolus arrival before acquisition starts
+experiment.Tarrival = 4;  % negative means bolus arrival before acquisition starts
 experiment.Tbolus = 10;
 
         disp('Running Monte Carlo Simulation')
@@ -115,7 +115,10 @@ for Itest = 1:length(TR_test)
                 flip_description = 'pyr=10, lac=optimal SNR';
                         case 3
                 acq.flips = [ acos(cos(10*pi/180)^(20/acq.N))*ones(1,acq.N); vfa_opt_signal(acq.N, exp(-acq.TR/25))];
-                flip_description = 'pyr=equal Mz usage, lac=optimal SNR';
+                flip_description = 'pyr=equal to TR=3, 10, lac=optimal SNR';
+                        case 4
+                acq.flips = [ acos(cos(10*pi/180)^(20/acq.N))*ones(1,acq.N); acos(cos(40*pi/180)^(20/acq.N))*ones(1,acq.N)];
+                flip_description = 'pyr=equal to 10, lac=equal to 40 for TR=3';
                     end
     % default input function and sample data
 t = [0:acq.N-1]*acq.TR;
