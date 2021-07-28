@@ -11,7 +11,7 @@ function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips
 % It also allows for fixing of parameters. Based on simulations, our
 % current recommendation is to fix pyruvate T1, as it doesn't impact kPX substantially.
 %
-% [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+% [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
 % All params_* values are structures, including possible fields of 'kPL', 'kPB', 'kPA', (1/s),
 % 'R1P', 'R1L', 'R1B', 'R1A' (1/s).
