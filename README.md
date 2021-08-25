@@ -8,9 +8,26 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 
 Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox  DOI: [10.5281/zenodo.1198915](https://dx.doi.org/10.5281/zenodo.1198915)
 
-## MyBinder online demos
+## Getting Started
+
+1. Download latest release (at right) and extract or clone git repository (via 'Code' at the top)
+1. Open Matlab or Octave
+1. Navigate to the `hyperpolarized-mri-toolbox/` directory 
+1. Run `startup`.  This will setup path and confirm you have required toolboxes
+
+### Examples
+
+There are starter code and examples in
+* `hyperpolarized-mri-toolbox/demo_notebooks/` 
+* `hyperpolarized-mri-toolbox/RF_pulses/spectral_spatial/examples/`
+
+### MyBinder online demos
+
+You can also run the demo jupyter notebooks online without installing or downloading the code through MyBinder:
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LarsonLab/hyperpolarized-mri-toolbox/master?filepath=demo_notebooks)
+
+Note that it may take several minutes to build if this has not been used in a while.
 
 ## Hyperpolarized Metabolic MRI Seminar
 
