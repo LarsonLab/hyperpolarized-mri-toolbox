@@ -69,7 +69,7 @@ end
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_P', 'S0_L', 'S0_B', 'S0_A'};%, ...
+    'Mz0_P', 'Mz0_L', 'Mz0_B', 'Mz0_A'};%, ...
 %    'Rinj', 'Tarrival', 'Tbolus'};
 params_default_est = [0.01, 0.01, 0.01, ...
     1/30, 1/25, 1/25, 1/15, ...
@@ -97,11 +97,11 @@ end
 products_string = {'lactate', 'bicarb', 'alanine'};
 switch Nmets
     case 2 % assume pyruvate & lactate
-        params_fixed.kPA = 0;  params_fixed.S0_A = 0;  params_fixed.R1A = 1;
-        params_fixed.kPB = 0;  params_fixed.S0_B = 0;  params_fixed.R1B = 1;
+        params_fixed.kPA = 0;  params_fixed.Mz0_A = 0;  params_fixed.R1A = 1;
+        params_fixed.kPB = 0;  params_fixed.Mz0_B = 0;  params_fixed.R1B = 1;
         products_string = {'lactate'};
     case 3 % assume pyruvate & lactate & bicarbonate
-        params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
+        params_fixed.kPA = 0;   params_fixed.Mz0_A = 0;  params_fixed.R1A = 1;
         products_string = {'lactate', 'bicarb'};
 end
 
@@ -358,7 +358,7 @@ u = zeros(1,N);
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_P', 'S0_L', 'S0_B', 'S0_A'};
+    'Mz0_P', 'Mz0_L', 'Mz0_B', 'Mz0_A'};
 
 nfit = 0;
 for n = 1:length(params_all)
@@ -376,9 +376,9 @@ Mz_pyr = interp1(find(I_pyruvate_flip), Mz_pyr(I_pyruvate_flip), 1:length(Mz_pyr
 
 % force Mz pyruvate based on signal
 Mz_all(1,:) = Mz_pyr;
-Mz_all(2,Istart) = S0_L;
-Mz_all(3,Istart) = S0_B;
-Mz_all(4,Istart) = S0_A;
+Mz_all(2,Istart) = Mz0_L;
+Mz_all(3,Istart) = Mz0_B;
+Mz_all(4,Istart) = Mz0_A;
 
 A = [-R1P-kPL-kPB-kPA, 0, 0, 0
     +kPL, -R1L, 0, 0
