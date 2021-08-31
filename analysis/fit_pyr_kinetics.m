@@ -1,26 +1,25 @@
 function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
-% fit_pyr_kinetics - Kinetic model fitting function for HP 13C MRI.
+% fit_pyr_kinetics - Pharmacokinetic model fitting function for HP 13C MRI.
 %
-% Fits product signals, assuming origination from a single substrate
-% In other words, pyruvate to lactate, bicarbonate and alanine.
-% An "input-less" method is used, eliminating
-% need to make any assumptions about the input function.
-% This uses the following assumptions:
-%   - uni-directional conversion from substrate to metabolic products (i.e.
-%   pyruvate to lactate)
+% Fits precursor-product kinetic model, assuming origination from a single
+% substrate/precursor to multiple products
+% It is nominally setup for modeling pyruvate to lactate, (optional) bicarbonate and alanine.
+% An "input-less" method is used, eliminating need to make any assumptions about the input function.
+%
 % It also allows for fixing of parameters. Based on simulations, our
-% current recommendation is to fix pyruvate T1, as it doesn't impact kPX substantially.
+% current recommendation is to fix pyruvate relaxation rate, as it doesn't 
+% impact kPX substantially.  params_fixed.R1P = 1/T1P;
 %
 % [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
 % All params_* values are structures, including possible fields of 'kPL', 'kPB', 'kPA', (1/s),
 % 'R1P', 'R1L', 'R1B', 'R1A' (1/s).
 % INPUTS
-%	S - signal dynamics [voxels, # of metabolites, # of time points]
+%   S - signal dynamics [voxels, # of metabolites, # of time points]
 %		Substrate (e.g. Pyruvate) should be the first metabolite, followed by each product
-%   TR - repetition time per time point
-%	flips - all flip angles [# of metabolites, # of time points x # of phase encodes]
-%	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
+%	TR (s) - repetition time per time point
+%	flips (radians) - all flip angles [# of metabolites, # of time points x # of phase encodes]
+%	params_fixed (optional) - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
 %       Also can include upper and lower bounds on parameters as *_lb and
@@ -34,7 +33,7 @@ function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips
 %   Sfit - fit curves
 %   ufit - derived input function (unitless)
 %   error_metrics - measurements of fit error, including upper/lower
-%   bounds, estimated kPL error, Rsquared, and Chisquared (untested)
+%       bounds, estimated kPL error, Rsquared, and Chisquared (untested)
 %
 % EXAMPLES - see test_fit_pyr_kinetics.m
 %
@@ -52,6 +51,20 @@ Nx = size_S(1:ndimsx);
 Nmets = size_S(end-1);
 if isempty(Nx)
     Nx = 1;
+end
+
+% parse flip angles
+if length(flips) == 1 % only a single flip angle for all metabolites
+    flips = repmat(flips, [Nmets Nt]);
+elseif length(flips) == Nmets % only one flip angle for each metabolite, but same across time
+    flips = repmat(flips(:), [1 Nt]);
+end
+
+[size_flips] = size(flips);
+if all(size_flips == [Nt Nmets])
+    flips = flips.';
+elseif any(size_flips ~= [Nmets Nt])
+    error('Flip angles should be of size [Nmets Nt], [Nmets 1], or [1]')
 end
 
 params_all = {'kPL', 'kPB', 'kPA', ...
@@ -72,11 +85,11 @@ params_default_ub = [Inf, Inf, Inf, ...
 %    Inf 30 Inf];
 
 
-if nargin < 5 || isempty(params_fixed)
+if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
 end
 
-if nargin < 6 || isempty(params_est)
+if nargin < 5 || isempty(params_est)
     params_est = struct([]);
 end
 
@@ -91,6 +104,9 @@ switch Nmets
         params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
         products_string = {'lactate', 'bicarb'};
 end
+
+% By default, fix the relaxation rates
+
 
 
 I_params_est = [];
