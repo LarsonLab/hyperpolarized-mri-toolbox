@@ -15,11 +15,14 @@ Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/h
 1. Navigate to the `hyperpolarized-mri-toolbox/` directory 
 1. Run `startup`.  This will setup path and confirm you have required toolboxes
 
-### Examples
+### Examples and Exercises
 
 There are starter code and examples in
 * `hyperpolarized-mri-toolbox/demo_notebooks/` 
 * `hyperpolarized-mri-toolbox/RF_pulses/spectral_spatial/examples/`
+
+There are also several exercises to learn working with the data, analysis functions, and spectral-spatial RF pulse design in
+* `hyperpolarized-mri-toolbox/exercises/` 
 
 ### MyBinder online demos
 
