@@ -17,7 +17,7 @@ function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips
 % INPUTS
 %   S - signal dynamics [voxels, # of metabolites, # of time points]
 %		Substrate (e.g. Pyruvate) should be the first metabolite, followed by each product
-%	TR (s) - repetition time per time point
+%	TR (s) - [float] OR [array] - repetition time per time point
 %	flips (radians) - all flip angles [# of metabolites, # of time points x # of phase encodes]
 %	params_fixed (optional) - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
@@ -46,9 +46,18 @@ isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
 
 size_S = size(S);  ndimsx = length(size_S)-2;
-Nt = size_S(end); t = [0:Nt-1]*TR;
+Nt = size_S(end);
 Nx = size_S(1:ndimsx);
 Nmets = size_S(end-1);
+
+if size(TR) == 1
+    t = [0:Nt-1]*TR;
+    TR = repelem(TR,Nt);
+else
+    TR_shift = TR(1)
+    t = cumsum(TR)-TR_shift;
+end
+
 if isempty(Nx)
     Nx = 1;
 end
@@ -391,12 +400,12 @@ for It=Istart:N-1
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR));
+    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR(It)));
     
     xstar = - inv(A)*[u(It),0,0,0].';
     
     % solve next time point under assumption of constant input during TR
-    Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
+    Mz_all(:,It+1) = xstar + expm(A*TR(It)) * (Mz_init - xstar);
     
     
 end
@@ -408,12 +417,12 @@ for It=Istart:-1:2
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
     
     xstar = - inv(A)*[u(It-1),0,0,0].';
     
     % solve previous time point under assumption of constant input during TR
-    Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
+    Mz_plus = xstar + expm(A*-TR(It)) * (Mz_init - xstar);
     
     
     Mz_all(:,It-1) = Mz_plus ./ Mzscale(:, It-1);
