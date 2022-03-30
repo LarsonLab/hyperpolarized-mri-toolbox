@@ -54,7 +54,7 @@ if size(TR) == 1
     t = [0:Nt-1]*TR;
     TR = repelem(TR,Nt);
 else
-    TR_shift = TR(1)
+    TR_shift = TR(1);
     t = cumsum(TR)-TR_shift;
 end
 
@@ -417,7 +417,7 @@ for It=Istart:-1:2
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR(It)));
     
     xstar = - inv(A)*[u(It-1),0,0,0].';
     
