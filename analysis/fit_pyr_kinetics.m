@@ -404,7 +404,7 @@ for It=Istart:N-1
     xstar = - inv(A)*[u(It),0,0,0].';
     
     % solve next time point under assumption of constant input during TR
-    Mz_all(:,It+1) = xstar + expm(A*TR(It)) * (Mz_init - xstar);
+    Mz_all(:,It+1) = xstar + expm(A*TR(It+1)) * (Mz_init - xstar);
     
     
 end
@@ -421,7 +421,7 @@ for It=Istart:-1:2
     xstar = - inv(A)*[u(It-1),0,0,0].';
     
     % solve previous time point under assumption of constant input during TR
-    Mz_plus = xstar + expm(A*-TR(It)) * (Mz_init - xstar);
+    Mz_plus = xstar + expm(A*-TR(It-1)) * (Mz_init - xstar);
     
     
     Mz_all(:,It-1) = Mz_plus ./ Mzscale(:, It-1);
