@@ -54,8 +54,7 @@ if size(TR) == 1
     t = [0:Nt-1]*TR;
     TR = repelem(TR,Nt);
 else
-    TR_shift = TR(1);
-    t = cumsum(TR)-TR_shift;
+    t = cumsum(TR)-TR(1);
 end
 
 if isempty(Nx)
@@ -400,7 +399,7 @@ for It=Istart:N-1
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR(It)));
+    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR(It+1)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR(It+1)));
     
     xstar = - inv(A)*[u(It),0,0,0].';
     
@@ -417,7 +416,7 @@ for It=Istart:-1:2
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR(It)));
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It-1)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR(It-1)));
     
     xstar = - inv(A)*[u(It-1),0,0,0].';
     
