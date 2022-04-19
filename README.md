@@ -35,8 +35,8 @@ Note that it may take several minutes to build if this has not been used in a wh
 ## Hyperpolarized Metabolic MRI Seminar
 
 For general education on hyperpolarzed carbon-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar (summer 2019) are available
-
-https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
+(HP MRI Course 2021) https://hyperpolarizedmri.ucsf.edu/hp-mri-course-2021
+(HP MRI Course 2019) https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
 https://www.slideshare.net/PederLarson1
 
 ## Related Tools
@@ -48,7 +48,7 @@ While this toolbox focuses on prototyping new methods, leveraging the flexibilit
 
 ### Pulse Sequences
 
-The UCSF Hyperpolarized MRI Technology Resource Center (http://www.radiology.ucsf.edu/research/labs/hyperpolarized-mri-tech, NIH Grant P41-EB013598) has specialized hyperpolarized 13C pulse sequences available, including Metabolite-specific EPI (GE), Metabolite-specific Spirals with real-time calibration (RTHawk) as well as several for Bruker and Varian small animal systems.  Please reach out through the center for more information.
+The UCSF Hyperpolarized MRI Technology Resource Center (https://hyperpolarizedmri.ucsf.edu/, NIH Grant P41-EB013598) has specialized hyperpolarized 13C pulse sequences available, including Metabolite-specific EPI (GE), Metabolite-specific Spirals with real-time calibration (RTHawk) as well as several for Bruker and Varian small animal systems.  Please reach out through the center for more information.
 
 
 ### Spectral-Spatial-RF-Pulse-Design toolbox
