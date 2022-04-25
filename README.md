@@ -34,10 +34,10 @@ Note that it may take several minutes to build if this has not been used in a wh
 
 ## Hyperpolarized Metabolic MRI Seminar
 
-For general education on hyperpolarzed carbon-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar (summer 2019) are available
+For general education on hyperpolarzed carbon-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar are available:
 (HP MRI Course 2021) https://hyperpolarizedmri.ucsf.edu/hp-mri-course-2021
 (HP MRI Course 2019) https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
-https://www.slideshare.net/PederLarson1
+and https://www.slideshare.net/PederLarson1
 
 ## Related Tools
 
@@ -64,7 +64,7 @@ This includes, as a subtree, the
 
 ## Support
 
-This toolbox was created as a part of the UCSF Hyperpolarized MRI Technology Resource Center (http://www.radiology.ucsf.edu/research/labs/hyperpolarized-mri-tech) which is funded by the National Institutes of Health (NIH Grant P41-EB013598).
+This toolbox was created as a part of the UCSF Hyperpolarized MRI Technology Resource Center (https://hyperpolarizedmri.ucsf.edu/) which is funded by the National Institutes of Health (NIH Grant P41-EB013598).
 
 Please let us know if you would like to contribute or have suggestions for content, contact Peder Larson, University of California - San Francisco
 
