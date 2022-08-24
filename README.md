@@ -68,7 +68,7 @@ This includes, as a subtree, the
 
 ## Support
 
-This toolbox was created as a part of the UCSF Hyperpolarized MRI Technology Resource Center (http://www.radiology.ucsf.edu/research/labs/hyperpolarized-mri-tech) which is funded by the National Institutes of Health (NIH Grant P41-EB013598).
+This toolbox was created as a part of the UCSF Hyperpolarized MRI Technology Resource Center (https://hyperpolarizedmri.ucsf.edu/) which is funded by the National Institutes of Health (NIH Grant P41-EB013598).
 
 Please let us know if you would like to contribute or have suggestions for content, contact Peder Larson, University of California - San Francisco
 
