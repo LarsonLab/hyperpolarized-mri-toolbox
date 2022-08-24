@@ -1,12 +1,16 @@
 # hyperpolarized-mri-toolbox
 
+<img src="hyperpolarized-mri-toolbox_logo.png" width="20%" height="20%">
+
 The goal of this toolbox is to provide research-level and prototyping software tools for hyperpolarized MRI experiments. It is currently based on MATLAB code, and includes code for designing radiofrequency (RF) pulses, readout gradients, data reconstruction, and data analysis.
 
 It is hosted on this open-source, collaborative platform in order to encourage anyone and everyone in the hyperpolarized MRI research community to contribute tools that will help our field rapidly progress.
 
-## Citation
+## Citations
 
 Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox  DOI: [10.5281/zenodo.1198915](https://dx.doi.org/10.5281/zenodo.1198915)
+
+Crane, JC, Gordon, JW, Chen, H-Y, Autry AW, Li Y, Olson MP, Kurhanewicz J, Vigneron DB, Larson PEZ, Xu D. Hyperpolarized 13C MRI data acquisition and analysis in prostate and brain at University of California, San Francisco. NMR in Biomedicine. 2021; 34:e4280. https://doi.org/10.1002/nbm.4280
 
 ## Getting Started
 
@@ -34,10 +38,11 @@ Note that it may take several minutes to build if this has not been used in a wh
 
 ## Hyperpolarized Metabolic MRI Seminar
 
-For general education on hyperpolarzed carbon-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar are available:
-(HP MRI Course 2021) https://hyperpolarizedmri.ucsf.edu/hp-mri-course-2021
-(HP MRI Course 2019) https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
-and https://www.slideshare.net/PederLarson1
+
+For general education on hyperpolarzed carbon-13 metabolic MRI, lectures and slides from the UCSF Hyperpolarized MR Seminar (summer 2019) are available
+*  (HP MRI Course 2021) https://hyperpolarizedmri.ucsf.edu/hp-mri-course-2021
+*  (HP MRI Course 2019) https://www.youtube.com/playlist?list=PLjBt5Iq93BT-vODpVTT5R-uOB-MYaSZOn
+*  https://www.slideshare.net/PederLarson1
 
 ## Related Tools
 
