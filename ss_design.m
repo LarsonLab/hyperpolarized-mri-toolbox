@@ -388,7 +388,7 @@ function [g, rf, fs_best, z_plot, f_plot, m_plot] = ...
             fprintf(1, '%d) %s\n', n, infoall{n});
         end
         if nsolutions > 1
-            Isolution = input('Which pulse would you like to use? (leave empty for shortest pulse) ');
+            Isolution = input('Which pulse would you like to use? Note that designs with higher power result from less stable solutions. \n [leave empty to return the shortest pulse] ');
             if isempty(Isolution) || Isolution < 1 || Isolution > nsolutions
                 Isolution = Ibest;
             end
