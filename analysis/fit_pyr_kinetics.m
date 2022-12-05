@@ -219,7 +219,7 @@ for i=1:size(Sreshape, 1)
         [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:), Istart);
         
         Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
-        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        ufit(i,:) = ufit(i,:)  .* Sscale(1, :) .* TR;
         
         I_flip = isfinite(Mz);
  
