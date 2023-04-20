@@ -20,9 +20,12 @@ switch input_condition
         Tbolus = 12;  Tarrival = 0;
         Ibolus = [1:round(Tbolus/TR)] + round(Tarrival/TR);
         Rinj = 1/Tbolus; % normalize for a total magnetization input = 1
-        Mz0 = [0,0,0,0]; input_function(Ibolus) =  Rinj*TR;
+        Mz0 = [0,0,0,0]; 
+        input_function = zeros(1,N);
+        input_function(Ibolus) =  Rinj*TR;
     case 3
         Mz0 = [1.5,0,0,0]; % no input function
+        input_function = [];
     case 4
         Tin = 6; Mz0 = Tin; % no input function, delayed start
         input_function = [];

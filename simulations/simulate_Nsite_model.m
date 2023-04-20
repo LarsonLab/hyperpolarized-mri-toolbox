@@ -36,6 +36,10 @@ if length(R1) == 1
     R1 = R1*ones(1,Nmets);
 end
 
+if size(k,2) == 1
+    k = [k, zeros(Nmets,1)];  % set rates back to pyruvate to be 0
+end
+
 if nargin < 6 || isempty(input_function) || all(input_function == 0)
     use_input_function = 0;
 else

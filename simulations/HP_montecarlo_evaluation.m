@@ -338,7 +338,7 @@ end
 % plot_fit_results(fitting, B1error_test, metric_fits, '% B_1 error');
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
-plot_fit_results_normalized(fitting, B1error_test, metric_fits./nominal_metric_matrix-1, '% B_1 error');
+plot_fit_results_normalized(fitting, B1error_test, metric_fits./nominal_metric_matrix-1, '% B_1^+ error');
 xlim([experiment.B1error_min, experiment.B1error_max])
 
 results.B1error_test.B1error_test = B1error_test;
@@ -399,7 +399,7 @@ end
 
 subplot(Nplot1, Nplot2, Iplot); Iplot = Iplot+1;
 plot_fit_results_normalized(fitting, B1diff_test, ...
-    metric_fits./repmat( reshape(nominal_metric_B1diff_test, [N_fitting_methods 1 Nexp_values]), [1, experiment.NMC 1])-1, '% B_1 change')
+    metric_fits./repmat( reshape(nominal_metric_B1diff_test, [N_fitting_methods 1 Nexp_values]), [1, experiment.NMC 1])-1, '% B_1^+ change')
 xlim([experiment.B1diff_min, experiment.B1diff_max])
 
 results.B1diff_test.B1diff_test = B1diff_test;

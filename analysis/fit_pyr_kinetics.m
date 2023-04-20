@@ -1,26 +1,25 @@
 function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
-% fit_pyr_kinetics - Kinetic model fitting function for HP 13C MRI.
+% fit_pyr_kinetics - Pharmacokinetic model fitting function for HP 13C MRI.
 %
-% Fits product signals, assuming origination from a single substrate
-% In other words, pyruvate to lactate, bicarbonate and alanine.
-% An "input-less" method is used, eliminating
-% need to make any assumptions about the input function.
-% This uses the following assumptions:
-%   - uni-directional conversion from substrate to metabolic products (i.e.
-%   pyruvate to lactate)
+% Fits precursor-product kinetic model, assuming origination from a single
+% substrate/precursor to multiple products
+% It is nominally setup for modeling pyruvate to lactate, (optional) bicarbonate and alanine.
+% An "input-less" method is used, eliminating need to make any assumptions about the input function.
+%
 % It also allows for fixing of parameters. Based on simulations, our
-% current recommendation is to fix pyruvate T1, as it doesn't impact kPX substantially.
+% current recommendation is to fix pyruvate relaxation rate, as it doesn't 
+% impact kPX substantially.  params_fixed.R1P = 1/T1P;
 %
-% [params_fit, Sfit, ufit, objective_val] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
+% [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, noise_level, plot_flag)
 %
 % All params_* values are structures, including possible fields of 'kPL', 'kPB', 'kPA', (1/s),
 % 'R1P', 'R1L', 'R1B', 'R1A' (1/s).
 % INPUTS
-%	S - signal dynamics [voxels, # of metabolites, # of time points]
+%   S - signal dynamics [voxels, # of metabolites, # of time points]
 %		Substrate (e.g. Pyruvate) should be the first metabolite, followed by each product
-%   TR - repetition time per time point
-%	flips - all flip angles [# of metabolites, # of time points x # of phase encodes]
-%	params_fixed - structure of fixed parameters and values (1/s).  parameters not in
+%	TR (s) - [float] OR [array] - repetition time per time point
+%	flips (radians) - all flip angles [# of metabolites, # of time points x # of phase encodes]
+%	params_fixed (optional) - structure of fixed parameters and values (1/s).  parameters not in
 %       this structure will be fit
 %   params_est (optional) - structure of estimated values for fit parameters pyruvate to metabolites conversion rate initial guess (1/s)
 %       Also can include upper and lower bounds on parameters as *_lb and
@@ -34,7 +33,7 @@ function [params_fit, Sfit, ufit, error_metrics] = fit_pyr_kinetics(S, TR, flips
 %   Sfit - fit curves
 %   ufit - derived input function (unitless)
 %   error_metrics - measurements of fit error, including upper/lower
-%   bounds, estimated kPL error, Rsquared, and Chisquared (untested)
+%       bounds, estimated kPL error, Rsquared, and Chisquared (untested)
 %
 % EXAMPLES - see test_fit_pyr_kinetics.m
 %
@@ -47,16 +46,38 @@ isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
 
 size_S = size(S);  ndimsx = length(size_S)-2;
-Nt = size_S(end); t = [0:Nt-1]*TR;
+Nt = size_S(end);
 Nx = size_S(1:ndimsx);
 Nmets = size_S(end-1);
+
+if size(TR) == 1
+    t = [0:Nt-1]*TR;
+    TR = repelem(TR,Nt);
+else
+    t = cumsum(TR)-TR(1);
+end
+
 if isempty(Nx)
     Nx = 1;
 end
 
+% parse flip angles
+if length(flips) == 1 % only a single flip angle for all metabolites
+    flips = repmat(flips, [Nmets Nt]);
+elseif length(flips) == Nmets % only one flip angle for each metabolite, but same across time
+    flips = repmat(flips(:), [1 Nt]);
+end
+
+[size_flips] = size(flips);
+if all(size_flips == [Nt Nmets])
+    flips = flips.';
+elseif any(size_flips ~= [Nmets Nt])
+    error('Flip angles should be of size [Nmets Nt], [Nmets 1], or [1]')
+end
+
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_P', 'S0_L', 'S0_B', 'S0_A'};%, ...
+    'Mz0_P', 'Mz0_L', 'Mz0_B', 'Mz0_A'};%, ...
 %    'Rinj', 'Tarrival', 'Tbolus'};
 params_default_est = [0.01, 0.01, 0.01, ...
     1/30, 1/25, 1/25, 1/15, ...
@@ -72,11 +93,11 @@ params_default_ub = [Inf, Inf, Inf, ...
 %    Inf 30 Inf];
 
 
-if nargin < 5 || isempty(params_fixed)
+if nargin < 4 || isempty(params_fixed)
     params_fixed = struct([]);
 end
 
-if nargin < 6 || isempty(params_est)
+if nargin < 5 || isempty(params_est)
     params_est = struct([]);
 end
 
@@ -84,13 +105,16 @@ end
 products_string = {'lactate', 'bicarb', 'alanine'};
 switch Nmets
     case 2 % assume pyruvate & lactate
-        params_fixed.kPA = 0;  params_fixed.S0_A = 0;  params_fixed.R1A = 1;
-        params_fixed.kPB = 0;  params_fixed.S0_B = 0;  params_fixed.R1B = 1;
+        params_fixed.kPA = 0;  params_fixed.Mz0_A = 0;  params_fixed.R1A = 1;
+        params_fixed.kPB = 0;  params_fixed.Mz0_B = 0;  params_fixed.R1B = 1;
         products_string = {'lactate'};
     case 3 % assume pyruvate & lactate & bicarbonate
-        params_fixed.kPA = 0;   params_fixed.S0_A = 0;  params_fixed.R1A = 1;
+        params_fixed.kPA = 0;   params_fixed.Mz0_A = 0;  params_fixed.R1A = 1;
         products_string = {'lactate', 'bicarb'};
 end
+
+% By default, fix the relaxation rates
+
 
 
 I_params_est = [];
@@ -195,25 +219,41 @@ for i=1:size(Sreshape, 1)
         [Mzfit, ufit(i,:)] = trajectories_inputless(params_fit_vec(i,:), params_fixed, TR,  Mzscale, Mz(1,:), Istart);
         
         Sfit(i,:,:) = Mzfit(2:Nmets,:)  .* Sscale(2:Nmets, :);
-        ufit(i,:) = ufit(i,:)  .* Sscale(1, :);
+        ufit(i,:) = ufit(i,:)  .* Sscale(1, :) .* TR;
         
+        I_flip = isfinite(Mz);
+ 
         % Note that Sfit only inlcudes products signals, not pyruvate,
         % hence the difference in indexing here and in plots below
-        Rsq(i,1:Nmets-1) = 1 - sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ,3 ) ...
-            ./ sum( (Sreshape(i,2:Nmets,:) - repmat(mean(Sreshape(i,2:Nmets,:),3),[1 1 Nt])).^2, 3);
-        % chi squared distance - also pdist2 in Octave
-        CHIsq(i,1:Nmets-1) = sum( (Sreshape(i,2:Nmets,:)-Sfit(i,:,:)).^2 ./ ...
-            (Sreshape(i,2:Nmets,:)+Sfit(i,:,:)) ,3) / 2;
+        for I = 2:Nmets
+            Rsq(i,I-1) = 1 - sum( (Sreshape(i,I,I_flip(I,:))-Sfit(i,I-1,I_flip(I,:))).^2 ,3 ) ...
+                ./ sum( (Sreshape(i,I,I_flip(I,:)) - repmat(mean(Sreshape(i,I,I_flip(I,:)),3),[1 1 length(find(I_flip(I,:)))])).^2, 3);
+            % chi squared distance - also pdist2 in Octave
+            CHIsq(i,I-1) = sum( (Sreshape(i,I,I_flip(I,:))-Sfit(i,I-1,I_flip(I,:))).^2 ./ ...
+                (Sreshape(i,I,I_flip(I,:))+Sfit(i,I-1,I_flip(I,:))) ,3) / 2;
+        end
         
         if plot_flag
             % plot of fit for debugging
+           
             figure(99)
             subplot(2,1,1)
-            plot(t, Mz(1:Nmets,:), t, Mzfit(2:Nmets,:),'--', t, ufit(i,:)./ Sscale(1, :), 'k:')
+            plot(t(I_flip(1,:)), Mz(1,I_flip(1,:)), '-x',t(I_flip(1,:)), ufit(i,I_flip(1,:))./ Sscale(1, I_flip(1,:)), 'k:')
+            hold on
+            for I = 2:Nmets
+                plot(t(I_flip(I,:)), Mz(I,I_flip(I,:)), '-x', t, Mzfit(I,:), '--');
+            end
+            hold off
             xlabel('time (s)')
             ylabel('state magnetization (au)')
+
             subplot(2,1,2)
-            plot(t, Mxy(1:Nmets,:), t, squeeze(Sfit(i,1:Nmets-1,:)),'--', t, ufit(i,:), 'k:')
+            plot(t(I_flip(1,:)), Mxy(1,I_flip(1,:)), '-x',t(I_flip(1,:)), ufit(i,I_flip(1,:)), 'k:')
+            hold on
+            for I = 2:Nmets
+                plot(t(I_flip(I,:)), Mxy(I,I_flip(I,:)), '-x', t(I_flip(I,:)),  squeeze(Sfit(i,I-1,I_flip(I,:))), '--')
+            end
+            hold off
             xlabel('time (s)')
             ylabel('signal (au)')
             
@@ -225,11 +265,11 @@ for i=1:size(Sreshape, 1)
             disp(fit_results_string)
             
             products_legend{1} = 'pyruvate';
+            products_legend{2} = 'input estimate';
             for n = 1:Nmets-1
-                products_legend{n+1} = products_string{n};
-                products_legend{n+Nmets} = [products_string{n} ' fit'];
+                products_legend{2*n+1} = products_string{n};
+                products_legend{2*n+2} = [products_string{n} ' fit'];
             end    
-            products_legend{Nmets*2} = 'input estimate';
             legend( products_legend)
             drawnow, pause(0.5)
         end
@@ -279,7 +319,7 @@ function diff_products = difference_inputless(params_fit, params_fixed, TR, Mzsc
 Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), Istart) ;
 temp_diff = (Mz - Mzfit) .* Sscale; % compute difference in the signal (Mxy) domain
 diff_products = temp_diff(2:Nmets,:); % only differences are in the metabolic products
-diff_products = diff_products(:);
+diff_products = diff_products(isfinite(diff_products));
 end
 
 function [ l1 ] = negative_log_likelihood_rician_inputless(params_fit, params_fixed, TR, Mzscale, Mz, noise_level, Istart, Nmets)
@@ -298,12 +338,14 @@ Mzfit = trajectories_inputless(params_fit, params_fixed, TR,  Mzscale, Mz(1,:), 
 l1 = 0;
 for t = 1:N
     for k = 2:Nmets
-        l1 = l1 - (...
-            log(Mz(k, t)) - log(noise_level(k,t)) ...
-            - (Mz(k, t)^2 + Mzfit(k, t)^2)/(2*noise_level(k,t)) ...
-            + Mz(k, t)*Mzfit(k, t)/noise_level(k,t) ...
-            + log(besseli(0, Mz(k, t)*Mzfit(k, t)/noise_level(k,t), 1))...
-            );
+        if isfinite(Mz(k,t))
+            l1 = l1 - (...
+                log(Mz(k, t)) - log(noise_level(k,t)) ...
+                - (Mz(k, t)^2 + Mzfit(k, t)^2)/(2*noise_level(k,t)) ...
+                + Mz(k, t)*Mzfit(k, t)/noise_level(k,t) ...
+                + log(besseli(0, Mz(k, t)*Mzfit(k, t)/noise_level(k,t), 1))...
+                );
+        end
     end
 end
 end
@@ -324,7 +366,7 @@ u = zeros(1,N);
 
 params_all = {'kPL', 'kPB', 'kPA', ...
     'R1P', 'R1L', 'R1A', 'R1B', ...
-    'S0_P', 'S0_L', 'S0_B', 'S0_A'};
+    'Mz0_P', 'Mz0_L', 'Mz0_B', 'Mz0_A'};
 
 nfit = 0;
 for n = 1:length(params_all)
@@ -336,11 +378,15 @@ for n = 1:length(params_all)
     end
 end
 
+% account for timepoints where no pyruvate flip applied
+I_pyruvate_flip = isfinite(Mz_pyr);
+Mz_pyr = interp1(find(I_pyruvate_flip), Mz_pyr(I_pyruvate_flip), 1:length(Mz_pyr),'linear',0);
+
 % force Mz pyruvate based on signal
 Mz_all(1,:) = Mz_pyr;
-Mz_all(2,Istart) = S0_L;
-Mz_all(3,Istart) = S0_B;
-Mz_all(4,Istart) = S0_A;
+Mz_all(2,Istart) = Mz0_L;
+Mz_all(3,Istart) = Mz0_B;
+Mz_all(4,Istart) = Mz0_A;
 
 A = [-R1P-kPL-kPB-kPA, 0, 0, 0
     +kPL, -R1L, 0, 0
@@ -353,12 +399,12 @@ for It=Istart:N-1
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR));
+    u(It) = ( Mz_pyr(It+1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*TR(It+1)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*TR(It+1)));
     
     xstar = - inv(A)*[u(It),0,0,0].';
     
     % solve next time point under assumption of constant input during TR
-    Mz_all(:,It+1) = xstar + expm(A*TR) * (Mz_init - xstar);
+    Mz_all(:,It+1) = xstar + expm(A*TR(It+1)) * (Mz_init - xstar);
     
     
 end
@@ -370,12 +416,12 @@ for It=Istart:-1:2
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR));
+    u(It-1) = ( Mz_pyr(It-1)*Mzscale(1,It-1) - Mz_init(1)*exp((- R1P - kPL - kPB - kPA)*-TR(It-1)) ) * (R1P + kPL + kPB + kPA) / (1 - exp((- R1P - kPL - kPB - kPA)*-TR(It-1)));
     
     xstar = - inv(A)*[u(It-1),0,0,0].';
     
     % solve previous time point under assumption of constant input during TR
-    Mz_plus = xstar + expm(A*-TR) * (Mz_init - xstar);
+    Mz_plus = xstar + expm(A*-TR(It-1)) * (Mz_init - xstar);
     
     
     Mz_all(:,It-1) = Mz_plus ./ Mzscale(:, It-1);
