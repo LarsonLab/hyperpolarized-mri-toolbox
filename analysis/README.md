@@ -3,11 +3,21 @@
 This folder contains methods for analyzing hyperpolarized MRI, with the primary goal of producing metrics derived from dynamic, time-series data.  
 These generally fall under the category of pharmacokinetic modeling (also known as kinetic modeling) and model-free metrics.
 
-These are written with hyperpolarized [[1-13C]]pyurvate in mind, although have potentially simple adaptations for other agents.
+These are written with hyperpolarized [1-13C]pyurvate in mind, although have potentially simple adaptations for other agents.
 
 General textbook reference:
 
-
+James Bankson, Peder E.Z. Larson,
+6 - Analysis and visualization of hyperpolarized 13C MR data,
+Editor(s): Peder E.Z. Larson,
+Advances in Magnetic Resonance Technology and Applications,
+Academic Press,
+Volume 3,
+2021,
+Pages 129-155,
+ISSN 2666-9099,
+ISBN 9780128222690,
+https://doi.org/10.1016/B978-0-12-822269-0.00004-X.
 
 ## Pharmacokinetic Modeling
 
