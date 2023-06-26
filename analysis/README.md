@@ -3,6 +3,8 @@
 This folder contains methods for analyzing hyperpolarized MRI, with the primary goal of producing metrics derived from dynamic, time-series data.  
 These generally fall under the category of pharmacokinetic modeling (also known as kinetic modeling) and model-free metrics.
 
+![HP Metrics by Nikolaj Bogh](AnalysisMetrics_figure.png)
+
 These are written with hyperpolarized [1-13C]pyurvate in mind, although have potentially simple adaptations for other agents.
 
 General textbook reference:
