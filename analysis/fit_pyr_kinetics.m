@@ -52,7 +52,7 @@ Nmets = size_S(end-1);
 
 if size(TR) == 1
     t = [0:Nt-1]*TR;
-    TR = repelem(TR,Nt);
+    TR = repmat(TR,[1,Nt]);
 else
     t = cumsum(TR)-TR(1);
 end
