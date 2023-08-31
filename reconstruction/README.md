@@ -2,19 +2,17 @@
 
 This folder contains tools supporting reconstruction of hyperpolarized data, both MRI as well as MRS and MRSI.
 
-## CoilCombination
+## Coil Combination
+
+
+[Example of Usage in the EPI demo notebooks](../demo_notebooks/EPIReconstruction_Demo.m)
 
 Reference
-
+```
 Zihan Zhu, Xucheng Zhu, Michael A. Ohliger, Shuyu Tang, Peng Cao, Lucas Carvajal, Adam W. Autry, Yan Li, John Kurhanewicz, Susan Chang, Rahul Aggarwal, Pamela Munster, Duan Xu, Peder E.Z. Larson, Daniel B. Vigneron, Jeremy W. Gordon,
 Coil combination methods for multi-channel hyperpolarized 13C imaging data from human studies,
-Journal of Magnetic Resonance,
-Volume 301,
-2019,
-Pages 73-79,
-ISSN 1090-7807,
-https://doi.org/10.1016/j.jmr.2019.01.015.
-
+Journal of Magnetic Resonance, Volume 301, 2019, Pages 73-79, ISSN 1090-7807, https://doi.org/10.1016/j.jmr.2019.01.015.
+```
 ## Denoising
 
 Methods for denoising
