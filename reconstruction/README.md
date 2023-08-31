@@ -2,6 +2,12 @@
 
 This folder contains tools supporting reconstruction of hyperpolarized data, both MRI as well as MRS and MRSI.
 
+## Phase Correction
+
+`find_phase_corr.m` attempts to estimate a zero-order phase correction to put all the signal into the real channel of complex-valued data
+
+`phase_correct_image.m` performs voxel wise phase corrections across an image
+
 ## Coil Combination
 
 This contains code for combining multi-coil data to improve SNR, including the "RefPeak" method for estimating coil sensitivities based on the data.
