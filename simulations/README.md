@@ -2,7 +2,13 @@
 
 ## Creating Simulated Data
 
+This directory includes tools for simulating metabolic imaging data based on kinetic models.  These include
 
+`realistic_input_function` - create a gamma-variate function for simulating the bolus input
+
+`simulate_Nsite_model` - simulates up to 4-site kinetic model, with input function for the substrate and inter-conversion between up to 3 products
+
+See [Kinetic Modeling Notebook](../demo_notebooks/Test_Kinetic_Modeling.ipynb) for examples
 
 ## Metabolic Phantom
 
@@ -10,13 +16,11 @@ The file metabolic_phantom.m provides a matlab function for automatically genera
 
 kTRANS (perfusion) map:
 
-<img src="metabolic_phantom/kTRANS_16.png" alt="Example kTRANS map 16 voxels" style="width: 200px;"/>
-<img src="metabolic_phantom/kTRANS_256.png" alt="Example kTRANS map 256 voxels" style="width: 200px;"/>
+<img src="metabolic_phantom/kTRANS_16.png" alt="Example kTRANS map 16 voxels" style="width: 200px;"/> <img src="metabolic_phantom/kTRANS_256.png" alt="Example kTRANS map 256 voxels" style="width: 200px;"/>
 
 kPL (metabolism) map:
 
-<img src="metabolic_phantom/kPL_16.png" alt="Example kPL map 16 voxels" style="width: 200px;"/>
-<img src="metabolic_phantom/kPL_256.png" alt="Example kPL map 256 voxels" style="width: 200px;"/>
+<img src="metabolic_phantom/kPL_16.png" alt="Example kPL map 16 voxels" style="width: 200px;"/> <img src="metabolic_phantom/kPL_256.png" alt="Example kPL map 256 voxels" style="width: 200px;"/>
 
 ## Monte Carlo Simulations of Analysis Metrics
 
@@ -40,3 +44,13 @@ James Bankson, Peder E.Z. Larson, Analysis and visualization of hyperpolarized 1
 Volume 3, 2021, Pages 129-155, ISSN 2666-9099, ISBN 9780128222690, https://doi.org/10.1016/B978-0-12-822269-0.00004-X
 ```
 * Figures 6.8 and 6.9
+
+## Bicarbonate pH Simulation
+
+Simulates the effect of pulse sequence parameters (flip angles, phase encoding, etc) on pH measurements for HP bicarbonate studies.  Based on:
+
+```
+Korenchan, DE, Gordon, JW, Subramaniam, S, et al. Using bidirectional chemical exchange for improved hyperpolarized [13C]bicarbonate pH imaging. Magn Reson Med. 2019; 82: 959–972.
+https://doi.org/10.1002/mrm.27780
+```
+##
