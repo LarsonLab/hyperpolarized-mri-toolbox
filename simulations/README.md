@@ -1,5 +1,23 @@
 # Hyperpolarized Simulation Tools
 
+## Creating Simulated Data
+
+
+
+## Metabolic Phantom
+
+The file metabolic_phantom.m provides a matlab function for automatically generating standardized 3-dimensional perfusion and metabolism maps for simulated experiments. The script DEMO.m demonstrates the usage of this function. Examples of the resulting parameter maps are shown below. 
+
+kTRANS (perfusion) map:
+
+<img src="metabolic_phantom/kTRANS_16.png" alt="Example kTRANS map 16 voxels" style="width: 200px;"/>
+<img src="metabolic_phantom/kTRANS_256.png" alt="Example kTRANS map 256 voxels" style="width: 200px;"/>
+
+kPL (metabolism) map:
+
+<img src="metabolic_phantom/kPL_16.png" alt="Example kPL map 16 voxels" style="width: 200px;"/>
+<img src="metabolic_phantom/kPL_256.png" alt="Example kPL map 256 voxels" style="width: 200px;"/>
+
 ## Monte Carlo Simulations of Analysis Metrics
 
 Given the experimental challenges of time, cost, and lack of ground truth for HP studies, simulations are an invaluable tool for evaluating data acquisition and analysis strategies.
@@ -11,19 +29,14 @@ Several examples including different acquisition schemes, different kinetic mode
 ![](test_HP_montecarlo_evaluation-expected_output.png)
 
 ### Examples
-
-Larson PEZ, Chen HY, Gordon JW, Korn N, Maidens J, Arcak M, Tang S, Criekinge M, Carvajal L, Mammoli D, Bok R, Aggarwal R, Ferrone M, Slater JB, Nelson SJ, Kurhanewicz J, Vigneron DB. Investigation of analysis methods for hyperpolarized 13C-pyruvate metabolic MRI in prostate cancer patients. NMR Biomed. 2018 Nov;31(11):e3997. doi: [10.1002/nbm.3997](https://doi.org/10.1002/nbm.3997). Epub 2018 Sep 19. PMID: 30230646; PMCID: PMC6392436.
+```
+Larson PEZ, Chen HY, Gordon JW, Korn N, Maidens J, Arcak M, Tang S, Criekinge M, Carvajal L, Mammoli D, Bok R, Aggarwal R, Ferrone M, Slater JB, Nelson SJ, Kurhanewicz J, Vigneron DB. Investigation of analysis methods for hyperpolarized 13C-pyruvate metabolic MRI in prostate cancer patients. NMR Biomed. 2018 Nov;31(11):e3997.
+https://doi.org/10.1002/nbm.3997. Epub 2018 Sep 19. PMID: 30230646; PMCID: PMC6392436.
+```
 * See Figures 4-6
 
-James Bankson, Peder E.Z. Larson,
-6 - Analysis and visualization of hyperpolarized 13C MR data,
-Editor(s): Peder E.Z. Larson,
-Advances in Magnetic Resonance Technology and Applications,
-Academic Press,
-Volume 3,
-2021,
-Pages 129-155,
-ISSN 2666-9099,
-ISBN 9780128222690,
-https://doi.org/10.1016/B978-0-12-822269-0.00004-X
+```
+James Bankson, Peder E.Z. Larson, Analysis and visualization of hyperpolarized 13C MR data, Editor(s): Peder E.Z. Larson, Advances in Magnetic Resonance Technology and Applications, Academic Press,
+Volume 3, 2021, Pages 129-155, ISSN 2666-9099, ISBN 9780128222690, https://doi.org/10.1016/B978-0-12-822269-0.00004-X
+```
 * Figures 6.8 and 6.9
