@@ -9,11 +9,15 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 ## Citations
 
 ```
-Hyperpolarized-MRI-Toolbox.  Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox  https://dx.doi.org/10.5281/zenodo.1198915
+Hyperpolarized-MRI-Toolbox.
+Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox
+https://dx.doi.org/10.5281/zenodo.1198915
 ```
 
 ```
-Crane, JC, Gordon, JW, Chen, H-Y, Autry AW, Li Y, Olson MP, Kurhanewicz J, Vigneron DB, Larson PEZ, Xu D. Hyperpolarized 13C MRI data acquisition and analysis in prostate and brain at University of California, San Francisco. NMR in Biomedicine. 2021; 34:e4280. https://doi.org/10.1002/nbm.4280
+Crane, JC, Gordon, JW, Chen, H-Y, Autry AW, Li Y, Olson MP, Kurhanewicz J, Vigneron DB, Larson PEZ, Xu D.
+Hyperpolarized 13C MRI data acquisition and analysis in prostate and brain at University of California, San Francisco.
+NMR in Biomedicine. 2021; 34:e4280. https://doi.org/10.1002/nbm.4280
 ```
 
 ## Getting Started
