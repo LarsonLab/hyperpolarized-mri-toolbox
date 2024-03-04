@@ -1,4 +1,4 @@
-function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, nAugment, augmentSeed)%, imagesOutFlag)
+function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, nAugment, augmentSeed)%, imagesOutFlag)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
@@ -10,6 +10,8 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
 %                         compartments [vasculature, gray matter, white matter]
 %       isFuzzy         = logical flag to indicate if fuzzy tissue boundaries
 %                         will be used, default = true
+%       matSize         = 1x3 vector for desired matrix size of each dimension
+%                         [nx ny nz], deafult = [16 16 8]
 %       nAugment        = number of random augmentations, if not defined a
 %                         single unaugmented phantom will be generated,
 %                         default = 1
@@ -32,6 +34,7 @@ arguments
     kineticRates (:,3) double {mustBeNumeric} = [0.1, 0.2, 0.3; 0, 0, 0]
     ktransScales (1,3) double {mustBeNumeric} = [1, 0.3, 0.3]
     isFuzzy double {mustBeNumericOrLogical} = true
+    matSize (1,3) double {mustBeInteger} = [16, 8, 8]
     nAugment double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
     augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
     %imagesOutFlag double {mustBeNumericOrLogical} = false
@@ -78,9 +81,14 @@ k_1_2_wSum = pagemtimes(k_1_2,permute(im_mask,[4 1 2 3]));
 k_1_2_MAP = squeeze(k_1_2_wSum)./sumWeights;
 k_1_3_wSum = pagemtimes(k_1_3,permuted_mask);
 k_1_3_MAP = squeeze(k_1_3_wSum)./sumWeights;
-kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
-kMaps(isnan(kMaps)) = 0;
+k_1_2_MAP(isnan(k_1_2_MAP)) = 0;
+k_1_3_MAP(isnan(k_1_3_MAP)) = 0;
 
+% resample/downsample maps to desired size
+kTRANS = imresize3(kTRANS, matSize);
+k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
+k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
+kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
 
 % Add Augmentation support here eventually
 % have fun Sule :)
