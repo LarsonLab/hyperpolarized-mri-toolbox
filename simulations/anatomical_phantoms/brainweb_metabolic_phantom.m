@@ -1,4 +1,4 @@
-function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, nAugment, augmentSeed)%, imagesOutFlag)
+function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, nAugment, augmentSeed)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
@@ -12,109 +12,110 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
 %                         will be used, default = true
 %       matSize         = 1x3 vector for desired matrix size of each dimension
 %                         [nx ny nz], deafult = [16 16 8]
+%       simParams       = parameters used for the kinetic simulations: Mz0, 
+%                         Tarrival, Tbolus, TR, Nt, R1, flips; if empty won't
+%                         generate metImages, default = empty struct
 %       nAugment        = number of random augmentations, if not defined a
 %                         single unaugmented phantom will be generated,
 %                         default = 1
 %       augmentSeed     = random seed for augmentations
-%       imagesOutFlag   = flag indicating whether metabolite images will be
-%                         simulated and returned as an output, default = 0
 %
 %   Outputs:
 %       kTRANS      = generated perfusion map
 %       kMaps       = generated rate maps for 1->2 and 1->3
-%       metImages   = (UNDER CONSTRUCTION)simulated metabolite dynamic images
+%       metImages   = simulated metabolite dynamic images
 %
 %   Author:
 %       Jasmine Hu
 %       Anna Bennett
 %       Sule Sahin
 
-% parse input arguments
-arguments
-    kineticRates (:,3) double {mustBeNumeric} = [0.1, 0.2, 0.3; 0, 0, 0]
-    ktransScales (1,3) double {mustBeNumeric} = [1, 0.3, 0.3]
-    isFuzzy double {mustBeNumericOrLogical} = true
-    matSize (1,3) double {mustBeInteger} = [16, 8, 8]
-    nAugment double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
-    augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
-    %imagesOutFlag double {mustBeNumericOrLogical} = false
-end
-
-
-% load base anatomical information
-resourcesDir = './resources';
-if isFuzzy
-    brainwebFile = 'brainweb04_fuzzy_hires.mat';
-else
-    brainwebFile = 'brainweb04_hi_res.mat';
-end
-baseMaskFile = dir(fullfile(resourcesDir,brainwebFile));
-if isempty(baseMaskFile)
-    error('Error. \nBrainWeb mask file, %s, not found in resources directory.',brainwebFile)
-end
-
-load(fullfile(baseMaskFile.folder,brainwebFile),'im_mask');
-vasc_mask = squeeze(im_mask(:,:,1,:));
-maskSize = size(im_mask,1:3);
-gm_mask = squeeze(im_mask(:,:,2,:));
-wm_mask = squeeze(im_mask(:,:,3,:));
-
-k_1_2 = kineticRates(1,:);
-k_1_3 = kineticRates(2,:);
-
-nTissues = 3;
-if size(im_mask,4) ~= nTissues
-    error('Unexpected number of tissues present in the imported masks, ask for help, idk.');
-end
-
-% parameters for output map generation
-permuted_mask = permute(im_mask,[4 1 2 3]);
-sumWeights = sum(im_mask,4);
-
-% generate the kTRANS masked volume
-kTRANS_wSum = pagemtimes(ktransScales,permuted_mask);
-kTRANS = squeeze(kTRANS_wSum)./sumWeights;
-kTRANS(isnan(kTRANS)) = 0;
-
-% generate the kinetic rate maps
-k_1_2_wSum = pagemtimes(k_1_2,permute(im_mask,[4 1 2 3]));
-k_1_2_MAP = squeeze(k_1_2_wSum)./sumWeights;
-k_1_3_wSum = pagemtimes(k_1_3,permuted_mask);
-k_1_3_MAP = squeeze(k_1_3_wSum)./sumWeights;
-k_1_2_MAP(isnan(k_1_2_MAP)) = 0;
-k_1_3_MAP(isnan(k_1_3_MAP)) = 0;
-
-% resample/downsample maps to desired size
-kTRANS = imresize3(kTRANS, matSize);
-k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
-k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
-kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
-
-% Add Augmentation support here eventually
-% have fun Sule :)
-
-metImages = 0;
-% UNDER CONSTRUCTION: output of simulated images is not completed
-% if imagesOutFlag % output simulated metabolite dynamic images
-%     % simulate signals
-%     % assume simulation parameters are stored in a cell array of structs,
-%     % because I said so, eventually this should be a custom class
-%     params = simParams{1}; % Mz0, Tarrival, Tbolus, TR, Nt, R1,
-% 
-%     input_function = realistic_input_function(params.Nt, params.TR, params.Tarrival, params.Tbolus);% normalize for a total magnetization input = 1
-%     Mz0 = [0,0];
-%     nMets = size(kineticRates,1) + 1;
-% 
-%     for i=1:numel(nTissues)
-%         [Mxy, ~] = simulate_Nsite_model(Mz0, params.R1, [k_1_2(i) k_1_3(i)], params.flips, params.TR, input_function*kTRANS(k) );
-%         noise_S = randn([2 params.Nt])* params.std_noise;
-%         simData{i} = Mxy + noise_S;
-%     end
-% 
-%     % create metabolite masks per tissue type
-%     % vascular pool will reflect only the input function for now
-%     metImages = zeros([size(vasc_mask) nMets]);
-% 
-% end
+    % parse input arguments
+    arguments
+        kineticRates (:,3) double {mustBeNumeric} = [0.1, 0.2, 0.3; 0, 0, 0]
+        ktransScales (1,3) double {mustBeNumeric} = [1, 0.3, 0.3]
+        isFuzzy double {mustBeNumericOrLogical} = true
+        matSize (1,3) double {mustBeInteger} = [16, 16, 8]
+        simParams struct = struct([])
+        nAugment double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
+        augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
+        
+    end
+    
+    
+    % load base anatomical information
+    resourcesDir = './resources';
+    if isFuzzy
+        brainwebFile = 'brainweb04_fuzzy_hires.mat';
+    else
+        brainwebFile = 'brainweb04_hi_res.mat';
+    end
+    baseMaskFile = dir(fullfile(resourcesDir,brainwebFile));
+    if isempty(baseMaskFile)
+        error('Error. \nBrainWeb mask file, %s, not found in resources directory.',brainwebFile)
+    end
+    
+    load(fullfile(baseMaskFile.folder,brainwebFile),'im_mask');
+    vasc_mask = squeeze(im_mask(:,:,1,:));
+    maskSize = size(im_mask,1:3);
+    gm_mask = squeeze(im_mask(:,:,2,:));
+    wm_mask = squeeze(im_mask(:,:,3,:));
+    
+    k_1_2 = kineticRates(1,:);
+    k_1_3 = kineticRates(2,:);
+    
+    nTissues = 3;
+    if size(im_mask,4) ~= nTissues
+        error('Unexpected number of tissues present in the imported masks, ask for help, idk.');
+    end
+    
+    % parameters for output map generation
+    permuted_mask = permute(im_mask,[4 1 2 3]);
+    sumWeights = sum(im_mask,4);
+    
+    % generate the kTRANS masked volume
+    kTRANS_wSum = pagemtimes(ktransScales,permuted_mask);
+    kTRANS = squeeze(kTRANS_wSum)./sumWeights;
+    kTRANS(isnan(kTRANS)) = 0;
+    
+    % generate the kinetic rate maps
+    k_1_2_wSum = pagemtimes(k_1_2,permute(im_mask,[4 1 2 3]));
+    k_1_2_MAP = squeeze(k_1_2_wSum)./sumWeights;
+    k_1_3_wSum = pagemtimes(k_1_3,permuted_mask);
+    k_1_3_MAP = squeeze(k_1_3_wSum)./sumWeights;
+    k_1_2_MAP(isnan(k_1_2_MAP)) = 0;
+    k_1_3_MAP(isnan(k_1_3_MAP)) = 0;
+    
+    % resample/downsample maps to desired size
+    kTRANS = imresize3(kTRANS, matSize);
+    k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
+    k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
+    kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
+    
+    % Add Augmentation support here eventually
+    % have fun Sule :)
+    
+    if ~isempty(simParams) % output simulated metabolite dynamic images
+        % simulate signals
+        % store simulation parameters a in a struct,
+        % eventually this should be a custom class
+    
+        input_function = realistic_input_function(simParams.Nt, simParams.TR, simParams.Tarrival, simParams.Tbolus);
+        nMets = size(kineticRates,1) + 1;
+    
+        metImages = zeros(cat(2,matSize,[nMets, simParams.Nt]));
+        for Ix = 1:matSize(1)
+            for Iy = 1:matSize(2)
+                for Iz = 1:matSize(3)
+                    [Mxy, ~] = simulate_Nsite_model(simParams.Mz0, simParams.R1, [kMaps(Ix,Iy,Iz,1) 0; kMaps(Ix,Iy,Iz,2) 0], simParams.flips, simParams.TR, input_function*kTRANS(Ix,Iy,Iz) );
+                    noise_S = randn([nMets simParams.Nt])* simParams.std_noise; % add noise %TO DO: define noise as percentage of input?
+                    metImages(Ix,Iy,Iz,:,:) = Mxy + noise_S;
+                end
+            end
+        end
+    
+    else
+        metImages = 0;
+    end
 
 end
