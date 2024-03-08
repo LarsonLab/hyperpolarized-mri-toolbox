@@ -18,7 +18,13 @@ simParams.R1 = [1/30 1/25 1/25];
 simParams.flips = ones(3,simParams.Nt)*20*pi/180;
 simParams.std_noise = 0.003; 
 
-[k_trans, k_maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams);
+% define augmentation parameters
+augmentParams.XTranslation = [-1 1];
+augmentParams.Scale = [0.9 1.1];
+augmentParams.XReflection = true;
+augmentParams.Rotation = [-5 5];
+
+[k_trans, k_maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, augmentParams);
 
 %% visualize kTRANS and k maps
 

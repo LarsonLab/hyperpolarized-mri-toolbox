@@ -1,4 +1,4 @@
-function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, nAugment, augmentSeed)
+function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, augmentParams, augmentSeed)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
@@ -15,10 +15,11 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
 %       simParams       = parameters used for the kinetic simulations: Mz0, 
 %                         Tarrival, Tbolus, TR, Nt, R1, flips; if empty won't
 %                         generate metImages, default = empty struct
-%       nAugment        = number of random augmentations, if not defined a
-%                         single unaugmented phantom will be generated,
-%                         default = 1
-%       augmentSeed     = random seed for augmentations
+%       augmentParams   = random augmentation parameters XTranslation, 
+%                         YTranslation etc, if not defined a single 
+%                         unaugmented phantom will be generated,
+%                         default = empty struct
+%       augmentSeed     = random seed for augmentations, default no seed
 %
 %   Outputs:
 %       kTRANS      = generated perfusion map
@@ -37,12 +38,29 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
         isFuzzy double {mustBeNumericOrLogical} = true
         matSize (1,3) double {mustBeInteger} = [16, 16, 8]
         simParams struct = struct([])
-        nAugment double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
-        augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = 1
-        
+        augmentParams struct = struct()
+        augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = []
+    end
+
+    if augmentSeed
+        rng(augmentSeed)
+    else
+        rng("shuffle")
     end
     
-    
+    % define default augmentation parameters and set augmentParams to them
+    % if not defined
+    defaultAugParams.XReflection = false; defaultAugParams.YReflection = false;
+    defaultAugParams.Rotation = [0 0]; defaultAugParams.Scale = [1 1];
+    defaultAugParams.XShear = [0 0]; defaultAugParams.YShear = [0 0];
+    defaultAugParams.XTranslation = [0 0]; defaultAugParams.YTranslation = [0 0];
+    augs = fields(defaultAugParams);
+    for f=1:size(augs,1)
+        if ~isfield(augmentParams,augs{f})
+            augmentParams.(augs{f}) = defaultAugParams.(augs{f});
+        end
+    end
+
     % load base anatomical information
     resourcesDir = './resources';
     if isFuzzy
@@ -90,10 +108,19 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     kTRANS = imresize3(kTRANS, matSize);
     k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
     k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
-    kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
     
-    % Add Augmentation support here eventually
-    % have fun Sule :)
+    % Random Augmentations (requires image processing toolbox)
+    tform = randomAffine2d('Rotation',augmentParams.Rotation, 'Scale', ...
+        augmentParams.Scale, 'XReflection', augmentParams.XReflection, ...
+        'YReflection', augmentParams.YReflection, 'XTranslation', ...
+        augmentParams.XTranslation, 'YTranslation', augmentParams.YTranslation, ...
+        'XShear', augmentParams.XShear, 'YShear', augmentParams.YShear);
+    outputView = affineOutputView(size(kTRANS),tform);
+    kTRANS = imwarp(kTRANS,tform,OutputView=outputView); 
+    k_1_2_MAP = imwarp(k_1_2_MAP,tform,OutputView=outputView);
+    k_1_3_MAP = imwarp(k_1_3_MAP,tform,OutputView=outputView);
+    
+    kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
     
     if ~isempty(simParams) % output simulated metabolite dynamic images
         % simulate signals
