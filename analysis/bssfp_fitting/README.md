@@ -2,6 +2,10 @@
 
 An extended, flexible pharmacokinetic model that allows for choice of acquisition type for each metabolite: 3D bSSFP, 2D GRE or 3D GRE.
 
+Requirements:
+
+Optimization Toolbox
+
 Functions:
 
 `multisite_bSSFP_fit()` - fitting function
