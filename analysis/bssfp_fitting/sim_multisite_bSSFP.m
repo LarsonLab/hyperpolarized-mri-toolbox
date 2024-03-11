@@ -41,7 +41,6 @@ function [Mxy, Mz] = sim_multisite_bSSFP(flips, TR, TempRes, R1, k, Nt, Mz0, var
 %
 % Author: Sule Sahin, 2024 Copyright
 
-    % TO DO: add checks in place to catch errors
     p = inputParser;
     p.addParameter( 'R2', [], @isstruct );
     p.addParameter( 'spoilers', [], @isvector );
@@ -118,7 +117,7 @@ function [Mxy, Mz] = sim_multisite_bSSFP(flips, TR, TempRes, R1, k, Nt, Mz0, var
         flips.A = repmat(flips.A, [Nt, 1]);
     end
     
-    if isempty(input)  % TO DO : cleanup
+    if isempty(input)
         input = zeros([1 Nt]);
     end
     input_fxn = zeros([nmets*3 Nt]);    
@@ -147,40 +146,6 @@ function [Mxy, Mz] = sim_multisite_bSSFP(flips, TR, TempRes, R1, k, Nt, Mz0, var
     if abs(TempRes - TotalTR) > 0.3
         warning("Sum of TRs is not equal or close to Temporal Resolution. The difference between the sum and Temp Res is more than 0.3s. Please check definition of TR and TempRes.")
     end
-    
-%     % determine FA scaling
-%     FA_scale = ones([1 nmets]);
-%     met_list={'P', 'L', 'B', 'A'};
-%     if any(spoilers) %if any gre sequence (if not dont need to scale)
-%         if all(spoilers)
-%             Nb = size(flips.P,2); %if only GRE use # pe for pyruvate
-%         else
-%             ssfp_idx = find(spoilers==0); %find # PE for bssfp using TR
-%             TR_ssfp = TR.(met_list{ssfp_idx(1)});
-%             TR_nonramp = TR_ssfp(round(length(TR_ssfp)/2)); %dont include catalyzation pulses
-%             Nb = size(TR_ssfp(TR_ssfp==TR_nonramp),2); 
-%         end
-%         for met= 1:nmets
-%             if spoilers(met) == 1
-%                 flips_met = flips.(met_list{met});
-%                 Npe = size(flips_met,2);
-%                 FA = flips_met(1,1);
-%                 FA_scale(met) = sind(acosd(nthroot(cosd(FA)^Npe,Nb))) / sind(FA);
-%             end
-%         end
-%     end
-
-    % determine bssfp vs GRE scaling
-%     Tread_scale = ones([1 nmets]);
-%     if any(spoilers) %if any gre sequence (if not dont need to scale)
-%         gre_idx = find(spoilers); %scale by Tread of 1st met w/ gre sequence
-%         for met= 1:nmets
-%             if spoilers(met) == 0
-%                 %Tread_scale(met) = Tread(met) ./ Tread(gre_idx(1)); %original scale
-%                 Tread_scale(met) = Tread(gre_idx(1)) ./ Tread(met); %inverse/theoretical scale
-%             end
-%         end
-%     end
     
     %define R for given relaxation rates and initial mag vector
     switch nmets

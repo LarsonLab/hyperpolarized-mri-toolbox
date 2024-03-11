@@ -52,9 +52,10 @@ params_est.Mz0_P = 3;
 params_est.Mz0_L = 0.5;
 acq_sequence = ["3DGRE", "3DbSSFP"];
 verbose = 0;
+UseParallel = true;
 
 [fitparams, error, ~, ~] = multisite_bSSFP_fit(S, params_fixed, params_est, flips, TR, TempRes, acq_sequence,...
-    'cat_flips', cat_flips, 'cat_TR', cat_TR, 'verbose', verbose);
+    'cat_flips', cat_flips, 'cat_TR', cat_TR, 'UseParallel', true, 'verbose', verbose);
 
 %reshape kPLs and error maps back to 3D
 kpl_map_flat = zeros([nx*ny*nz, 1]);

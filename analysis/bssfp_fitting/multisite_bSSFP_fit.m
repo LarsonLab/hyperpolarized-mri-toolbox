@@ -34,6 +34,8 @@ function [finalfit, metrics, Mxy_fit, Mz_fit, input_all] = multisite_bSSFP_fit(S
 %    default is [half of bSSFP TR] 
 % B1 - vector of size [#vox 1], if B1 is provided will scale flip angles
 %    with the given value per voxel
+% UseParallel - when true uses parallel computing for optimization 
+%    (note: not per voxel), default: false
 % verbose - 1 to display plots and fitting results, 0 to not, default:0
 %
 % Outputs:
@@ -48,8 +50,6 @@ function [finalfit, metrics, Mxy_fit, Mz_fit, input_all] = multisite_bSSFP_fit(S
 % Author: Sule Sahin, 2024 Copyright
 
     % TO DO: add user specified lower and upper bounds  
-    % TO DO: are current error metrics sufficient?     
-    % TO DO: add checks in place to catch errors
     
     p = inputParser;
     p.addParameter( 'input', [], @isvector );
@@ -57,6 +57,7 @@ function [finalfit, metrics, Mxy_fit, Mz_fit, input_all] = multisite_bSSFP_fit(S
     p.addParameter( 'cat_flips', [], @isvector );
     p.addParameter( 'cat_TR', [], @isvector );
     p.addParameter( 'B1', [], @isvector );
+    p.addParameter( 'UseParallel', false, @islogical);
     p.addParameter( 'verbose', false, @(x) islogical(x) || isnumeric(x) );
     p.parse( varargin{:} );
     input = p.Results.input;
@@ -64,6 +65,7 @@ function [finalfit, metrics, Mxy_fit, Mz_fit, input_all] = multisite_bSSFP_fit(S
     cat_flips = p.Results.cat_flips;
     cat_TR = p.Results.cat_TR;
     B1vals = p.Results.B1;
+    UseParallel = p.Results.UseParallel;
     verbose = p.Results.verbose;
     
     %-------- parameter setup & variable checks --------
@@ -242,10 +244,9 @@ function [finalfit, metrics, Mxy_fit, Mz_fit, input_all] = multisite_bSSFP_fit(S
             flips_scaled.(mets{met}) = flips.(mets{met}) .* B1vals(i);
         end
         
-        opts = optimoptions('lsqnonlin', 'Display', 'none', 'UseParallel', true);
+        opts = optimoptions('lsqnonlin', 'Display', 'none', 'UseParallel', UseParallel);
         obj = @(var) difference_squared(var, params_fixed, S_vox, flips_scaled, TR, TotalTR, TempRes, pyr_cat_flips, pyr_cat_TR, cat_flips, cat_TR, Nt, spoilers, all_params, input_all(i,:), scales, fit_params) ;  % perform least-squares in signal domain
         [fitparam(i, :), metrics.obj_val] = lsqnonlin(obj, params_est_vector, lb, ub, opts);
-        %[fitparam, metrics.obj_val] = lsqnonlin(obj, params_est_vector, [], [], opts);
         % TO DO: errors on kPL and other rate constants
     
         [Mz0_new, R1_new, R2_new, k_new] = unpack_parameters(fitparam(i, :), params_fixed, all_params, fit_params);
@@ -316,10 +317,7 @@ function diff = difference_squared(params_est_vector, params_fixed, S, flips, TR
     end
 
     [Mxy, ~] = sim_multisite_bSSFP(flips, TR, TempRes, R1, k, Nt, Mz0, 'R2', R2, 'spoilers', spoilers, 'scales', scales, 'cat_flips', cat_flips, 'cat_TR', cat_TR, 'input', input);
-    %diff = (S(2:end,:) - Mxy(2:end,:)).^2; 
     diff = S(2:end,:) - Mxy(2:end,:); 
-    %diff = (S - Mxy).^2;
-    %diff = S - Mxy;
     diff = diff(:);
 end
 
