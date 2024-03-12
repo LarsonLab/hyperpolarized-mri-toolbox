@@ -105,7 +105,8 @@ mask = imresize(mask,[size(base_images,1),size(base_images,2)],'nearest');
 overlay_images = overlay_images .* mask(:,:,sl);
 base_images2 = crop_images(base_images,crop_idx);
 overlay_images = crop_images(overlay_images,crop_idx);
-figure;imagescn_overlay(base_images2,[], overlay_images, kpl_scale, [1 numel(sl)], 1e-6, 0.4, 'fire', [], 1)
+figure;imagescn_overlay(base_images2,[], overlay_images, kpl_scale, [1 numel(sl)], 1e-6, 0.4, 'hot', [], 1)
+set(gcf, 'Name', 'kPL map')
 
 %plot T2L map
 if isfield(fitparams, 'R2L')
@@ -113,7 +114,8 @@ if isfield(fitparams, 'R2L')
     overlay_images = imresize(overlay_images,[size(base_images,1),size(base_images,2)],'nearest');
     overlay_images = overlay_images .* mask(:,:,sl);
     overlay_images = crop_images(overlay_images,crop_idx);
-    figure;imagescn_overlay(base_images2,[], overlay_images, t2l_scale, [1 numel(sl)], [], 0.3, 'fire', [], 1)
+    figure;imagescn_overlay(base_images2,[], overlay_images, t2l_scale, [1 numel(sl)], [], 0.3, 'hot', [], 1)
+    set(gcf, 'Name', 'R2L map')
 end
 
 %plot NRMSE Lac map
@@ -121,7 +123,8 @@ overlay_images = NRMSE_lac_map(:,:,sl);
 overlay_images = imresize(overlay_images,[size(base_images,1),size(base_images,2)],'nearest');
 overlay_images = overlay_images .* mask(:,:,sl);
 overlay_images = crop_images(overlay_images,crop_idx);
-figure;imagescn_overlay(base_images2,[], overlay_images, nrmse_scale, [1 numel(sl)], [], 0.3, 'fire', [], 1)
+figure;imagescn_overlay(base_images2,[], overlay_images, nrmse_scale, [1 numel(sl)], [], 0.3, 'hot', [], 1)
+set(gcf, 'Name', 'NRMSE Lac map')
 
 
 %% util functions
