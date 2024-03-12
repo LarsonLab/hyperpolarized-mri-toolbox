@@ -48,7 +48,7 @@ Note that it may take several minutes to build if this has not been used in a wh
 
 #### MATLAB
 
-Toolboxes: Optimization, Image Processing
+Toolboxes: Optimization, Image Processing, Statistics and Machine Learning
 
 #### Octave
 

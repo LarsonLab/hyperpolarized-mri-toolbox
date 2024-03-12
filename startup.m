@@ -13,9 +13,10 @@ end
 
 
 if ~isOctave % MATLAB
-    % Test Optimization toolbox is installed
-    if ~license('test', 'Optimization_Toolbox'), error('Optimization Toolbox is not installed on your system: kinetic modeling won''t work. Please consider installing <a href="matlab:matlab.internal.language.introspective.showAddon(''OP'');">Optimization Toolbox</a>'); end
+    % Check if specific toolboxes are installed
+    if ~license('test', 'Optimization_Toolbox'), warning('Optimization Toolbox is not installed on your system: kinetic modeling won''t work. Please consider installing <a href="matlab:matlab.internal.language.introspective.showAddon(''OP'');">Optimization Toolbox</a>'); end
     if ~license('test', 'Image_Toolbox'), warning('Image Toolbox is not installed: some display functions will not work. Consider installing <a href="matlab:matlab.internal.language.introspective.showAddon(''IP'');">Image Processing Toolbox</a>'); end
+    if ~license('test', 'Statistics_Toolbox'), warning('Statistics and Machine Learning Toolbox is not installed: some functions will not work.'); end
 else % OCTAVE
     % install octave package
     installlist = {'optim','image','io','statistics', 'signal'};
