@@ -77,7 +77,8 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     end
 
     % load base anatomical information
-    resourcesDir = './resources';
+    currDir = split(mfilename('fullpath'),'/');
+    resourcesDir = strcat(string(join(currDir(1:end-1),'/')),'/resources');
     if isFuzzy
         brainwebFile = 'brainweb04_fuzzy_hires.mat';
     else
