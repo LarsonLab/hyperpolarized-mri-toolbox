@@ -61,7 +61,7 @@ if isempty(Nx)
     Nx = 1;
 end
 
-% parse flip angles
+% parse flip angles, assume phase_encodes=1
 if length(flips) == 1 % only a single flip angle for all metabolites
     flips = repmat(flips, [Nmets Nt]);
 elseif length(flips) == Nmets % only one flip angle for each metabolite, but same across time
@@ -71,8 +71,8 @@ end
 [size_flips] = size(flips);
 if all(size_flips == [Nt Nmets])
     flips = flips.';
-elseif any(size_flips ~= [Nmets Nt])
-    error('Flip angles should be of size [Nmets Nt], [Nmets 1], or [1]')
+elseif size_flips(1) ~= Nmets
+    error('Flip angles should be of size [Nmets Nt*#phase_encodes], [Nmets 1], or [1]')
 end
 
 params_all = {'kPL', 'kPB', 'kPA', ...
