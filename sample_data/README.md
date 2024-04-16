@@ -22,6 +22,12 @@ Gordon, Jeremy W, Daniel B Vigneron, and Peder E Z Larson. “Development of a S
 
 ![Rat Kidneys EPI Data and Fit](rat%20kidneys%20sample%20data.png)
 
+## Rat Kidneys Spiral bSSFP
+
+This dataset contains pyruvate, lactate and alanine dynamic imaging using metabolite-specific GRE or bSSFP with a spiral trajectory in normal rat kidneys. For the first shot, lactate is acquired with a 3D bSSFP acquisition and pyruvate, alanine are acquired with 3D GRE acquisitions (`shot1_bssfp_lac`). For the second shot, pyruvate, lactate and alanine are all acquired with a spiral 3D GRE acquisition (`shot2_gre_all`).
+
+Experiment details and parameters can be found in:
+Tang, Shuyu, Robert Bok, Hecong Qin, Galen Reed, Mark VanCriekinge, Romelyn Delos Santos, William Overall, et al. "A metabolite-specific 3D stack-of-spiral bSSFP sequence for improved lactate imaging in hyperpolarized [1-13 C]pyruvate studies on a 3T clinical scanner." Magn Reson Med, September 2020. https://doi.org/10.1002/mrm.28204. https://www.ncbi.nlm.nih.gov/pubmed/32086845.
 
 ## TRAMP Mouse Multi-slice EPI
 

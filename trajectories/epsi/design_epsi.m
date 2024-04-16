@@ -80,15 +80,16 @@ switch epsi_type
         gparams.spec_bw = 1 / (2*length(g_readlobe)*opts.samp_rate);
         
     case 'flyback'
-        % prioritizes spec_bw
-        %  g_fblobe = dzg_short(1/spatial_res);
-        %  [g_readlobe gparams.data_samp_rate, gparams.n_skip, gparams.n_read] = ...
-        %       dzg_read(1/spec_bw - length(g_fblobe)*opts.samp_rate, 1/spatial_res, ramp_sampling);
-        
-        % prioritizes spatial_res
-        [g_readlobe, g_fblobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read, n_plateau1_out, n_plateau2_out, n_ramp1_out, n_ramp2_out] = ...
-            dzg_flyback(floor(1/spec_bw/opts.samp_rate)*opts.samp_rate, 1/spatial_res, ramp_sampling,opts, spatial_fov);
-        
+        try
+            % prioritizes spatial_res
+            [g_readlobe, g_fblobe, n_samp_delay, gparams.data_samp_rate, gparams.n_skip, gparams.n_read, n_plateau1_out, n_plateau2_out, n_ramp1_out, n_ramp2_out] = ...
+                dzg_flyback(floor(1/spec_bw/opts.samp_rate)*opts.samp_rate, 1/spatial_res, ramp_sampling,opts, spatial_fov);
+        catch
+            % prioritizes spec_bw
+             [g_fblobe n_plateau2_out n_ramp2_out] = dzg_short(1/spatial_res);
+             [g_readlobe n_samp_delay gparams.data_samp_rate, gparams.n_skip, gparams.n_read, n_plateau1_out, n_ramp1_out] = ...
+                  dzg_read(1/spec_bw - length(g_fblobe)*opts.samp_rate, 1/spatial_res, ramp_sampling);
+        end  
         g_dephase = dzg_short(sum(g_readlobe)/2 * opts.samp_rate * opts.GAMMA);
         Nlobes = ceil(1/(2*spec_res * (length(g_readlobe)+length(g_fblobe))* opts.samp_rate));
         g = [-g_dephase, kron(ones(1,Nlobes),[g_readlobe -g_fblobe])];
@@ -198,7 +199,7 @@ ktraj_g = opts.GAMMA*opts.samp_rate*cumsum(g);
         
     end
 
-    function g = dzg_short(Ak)
+    function [g, n_plateau, n_ramp] = dzg_short(Ak)
         % Ak - total gradient area (1/cm)
         S = opts.max_slew*1e3;
         A = Ak / opts.GAMMA;
@@ -238,7 +239,11 @@ solns = solve(A == (D1 + framp*d1)*S*d1, T == D1 + 2*(d1+d2), S*d1*(D1+d1) == S*
 if isempty(solns)
     error('Cannot design EPSI for chosen spatial_res, spec_bw & ramp_sampling.  Try relaxing these contraints.')
 end
-SD1 = eval(solns.D1); SD2 = zeros(size(SD1)); Sd1 = eval(solns.d1); Sd2 = eval(solns.d2);  % This may require Simulink toolbox, use 'float' instead?
+try
+    SD1 = eval(solns.D1); SD2 = zeros(size(SD1)); Sd1 = eval(solns.d1); Sd2 = eval(solns.d2);  % This may require Simulink toolbox, use 'float' instead?
+catch
+    error('Gradient design error.')
+end
 
 n_ramp1 = ceil(Sd1 / opts.samp_rate);
 n_ramp2 = ceil(Sd2 / opts.samp_rate);
