@@ -1,4 +1,4 @@
-function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, linear_kTRANS_grad, augmentParams, augmentSeed)
+function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, linear_kTRANS_grad, augmentParams, brain_idx, augmentSeed)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
@@ -23,6 +23,8 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
 %                         YTranslation etc, if not defined a single 
 %                         unaugmented phantom will be generated,
 %                         default = empty struct
+%       brain_idx       = specify if want to use a specific brain index (1-20),
+%                         default = randomly choose a brain
 %       augmentSeed     = random seed for augmentations, default no seed
 %
 %   Outputs:
@@ -46,6 +48,7 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
         simParams struct = struct([])
         linear_kTRANS_grad double {mustBeNumericOrLogical} = false
         augmentParams struct = struct()
+        brain_idx {mustBeInteger} = []
         augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = []
     end
 
@@ -77,12 +80,15 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     end
 
     % load base anatomical information
+    if isempty(brain_idx)
+        brain_idx = randi(20);
+    end
     currDir = split(mfilename('fullpath'),'/');
-    resourcesDir = strcat(string(join(currDir(1:end-1),'/')),'/resources');
+    resourcesDir = fullfile(string(join(currDir(1:end-1),'/')),'/resources',num2str(brain_idx));
     if isFuzzy
-        brainwebFile = 'brainweb04_fuzzy_hires.mat';
+        brainwebFile = 'brainweb_fuzzy.mat';
     else
-        brainwebFile = 'brainweb04_hi_res.mat';
+        brainwebFile = 'brainweb.mat';
     end
     baseMaskFile = dir(fullfile(resourcesDir,brainwebFile));
     if isempty(baseMaskFile)
@@ -105,7 +111,7 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     end
     
     % parameters for output map generation
-    permuted_mask = permute(im_mask,[4 1 2 3]);
+    permuted_mask = double(permute(im_mask,[4 1 2 3]));
     sumWeights = sum(im_mask,4);
 
     if linear_kTRANS_grad 
@@ -127,7 +133,7 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     kTRANS(isnan(kTRANS)) = 0;
     
     % generate the kinetic rate maps
-    k_1_2_wSum = pagemtimes(k_1_2,permute(im_mask,[4 1 2 3]));
+    k_1_2_wSum = pagemtimes(k_1_2,permuted_mask);
     k_1_2_MAP = squeeze(k_1_2_wSum)./sumWeights;
     k_1_3_wSum = pagemtimes(k_1_3,permuted_mask);
     k_1_3_MAP = squeeze(k_1_3_wSum)./sumWeights;
