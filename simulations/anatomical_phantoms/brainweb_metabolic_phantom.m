@@ -161,7 +161,8 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     k_1_2_MAP = imwarp(k_1_2_MAP,tform,OutputView=outputView);
     k_1_3_MAP = imwarp(k_1_3_MAP,tform,OutputView=outputView);
     
-    kMaps = cat(4,k_1_2_MAP,k_1_3_MAP);
+    kTRANS = flip(kTRANS,3);
+    kMaps = flip(cat(4,k_1_2_MAP,k_1_3_MAP),3); %flip 3rd dimension to match in vivo convention
     
     if ~isempty(simParams) % output simulated metabolite dynamic images
         % simulate signals
