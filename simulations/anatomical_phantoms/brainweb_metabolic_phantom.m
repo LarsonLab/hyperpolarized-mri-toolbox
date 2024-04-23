@@ -23,7 +23,7 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
 %                         YTranslation etc, if not defined a single 
 %                         unaugmented phantom will be generated,
 %                         default = empty struct
-%       brain_idx       = specify if want to use a specific brain index (1-20),
+%       brain_idx       = specify if want to use a specific brain (1-20),
 %                         default = randomly choose a brain
 %       augmentSeed     = random seed for augmentations, default no seed
 %
@@ -139,6 +139,11 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
     k_1_3_MAP = squeeze(k_1_3_wSum)./sumWeights;
     k_1_2_MAP(isnan(k_1_2_MAP)) = 0;
     k_1_3_MAP(isnan(k_1_3_MAP)) = 0;
+
+    %adjust FOV in z
+    kTRANS = kTRANS(:,:,50:310);
+    k_1_2_MAP = k_1_2_MAP(:,:,50:310);
+    k_1_3_MAP = k_1_3_MAP(:,:,50:310);
     
     % resample/downsample maps to desired size in x/y
     kTRANS = imresize3(kTRANS, matSize);
@@ -162,9 +167,14 @@ function [kTRANS, kMaps, metImages] = brainweb_metabolic_phantom(kineticRates, k
         % simulate signals
         % store simulation parameters a in a struct,
         % eventually this should be a custom class
-    
+
+        %rand_delay = randi([0,4]); % how many TRs to delay
+
         input_function = realistic_input_function(simParams.Nt, simParams.TR, simParams.Tarrival, simParams.Tbolus);
+        %input_function = input_function(rand_delay+1:end);
         nMets = size(kineticRates,1) + 1;
+
+        %Mz0 = [input_function(1) 0 0];
     
         metImages = zeros(cat(2,matSize,[nMets, simParams.Nt]));
         for Ix = 1:matSize(1)
