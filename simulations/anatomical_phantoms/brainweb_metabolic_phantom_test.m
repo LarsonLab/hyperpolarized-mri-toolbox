@@ -11,7 +11,6 @@ linear_kTRANS_grad = true;
 
 % define simulation parameters: Mz0, Tarrival, Tbolus, TR, Nt, R1, flips,
 % std_noise
-simParams.Mz0 = [0 0 0];
 simParams.Tarrival = 0;
 simParams.Tbolus = 8;
 simParams.TR = 4;
@@ -26,7 +25,15 @@ augmentParams.Scale = [0.95 1.1];
 augmentParams.XReflection = true;
 augmentParams.Rotation = [-5 5];
 
-[k_trans, k_maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, isFuzzy, matSize, simParams, linear_kTRANS_grad, augmentParams);
+% input funciton and Mz0
+rand_delay = 1; % how many TRs to delay input function
+input_function = realistic_input_function(simParams.Nt+rand_delay, simParams.TR, simParams.Tarrival, simParams.Tbolus);
+input_function = input_function(rand_delay+1:end);
+Mz0 = [input_function(1), input_function(1)*.5,     input_function(1)*.5;
+                       0, input_function(1)*.02,   input_function(1)*.02;
+                       0, input_function(1)*.01,   input_function(1)*.01];
+
+[k_trans, k_maps, Mz0_maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, matSize, simParams, input_function, isFuzzy, linear_kTRANS_grad, augmentParams);
 
 %% visualize kTRANS and k maps
 
@@ -43,6 +50,16 @@ imagescn(k_maps(:,:,slices,1),[0 max(k_maps(:,:,slices,1),[],'all')], [1 numel(s
 
 figure, 
 imagescn(k_maps(:,:,slices,2),[0 max(k_maps(:,:,slices,2),[],'all')], [1 numel(slices)]); colormap fire;
+
+% visualize Mz0 maps
+figure,
+imagescn(Mz0_maps(:,:,slices,1),[0 max(Mz0_maps(:,:,slices,1),[],'all')], [1 numel(slices)]); colormap fire;
+
+figure, 
+imagescn(Mz0_maps(:,:,slices,2),[0 max(Mz0_maps(:,:,slices,2),[],'all')], [1 numel(slices)]); colormap fire;
+
+figure, 
+imagescn(Mz0_maps(:,:,slices,3),[0 max(Mz0_maps(:,:,slices,3),[],'all')], [1 numel(slices)]); colormap fire;
 
 %% visualize metImages
 
