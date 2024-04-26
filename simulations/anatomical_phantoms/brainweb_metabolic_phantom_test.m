@@ -9,7 +9,7 @@ isFuzzy = true;
 matSize = [16 16 16];
 linear_kTRANS_grad = true;
 
-% define simulation parameters: Mz0, Tarrival, Tbolus, TR, Nt, R1, flips,
+% define simulation parameters: Tarrival, Tbolus, TR, Nt, R1, flips,
 % std_noise
 simParams.Tarrival = 0;
 simParams.Tbolus = 8;

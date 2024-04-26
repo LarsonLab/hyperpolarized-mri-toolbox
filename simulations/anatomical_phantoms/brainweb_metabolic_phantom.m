@@ -146,12 +146,14 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     Mz0B_MAP = create_map(permuted_mask, Mz0(3,:), sumWeights);
 
     %adjust FOV in z
-    kTRANS = kTRANS(:,:,50:310);
-    k_1_2_MAP = k_1_2_MAP(:,:,50:310);
-    k_1_3_MAP = k_1_3_MAP(:,:,50:310);
-    Mz0P_MAP = Mz0P_MAP(:,:,50:310);
-    Mz0L_MAP = Mz0L_MAP(:,:,50:310);
-    Mz0B_MAP = Mz0B_MAP(:,:,50:310);
+    cropidx1 = randi([40 60]); % make this optional?
+    cropidx2 = randi([300 320]);
+    kTRANS = kTRANS(:,:,cropidx1:cropidx2);
+    k_1_2_MAP = k_1_2_MAP(:,:,cropidx1:cropidx2);
+    k_1_3_MAP = k_1_3_MAP(:,:,cropidx1:cropidx2);
+    Mz0P_MAP = Mz0P_MAP(:,:,cropidx1:cropidx2);
+    Mz0L_MAP = Mz0L_MAP(:,:,cropidx1:cropidx2);
+    Mz0B_MAP = Mz0B_MAP(:,:,cropidx1:cropidx2);
     
     % resample/downsample maps to desired size in x/y
     kTRANS = imresize3(kTRANS, matSize);
