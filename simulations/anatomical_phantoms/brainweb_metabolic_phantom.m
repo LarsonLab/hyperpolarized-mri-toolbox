@@ -74,6 +74,11 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
         warning("kTRANS linear gradient is 'false' but low/high kTRANS values defined. Using first row of kTRANS values.")
     end
     
+    % add resources dir to path
+    fileDir = split(mfilename('fullpath'),'/');
+    utilDir = fullfile(string(join(fileDir(1:end-1),'/')),'/util');
+    addpath(utilDir)
+    
     % define default augmentation parameters and set augmentParams to them
     % if not defined
     defaultAugParams.XReflection = false; defaultAugParams.YReflection = false;
@@ -91,25 +96,25 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     if isempty(brain_idx)
         brain_idx = randi(20);
     end
-    currDir = split(mfilename('fullpath'),'/');
-    resourcesDir = fullfile(string(join(currDir(1:end-1),'/')),'/resources',num2str(brain_idx));
     if isFuzzy
         brainwebFile = 'brainweb_fuzzy.mat';
     else
         brainwebFile = 'brainweb.mat';
     end
-    baseMaskFile = dir(fullfile(resourcesDir,brainwebFile));
+    baseMaskFile = dir(fullfile(utilDir,num2str(brain_idx),brainwebFile));
     if isempty(baseMaskFile)
         error('Error. \nBrainWeb mask file, %s, not found in resources directory.',brainwebFile)
     end
     
     load(fullfile(baseMaskFile.folder,brainwebFile),'im_mask');
-    %vasc_mask = squeeze(im_mask(:,:,:,1));
-    %gm_mask = squeeze(im_mask(:,:,:,2));
-    %wm_mask = squeeze(im_mask(:,:,:,3));
-    %brain_mask = vasc_mask + gm_mask + wm_mask;
+    vasc_mask = squeeze(im_mask(:,:,:,1));
+    gm_mask = squeeze(im_mask(:,:,:,2));
+    wm_mask = squeeze(im_mask(:,:,:,3));
+    brain_mask = vasc_mask + gm_mask + wm_mask;
     maskSize = size(im_mask,1:3);
     
+    weights = coil_dist_map(brain_mask);
+
     nTissues = 3;
     if size(im_mask,4) ~= nTissues
         error('Unexpected number of tissues present in the imported masks, ask for help, idk.');
@@ -154,6 +159,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     Mz0P_MAP = Mz0P_MAP(:,:,cropidx1:cropidx2);
     Mz0L_MAP = Mz0L_MAP(:,:,cropidx1:cropidx2);
     Mz0B_MAP = Mz0B_MAP(:,:,cropidx1:cropidx2);
+    w = weights(:,:,cropidx1:cropidx2);
     
     % resample/downsample maps to desired size in x/y
     kTRANS = imresize3(kTRANS, matSize);
@@ -162,6 +168,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     Mz0P_MAP = imresize3(Mz0P_MAP, matSize);
     Mz0L_MAP = imresize3(Mz0L_MAP, matSize);
     Mz0B_MAP = imresize3(Mz0B_MAP, matSize);
+    w = imresize3(w, matSize);
    
     % Random Augmentations (requires image processing toolbox)
     tform = randomAffine2d('Rotation',augmentParams.Rotation, 'Scale', ...
@@ -176,11 +183,13 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     Mz0P_MAP = imwarp(Mz0P_MAP,tform,OutputView=outputView);
     Mz0L_MAP = imwarp(Mz0L_MAP,tform,OutputView=outputView);
     Mz0B_MAP = imwarp(Mz0B_MAP,tform,OutputView=outputView);
+    w = imwarp(w,tform,OutputView=outputView);
     
     kTRANS = flip(kTRANS,3);
     kMaps = flip(cat(4,k_1_2_MAP,k_1_3_MAP),3); %flip 3rd dimension to match in vivo convention
     Mz0Maps = flip(cat(4,Mz0P_MAP,Mz0L_MAP, Mz0B_MAP),3);
-    
+    w = flip(w,3);
+
     if ~isempty(simParams) % output simulated metabolite dynamic images
         % simulate signals
         % store simulation parameters a in a struct,
@@ -203,6 +212,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
                 end
             end
         end
+        metImages = metImages .* repmat(w, [1 1 1 size(metImages,4) size(metImages,5)]);
     
     else
         metImages = 0;

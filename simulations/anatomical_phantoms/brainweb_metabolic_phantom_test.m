@@ -6,7 +6,7 @@ kineticRates = [0, 0.05, 0.03;
 ktransScales = [1, 0.2, 0.2;
                 3, 0.4, 0.4];
 isFuzzy = true;
-matSize = [16 16 16];
+matSize = [16 16 8];
 linear_kTRANS_grad = true;
 
 % define simulation parameters: Tarrival, Tbolus, TR, Nt, R1, flips,
