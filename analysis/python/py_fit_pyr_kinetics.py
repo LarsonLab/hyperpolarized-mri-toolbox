@@ -15,6 +15,7 @@ def py_fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, plot_flag):
 
     INPUTS: 
     S - multi-voxel or one voxel data over time [voxels, # of metabolites, # of time points]
+        substrate signal followed by metabolites (assumes order: pyr, lac, bic, ala)
     TR - temporal resolution/ time of repetition in sec [scalar]
     flips - flip angle in degrees for each metabolite per time pt [# of mets, # of timepts]
     params_fixed - dict of fixed params and their values
@@ -30,8 +31,8 @@ def py_fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, plot_flag):
     CHIsq - chi sq error for each voxel per metabolite [voxel, # of metabolites-1]
     NRMSE - normalized root mean square error [voxel, # of metabolites-1]
 
-    Translated to Python by Sule Sahin, UCSF
-    Copyright 2024
+    Translated to Python by Sule Sahin
+    Copyright 2024 UCSF
     """
 
     # extract and define data dimensions
@@ -56,7 +57,7 @@ def py_fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, plot_flag):
                          'R1B': 1 / 5, 'S0_P': np.inf, 'S0_L': np.inf, 'S0_B': np.inf, 'S0_A': np.inf}
 
     # setup fitting based on number of metabolites
-    products_string = ['lactate', 'alanine', 'bicarb']
+    products_string = ['lactate', 'bicarbonate', 'alanine']
     if Nmets == 2:  # assume pyruvate & lactate
         params_fixed['kPA'] = 0
         params_fixed['S0_A'] = 0
@@ -65,11 +66,11 @@ def py_fit_pyr_kinetics(S, TR, flips, params_fixed, params_est, plot_flag):
         params_fixed['S0_B'] = 0
         params_fixed['R1B'] = 1
         products_string = ['lactate']
-    elif Nmets == 3:  # assume pyruvate & lactate & alanine
-        params_fixed['kPB'] = 0
-        params_fixed['S0_B'] = 0
-        params_fixed['R1B'] = 1
-        products_string = ['lactate', 'alanine']
+    elif Nmets == 3:  # assume pyruvate & lactate & bicarbonate
+        params_fixed['kPA'] = 0
+        params_fixed['S0_A'] = 0
+        params_fixed['R1A'] = 1
+        products_string = ['lactate', 'bicarbonate']
 
     # determine which parameters need to be fit
     l_params_est = np.zeros([len(params_all) - len(params_fixed)], dtype=object)
@@ -229,20 +230,20 @@ def trajectories_inputless(params_fit, params_fixed, TR, Mzscale, Mz_pyr, Istart
     Mz_all = np.zeros([Nmets, N])
     Mz_all[0, :] = Mz_pyr
     Mz_all[1, Istart] = params_full['S0_L']
-    Mz_all[2, Istart] = params_full['S0_A']
-    Mz_all[3, Istart] = params_full['S0_B']
+    Mz_all[2, Istart] = params_full['S0_B']
+    Mz_all[3, Istart] = params_full['S0_A']
 
     A = np.array([[-params_full['R1P'] - params_full['kPL'] - params_full['kPB'] - params_full['kPA'], 0, 0, 0],
                   [params_full['kPL'], -params_full['R1L'], 0, 0],
-                  [params_full['kPA'], 0, -params_full['R1A'], 0],
-                  [params_full['kPB'], 0, 0, -params_full['R1B']]])  # define state matrix
+                  [params_full['kPB'], 0, -params_full['R1B'], 0],
+                  [params_full['kPA'], 0, 0, -params_full['R1A']]])  # define state matrix
 
     for It in range(Istart, N - 1):  # model forward in time
         # model equations based on solution of differential equations for the metabolite exchange
         Mz_init = Mz_all[:, [It]] * Mzscale[:, [It]]
 
-        exp_term = np.exp((-params_full['R1P'] - params_full['kPL'] - params_full['kPA'] - params_full['kPB']) * TR)
-        add_term = params_full['R1P'] + params_full['kPL'] + params_full['kPA'] + params_full['kPB']
+        exp_term = np.exp((-params_full['R1P'] - params_full['kPL'] - params_full['kPB'] - params_full['kPA']) * TR)
+        add_term = params_full['R1P'] + params_full['kPL'] + params_full['kPB'] + params_full['kPA']
         u[It] = (Mz_pyr[It + 1] - Mz_init[0] * exp_term) * add_term / (1 - exp_term)
 
         xstar = - np.linalg.inv(A) @ np.array([[u[It]], [0], [0], [0]])
@@ -251,8 +252,8 @@ def trajectories_inputless(params_fit, params_fixed, TR, Mzscale, Mz_pyr, Istart
     for It in range(Istart, 0, -1):  # model backwards in time
         Mz_init = Mz_all[:, It]
 
-        exp_term = np.exp((- params_full['R1P'] - params_full['kPL'] - params_full['kPA'] - params_full['kPB']) * -TR)
-        add_term = params_full['R1P'] + params_full['kPL'] + params_full['kPA'] + params_full['kPB']
+        exp_term = np.exp((- params_full['R1P'] - params_full['kPL'] - params_full['kPB'] - params_full['kPA']) * -TR)
+        add_term = params_full['R1P'] + params_full['kPL'] + params_full['kPB'] + params_full['kPA']
         u[It - 1] = (Mz_pyr[0, It - 1] * Mzscale[0, It - 1] - Mz_init[0, 0] * exp_term) * add_term / (1 - exp_term)
 
         xstar = - np.linalg.inv(A) @ np.array([[u[It - 1]], [0], [0], [0]])
