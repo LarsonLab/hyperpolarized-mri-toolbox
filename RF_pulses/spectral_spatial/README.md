@@ -3,15 +3,16 @@
 Spectral-Spatial RF Pulse Design for MRI and MRSI MATLAB Package
 Originally Written by: Adam B. Kerr and Peder E. Z. Larson
 
-(c) 2007-2015 Board of Trustees, Leland Stanford Junior University and
-  The Regents of the University of California. 
-All Rights Reserved.
-
 ======================
 
 This package includes Matlab functions to design spectral-spatial RF pulses (also known as spatial-spectral RF pulses) for application to magnetic resonance spectroscopy and imaging.  See the "examples/" folder for sample code and pulse designs.
 
 Examples include excitation and refocusing pulses, as well as pulses for hyperpolarized carbon-13 MRI.
+
+![image](https://github.com/LarsonLab/Spectral-Spatial-RF-Pulse-Design/assets/8160868/35f17e08-7885-4465-a5c1-7b6b9f864d3c)
+
+Spectral-spatial RF excitation pulse for MRI with hyperpolarized
+hyperpolarized [2-13C]dihydroxyacetone metabolism studies, https://doi.org/10.1002/mrm.26226
 
 Requirements:
 - Signal Processing Toolbox (MathWorks)
