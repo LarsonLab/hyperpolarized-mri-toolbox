@@ -72,8 +72,11 @@ function rf_shift = ...
     % spatial shift
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    t = SS_TS * [1:length(rf)] - length(rf)/2;
-    f_g = SS_GAMMA*g*z_shift;
-    rf_shift = rf_shift .* exp(-1i*2*pi* f_g.*t);
+    t = SS_TS * [1:length(rf)];
+    f_g = SS_GAMMA* g *z_shift;
+    %rf_shift = rf_shift .* exp(-1i*2*pi* [f_g(2:end),0].*t);
+
+    k_z = SS_GAMMA* (cumsum(g) - sum(g))*SS_TS;
+    rf_shift = rf_shift .* exp(-1i*2*pi* k_z*z_shift);
 
    

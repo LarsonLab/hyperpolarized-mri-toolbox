@@ -82,7 +82,7 @@ fplot = freq_c1 - freq_c1(3);
 ss_plot(g, rf, SS_TS, ptype, z_thk*3, 2.5*[min(fspec) max(fspec)], SS_GAMMA, fplot);
 set(gcf,'Name','C1 Alanine Excitation','NumberTitle','Off')
 
-%% Adapt singleband SPSP for alnine
+%% Adapt singleband SPSP for alanine
 % As seen above, the passband FWHM was too broad to selectively excite
 % alanine. To create one that is sufficiently narrow, we will need to reduce
 % the passband FWHM and increase the Max Duration in the SS_OPT structure, 
