@@ -153,7 +153,7 @@ function [h, status] = fir_linprog(n, f, a, d, h0, dbg)
     end;
 
     % Fill in x0 with whatever taps are available from h0
-    %
+    % - In updated linprog() this may not be necessary
     if nargin < 5 || isempty(h0),
 	h0 = [];
     end;
@@ -243,14 +243,15 @@ function [h, status] = fir_linprog(n, f, a, d, h0, dbg)
     % Call minimization routine
     %
     options = optimoptions(@linprog, 'Algorithm', 'dual-simplex', 'Display', 'off');
+    
     %optimset('LargeScale', 'off', 'Algorithm', 'active-set', 'Display','off')
     
     if real_filter, 
 	[x,fval,exitflag,output] = ...
-            linprog(fmin, A_b, b, [],[],[],[],x0,options);
+            linprog(fmin, A_b, b, [],[],[],[],options);
     else
 	[x,fval,exitflag,output] = ...
-            linprog(fmin, A_b, b, [],[],[],[],x0,options);
+            linprog(fmin, A_b, b, [],[],[],[],options);
     end;
 
     if dbg >= 3,
