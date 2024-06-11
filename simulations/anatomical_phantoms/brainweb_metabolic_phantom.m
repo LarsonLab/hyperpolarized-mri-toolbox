@@ -1,4 +1,4 @@
-function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, matSize, simParams, inputFunction, isFuzzy, linear_kTRANS_grad, augmentParams, brain_idx, augmentSeed)
+function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, matSize, simParams, inputFunction, isFuzzy, linear_kTRANS_grad, augmentParams, brain_idx, augmentSeed)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
@@ -37,6 +37,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
 %       kMaps       = generated rate maps for 1->2 and 1->3
 %       Mz0Maps     = generated Mz0 maps
 %       metImages   = simulated metabolite dynamic images
+%       w           = simulated coil sensitivity maps
 %
 %   Author:
 %       Jasmine Hu
@@ -189,6 +190,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
     kMaps = flip(cat(4,k_1_2_MAP,k_1_3_MAP),3); %flip 3rd dimension to match in vivo convention
     Mz0Maps = flip(cat(4,Mz0P_MAP,Mz0L_MAP, Mz0B_MAP),3);
     w = flip(w,3);
+    w = w ./ max(w(:)); % normalize to max of 1
 
     if ~isempty(simParams) % output simulated metabolite dynamic images
         % simulate signals
@@ -212,7 +214,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = brainweb_metabolic_phantom(kineti
                 end
             end
         end
-        metImages = metImages .* repmat(w, [1 1 1 size(metImages,4) size(metImages,5)]);
+        metImages = metImages .* repmat(w, [1 1 1 size(metImages,4) size(metImages,5)]); % multiply by coil sens weights
     
     else
         metImages = 0;
