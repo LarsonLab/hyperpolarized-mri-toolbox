@@ -209,8 +209,9 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
                 for Iz = 1:matSize(3)
                     Mz0_vx = [Mz0Maps(Ix, Iy, Iz, 1) Mz0Maps(Ix, Iy, Iz, 2) Mz0Maps(Ix, Iy, Iz, 3)];
                     [Mxy, ~] = simulate_Nsite_model(Mz0_vx, simParams.R1, [kMaps(Ix,Iy,Iz,1) 0; kMaps(Ix,Iy,Iz,2) 0], simParams.flips, simParams.TR, inputFunction*kTRANS(Ix,Iy,Iz) );
-                    noise_S = randn([nMets simParams.Nt])* simParams.std_noise; % add noise %TO DO: define noise as percentage of input?
-                    metImages(Ix,Iy,Iz,:,:) = Mxy + noise_S;
+                    noise_R = randn([nMets simParams.Nt])* simParams.std_noise; % add rician noise %TO DO: define noise as percentage of input?
+                    noise_I = randn([nMets simParams.Nt])* simParams.std_noise;
+                    metImages(Ix,Iy,Iz,:,:) = sqrt((Mxy + noise_R).^2 + noise_I.^2);
                 end
             end
         end
