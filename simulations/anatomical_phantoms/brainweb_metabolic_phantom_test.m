@@ -6,7 +6,8 @@ kineticRates = [0, 0.05, 0.03;
 ktransScales = [1, 0.2, 0.2;
                 3, 0.4, 0.4];
 isFuzzy = true;
-matSize = [16 16 8];
+sampSize = [16 16 8];
+outputSize = [32 32 8];
 linear_kTRANS_grad = true;
 
 % define simulation parameters: Tarrival, Tbolus, TR, Nt, R1, flips,
@@ -17,7 +18,7 @@ simParams.TR = 4;
 simParams.Nt = 30;
 simParams.R1 = [1/30 1/25 1/25];
 simParams.flips = repmat([20; 30; 30],[1 simParams.Nt])*pi/180;
-simParams.std_noise = 0.005; 
+simParams.SNR = [190 40 20]; 
 
 % define augmentation parameters
 augmentParams.XTranslation = [-1 1];
@@ -33,7 +34,7 @@ Mz0 = [input_function(1), input_function(1)*.5,     input_function(1)*.5;
                        0, input_function(1)*.02,   input_function(1)*.02;
                        0, input_function(1)*.01,   input_function(1)*.01];
 
-[k_trans, k_maps, Mz0_maps, metImages] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, matSize, simParams, input_function, isFuzzy, linear_kTRANS_grad, augmentParams);
+[k_trans, k_maps, Mz0_maps, metImages, w] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, sampSize, outputSize, simParams, input_function, isFuzzy, linear_kTRANS_grad, augmentParams);
 
 %% visualize kTRANS and k maps
 

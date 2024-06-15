@@ -1,7 +1,9 @@
-function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, matSize, simParams, inputFunction, isFuzzy, linear_kTRANS_grad, augmentParams, brain_idx, augmentSeed)
+function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, sampSize, outputSize, simParams, inputFunction, isFuzzy, linear_kTRANS_grad, augmentParams, brain_idx, augmentSeed)
 % BRAINWEB_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
+%
+%   Toolboxes required: Image Processing
 %
 %   Parameters:
 %       kineticRates    = the kinetic rates to simulate, [(# of chemical
@@ -12,8 +14,11 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
 %                         and high kTRANS [[vasc_low, GM_low, WM_low]; [vasc_hi, GM_hi, WM_hi]]
 %       Mz0             = Initial magnetization per metabolite per compartment,
 %                         size [Nmets 3] in order vessels, gm, wm
-%       matSize         = 1x3 vector for desired matrix size of each dimension
-%                         [nx ny nz], default = [16 16 8]
+%       sampSize        = 3x3 or 1x3 vector for desired sampling ("acquisition") matrix size of each
+%                         dimension for all mets
+%                         [met dim(nx,ny,nz)], default = [16 16 8]
+%       outputSize      = 1x3 vector for desored output matrix size,
+%                         default = [64 64 8]
 %       simParams       = parameters used for the kinetic simulations: 
 %                         Tarrival, Tbolus, TR, Nt, R1, flips; if empty won't
 %                         generate metImages, default = empty struct
@@ -51,7 +56,8 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
         kineticRates (:,3) double {mustBeNumeric} = [0.1, 0.2, 0.3; 0, 0, 0]
         ktransScales (:,3) double {mustBeNumeric} = [1, 0.3, 0.3]
         Mz0 (:,3) double {mustBeNumeric} = [0, 0, 0]
-        matSize (1,3) double {mustBeInteger} = [16, 16, 8]
+        sampSize (:,3) double {mustBeInteger} = [16, 16, 8]
+        outputSize (1,3) double {mustBeInteger} = [64, 64, 8]
         simParams struct = struct([])
         inputFunction double = []
         isFuzzy double {mustBeNumericOrLogical} = true
@@ -74,7 +80,17 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
         ktransScales = squeeze(ktransScales(1,:));
         warning("kTRANS linear gradient is 'false' but low/high kTRANS values defined. Using first row of kTRANS values.")
     end
-    
+
+    nMets = size(kineticRates,1) + 1;
+
+    if size(sampSize) == [1 3]
+        maxSampSize = sampSize;
+        sampSize = repmat(sampSize, [nMets 1]);
+    else
+        [~,i] = max(sampSize(:,1));
+        maxSampSize = sampSize(i,:);
+    end
+
     % add resources dir to path
     fileDir = split(mfilename('fullpath'),'/');
     utilDir = fullfile(string(join(fileDir(1:end-1),'/')),'/util');
@@ -152,7 +168,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
     Mz0B_MAP = create_map(permuted_mask, Mz0(3,:), sumWeights);
 
     %adjust FOV in z
-    cropidx1 = randi([40 60]); % make this optional?
+    cropidx1 = randi([40 60]); % TODO: make this optional?
     cropidx2 = randi([300 320]);
     kTRANS = kTRANS(:,:,cropidx1:cropidx2);
     k_1_2_MAP = k_1_2_MAP(:,:,cropidx1:cropidx2);
@@ -162,14 +178,14 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
     Mz0B_MAP = Mz0B_MAP(:,:,cropidx1:cropidx2);
     w = weights(:,:,cropidx1:cropidx2);
     
-    % resample/downsample maps to desired size in x/y
-    kTRANS = imresize3(kTRANS, matSize);
-    k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
-    k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
-    Mz0P_MAP = imresize3(Mz0P_MAP, matSize);
-    Mz0L_MAP = imresize3(Mz0L_MAP, matSize);
-    Mz0B_MAP = imresize3(Mz0B_MAP, matSize);
-    w = imresize3(w, matSize);
+    % resample/downsample maps to desired SAMPLE size
+    kTRANS = imresize3(kTRANS, maxSampSize);
+    k_1_2_MAP = imresize3(k_1_2_MAP, maxSampSize);
+    k_1_3_MAP = imresize3(k_1_3_MAP, maxSampSize);
+    Mz0P_MAP = imresize3(Mz0P_MAP, maxSampSize);
+    Mz0L_MAP = imresize3(Mz0L_MAP, maxSampSize);
+    Mz0B_MAP = imresize3(Mz0B_MAP, maxSampSize);
+    w = imresize3(w, maxSampSize);
    
     % Random Augmentations (requires image processing toolbox)
     tform = randomAffine2d('Rotation',augmentParams.Rotation, 'Scale', ...
@@ -186,39 +202,81 @@ function [kTRANS, kMaps, Mz0Maps, metImages, w] = brainweb_metabolic_phantom(kin
     Mz0B_MAP = imwarp(Mz0B_MAP,tform,OutputView=outputView);
     w = imwarp(w,tform,OutputView=outputView);
     
+    %flip 3rd dimension to match in vivo convention
     kTRANS = flip(kTRANS,3);
-    kMaps = flip(cat(4,k_1_2_MAP,k_1_3_MAP),3); %flip 3rd dimension to match in vivo convention
+    kMaps = flip(cat(4,k_1_2_MAP,k_1_3_MAP),3); 
     Mz0Maps = flip(cat(4,Mz0P_MAP,Mz0L_MAP, Mz0B_MAP),3);
     w = flip(w,3);
-    w = w ./ max(w(:)); % normalize to max of 1
+    w = w ./ max(w(:)); % normalize coil sens weights to max of 1 after imresize
 
     if ~isempty(simParams) % output simulated metabolite dynamic images
         % simulate signals
         % store simulation parameters a in a struct,
         % eventually this should be a custom class
 
-        nMets = size(kineticRates,1) + 1;
-
         if isempty(inputFunction)
             inputFunction = zeros([1 simParams.Nt]);
         end
-    
-        metImages = zeros(cat(2,matSize,[nMets, simParams.Nt]));
-        for Ix = 1:matSize(1)
-            for Iy = 1:matSize(2)
-                for Iz = 1:matSize(3)
+        
+        % first generate voxelwise dynamics
+        metImages_sp = zeros(cat(2,maxSampSize,[nMets, simParams.Nt]));
+        metImages = zeros(cat(2,outputSize,[nMets, simParams.Nt]));
+        for Ix = 1:maxSampSize(1)
+            for Iy = 1:maxSampSize(2)
+                for Iz = 1:maxSampSize(3)
                     Mz0_vx = [Mz0Maps(Ix, Iy, Iz, 1) Mz0Maps(Ix, Iy, Iz, 2) Mz0Maps(Ix, Iy, Iz, 3)];
-                    [Mxy, ~] = simulate_Nsite_model(Mz0_vx, simParams.R1, [kMaps(Ix,Iy,Iz,1) 0; kMaps(Ix,Iy,Iz,2) 0], simParams.flips, simParams.TR, inputFunction*kTRANS(Ix,Iy,Iz) );
-                    noise_R = randn([nMets simParams.Nt])* simParams.std_noise; % add rician noise %TO DO: define noise as percentage of input?
-                    noise_I = randn([nMets simParams.Nt])* simParams.std_noise;
-                    metImages(Ix,Iy,Iz,:,:) = sqrt((Mxy + noise_R).^2 + noise_I.^2);
+                    [metImages_sp(Ix,Iy,Iz,:,:), ~] = simulate_Nsite_model(Mz0_vx, simParams.R1, [kMaps(Ix,Iy,Iz,1) 0; kMaps(Ix,Iy,Iz,2) 0], simParams.flips, simParams.TR, inputFunction*kTRANS(Ix,Iy,Iz) );
                 end
             end
         end
-        metImages = metImages .* repmat(w, [1 1 1 size(metImages,4) size(metImages,5)]); % multiply by coil sens weights
+        
+        % multiply by coil sens weights
+        metImages_sp = metImages_sp .* repmat(w, [1 1 1 size(metImages_sp,4) size(metImages_sp,5)]); 
+        
+        % multi res capability
+        metImages_mres = cell(nMets,3); % cast metImages into cell to allow different matrix sizes
+        for Imet=1:nMets
+
+            % add rician noise
+            std_noise = max(sum(squeeze(metImages_sp(:,:,:,Imet,:)),4),[],'all') ./ (simParams.SNR(Imet) * sqrt(simParams.Nt));
+            noise_R = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise; 
+            noise_I = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise;
+
+            if maxSampSize == sampSize(Imet,:)
+                temp = squeeze(metImages_sp(:,:,:,Imet,:));
+                metImages_mres{Imet} = sqrt((temp + noise_R).^2 + noise_I.^2);
+            else
+                temp=zeros(cat(2,sampSize(Imet,:),simParams.Nt));
+                for t=1:simParams.Nt
+                    temp(:,:,:,t) = imresize3(metImages_sp(:,:,:,Imet,t), sampSize(Imet,:), 'box'); %box downsampling will effectively average across voxels
+                end
+                metImages_mres{Imet} = sqrt((temp + noise_R).^2 + noise_I.^2);
+                clear temp;
+            end
+        end
+
+        % resize to desired OUTPUT size
+        for Imet = 1:size(metImages_sp,4)
+            temp = metImages_mres{Imet};
+            for It = 1:size(metImages_sp,5)
+                metImages(:,:,:,Imet,It) = imresize3(squeeze(temp(:,:,:,It)), outputSize, 'lanczos3');
+                %metImages(:,:,:,Imet,It) = zeropad(squeeze(temp(:,:,:,It)), outputSize(1:2));
+            end
+        end
     
     else
         metImages = 0;
+    end
+
+    % resample maps to desired OUTPUT size
+    kTRANS = imresize3(kTRANS, outputSize, 'lanczos3');
+    kMaps_out = zeros(cat(2,outputSize,nMets-1));
+    Mz0Maps_out = zeros(cat(2,outputSize,nMets));
+    for n=1:nMets-1
+        kMaps_out(:,:,:,n) = imresize3(kMaps(:,:,:,n), outputSize, 'lanczos3');
+    end
+    for n=1:nMets
+        Mz0Maps_out(:,:,:,n) = imresize3(Mz0Maps(:,:,:,n), outputSize, 'lanczos3');
     end
 
 end
