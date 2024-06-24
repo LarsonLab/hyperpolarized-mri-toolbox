@@ -111,7 +111,7 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
 
     % load base anatomical information
     if isempty(brain_idx)
-        brain_idx = randi(20);
+        brain_idx = randi(19);
     end
     if isFuzzy
         brainwebFile = 'brainweb_fuzzy.mat';
