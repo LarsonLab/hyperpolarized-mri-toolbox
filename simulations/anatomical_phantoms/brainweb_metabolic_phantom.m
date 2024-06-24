@@ -130,7 +130,7 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
     brain_mask = vasc_mask + gm_mask + wm_mask;
     maskSize = size(im_mask,1:3);
     
-    weights = coil_dist_map(brain_mask);
+    weights = coil_dist_map(brain_mask, simParams.coil_lim);
 
     nTissues = 3;
     if size(im_mask,4) ~= nTissues

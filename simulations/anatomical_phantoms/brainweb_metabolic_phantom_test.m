@@ -18,21 +18,21 @@ simParams.TR = 4;
 simParams.Nt = 30;
 simParams.R1 = [1/30 1/25 1/25];
 simParams.flips = repmat([20; 30; 30],[1 simParams.Nt])*pi/180;
-simParams.SNR = [190 40 20]; 
+simParams.SNR = [150 40 20]; 
+simParams.coil_lim = [0.4 1.2];
 
 % define augmentation parameters
 augmentParams.XTranslation = [-1 1];
+augmentParams.YTranslation = [-1 1];
 augmentParams.Scale = [0.95 1.1];
 augmentParams.XReflection = true;
 augmentParams.Rotation = [-5 5];
 
 % input funciton and Mz0
-rand_delay = 1; % how many TRs to delay input function
-input_function = realistic_input_function(simParams.Nt+rand_delay, simParams.TR, simParams.Tarrival, simParams.Tbolus);
-input_function = input_function(rand_delay+1:end);
+input_function = realistic_input_function(simParams.Nt, simParams.TR, simParams.Tarrival, simParams.Tbolus);
 Mz0 = [input_function(1), input_function(1)*.5,     input_function(1)*.5;
-                       0, input_function(1)*.02,   input_function(1)*.02;
-                       0, input_function(1)*.01,   input_function(1)*.01];
+                       0, input_function(1)*.01,   input_function(1)*.01;
+                       0, input_function(1)*.005,   input_function(1)*.005];
 
 [k_trans, k_maps, Mz0_maps, metImages, w] = brainweb_metabolic_phantom(kineticRates, ktransScales, Mz0, sampSize, outputSize, simParams, input_function, isFuzzy, linear_kTRANS_grad, augmentParams);
 
