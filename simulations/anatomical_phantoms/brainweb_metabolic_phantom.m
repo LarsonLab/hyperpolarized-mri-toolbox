@@ -63,7 +63,7 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
         isFuzzy double {mustBeNumericOrLogical} = true
         linear_kTRANS_grad double {mustBeNumericOrLogical} = false
         augmentParams struct = struct()
-        brain_idx {mustBeInteger} = []
+        brain_idx {mustBeInteger} = [] %TODO: should be int between 1-19
         augmentSeed double {mustBeInteger, mustBePositive, mustBeNonzero} = []
     end
 

@@ -40,6 +40,8 @@ function [weights] = coil_dist_map(mask, lim)
         %figure, imagesc(weights)
         
     end
+
+    weights(isnan(weights)) = 0;
     %toc
 
 end
