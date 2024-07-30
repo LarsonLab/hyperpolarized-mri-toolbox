@@ -47,10 +47,10 @@ Volume 3, 2021, Pages 129-155, ISSN 2666-9099, ISBN 9780128222690, https://doi.o
 
 ## Bicarbonate pH Simulation
 
-Simulates the effect of pulse sequence parameters (flip angles, phase encoding, etc) on pH measurements for HP bicarbonate studies.  Based on:
+Simulates the effect of pulse sequence parameters (flip angles, phase encoding, etc) on pH measurements for HP bicarbonate studies. Based on:
 
 ```
-Korenchan, DE, Gordon, JW, Subramaniam, S, et al. Using bidirectional chemical exchange for improved hyperpolarized [13C]bicarbonate pH imaging. Magn Reson Med. 2019; 82: 959–972.
-https://doi.org/10.1002/mrm.27780
+Korenchan, DE, Gordon, JW, Subramaniam, S, et al. Using bidirectional chemical exchange for improved hyperpolarized [13C]bicarbonate pH imaging. Magn Reson Med. 2019; 82: 959–972. doi: 10.1002/mrm.27780
 ```
+https://doi.org/10.1002/mrm.27780
 ##
