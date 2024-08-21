@@ -10,4 +10,4 @@
 
 Example Phantom Data Compared with In Vivo:
 
-<img src="examples_brainweb_phantom.png" alt="BrainWeb Metabolic Phantom Examples Compared with In Vivo Data" style="width: 200px;"/>
+<img src="examples_brainweb_phantom.png" alt="BrainWeb Metabolic Phantom Examples Compared with In Vivo Data"/>
