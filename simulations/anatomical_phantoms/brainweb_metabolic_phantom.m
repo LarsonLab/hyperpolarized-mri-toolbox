@@ -234,13 +234,14 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
         metImages_sp = metImages_sp .* repmat(w, [1 1 1 size(metImages_sp,4) size(metImages_sp,5)]); 
         
         % multi res capability
-        metImages_mres = cell(nMets,3); % cast metImages into cell to allow different matrix sizes
+        metImages_mres = cell(nMets,1); % cast metImages into cell to allow different matrix sizes
         for Imet=1:nMets
 
             % add rician noise
             std_noise = max(sum(squeeze(metImages_sp(:,:,:,Imet,:)),4),[],'all') ./ (simParams.SNR(Imet) * sqrt(simParams.Nt));
             noise_R = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise; 
             noise_I = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise;
+            metImages_w_noise = sqrt((metImages(nmet)+ noise_R).^2 + noise_I.^2);
 
             if maxSampSize == sampSize(Imet,:)
                 temp = squeeze(metImages_sp(:,:,:,Imet,:));
