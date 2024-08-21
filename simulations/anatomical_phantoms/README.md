@@ -6,7 +6,7 @@
 
 `brainweb_metabolic_phantom_test` - example of testing and visualizing the brainweb metabolic phantom function
 
-`brainweb_metabolic_phantom_generate_data` - another example of using the brainweb metabolic phantom function to create training data with realistic parameter ranges
+`brainweb_metabolic_phantom_generate_data` - another example of using the brainweb metabolic phantom function to create training data with realistic parameter ranges and save the examples as HDF5 files
 
 Example Phantom Data Compared with In Vivo:
 
