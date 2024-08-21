@@ -241,7 +241,6 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
             std_noise = max(sum(squeeze(metImages_sp(:,:,:,Imet,:)),4),[],'all') ./ (simParams.SNR(Imet) * sqrt(simParams.Nt));
             noise_R = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise; 
             noise_I = randn(cat(2,sampSize(Imet,:),[simParams.Nt]))* std_noise;
-            metImages_w_noise = sqrt((metImages(nmet)+ noise_R).^2 + noise_I.^2);
 
             if maxSampSize == sampSize(Imet,:)
                 temp = squeeze(metImages_sp(:,:,:,Imet,:));
