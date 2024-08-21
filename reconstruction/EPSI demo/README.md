@@ -1,6 +1,7 @@
 # EPSI Demo
 
-**This code is missing several required functions to run the dynamic compressed sensing EPSI**
+>[!WARNING]
+>This code is missing several required functions to run the dynamic compressed sensing EPSI
 
 % 20190625
 
