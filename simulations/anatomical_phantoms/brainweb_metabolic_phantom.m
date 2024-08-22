@@ -102,7 +102,7 @@ function [kTRANS, kMaps_out, Mz0Maps_out, metImages, w] = brainweb_metabolic_pha
     defaultAugParams.Rotation = [0 0]; defaultAugParams.Scale = [1 1];
     defaultAugParams.XShear = [0 0]; defaultAugParams.YShear = [0 0];
     defaultAugParams.XTranslation = [0 0]; defaultAugParams.YTranslation = [0 0];
-    augs = fields(defaultAugParams);
+    augs = fieldnames(defaultAugParams);
     for f=1:size(augs,1)
         if ~isfield(augmentParams,augs{f})
             augmentParams(1).(augs{f}) = defaultAugParams.(augs{f});
