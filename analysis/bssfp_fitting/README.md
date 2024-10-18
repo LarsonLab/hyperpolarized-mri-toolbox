@@ -20,4 +20,6 @@ Example scripts:
 
 `multisite_bSSFP_fit_ex_voxelwise.m` - example fitting kPL and lactate T2 maps
 
-Citation: *coming soon*
+Citation: 
+
+Sahin S, Garnæs MF, Bennett A, et al. A pharmacokinetic model for hyperpolarized 13C-pyruvate MRI when using metabolite-specific bSSFP sequences. Magn Reson Med. 2024; 92(4): 1698-1713. doi: 10.1002/mrm.30142 https://doi.org/10.1002/mrm.30142
