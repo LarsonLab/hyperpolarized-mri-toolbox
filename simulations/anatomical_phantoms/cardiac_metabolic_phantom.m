@@ -48,7 +48,7 @@ function [kTRANS, kMaps, Mz0Maps, metImages] = cardiac_metabolic_phantom(kinetic
         heart_idx = randi(20);
     end
     current_path = pwd;
-    mask_path = fullfile(current_path,'util',num2str(heart_idx), 'cardiac_masks.mat');   
+    mask_path = fullfile(current_path,'util/_src_cardiac',num2str(heart_idx), 'cardiac_masks.mat');   
     load(mask_path,'im_mask'); 
 
     nTissues = 4;

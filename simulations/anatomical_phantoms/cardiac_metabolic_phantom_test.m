@@ -1,9 +1,14 @@
 % Quick testing script for the cardiac metabolic phantom 
 clear; close all;
+% 
+% kineticRates = [0.0075, 0.0045, 0.0264, 0.0179;
+%                 0.0011, 0.0005, 0.0100, 0.0017]; % in order [lv, rv, lv_mc, rv_mc].
 
-kineticRates = [0.0075, 0.0045, 0.0264, 0.0179;
-                0.0011, 0.0005, 0.0100, 0.0017]; % in order [lv, rv, lv_mc, rv_mc].
-ktransScales = [1.2, 1, 0.2, 0.2]; 
+
+kineticRates = [0.0075, 0.0045, 0.06, 0.02;
+                0.0011, 0.0005, 0.0400, 0.01]; % in order [lv, rv, lv_mc, rv_mc].
+%ktransScales = [1.2, 1, 0.2, 0.2]; 
+ktransScales = [1, 1, -0.5, -0.5]; 
 
 matSize = [32,32,5];
 
@@ -11,7 +16,7 @@ heart_idx = 1;
 
 % define simulation parameters: Tarrival, Tbolus, TR, Nt, R1, flips,
 % std_noise
-simParams.Tarrival = [5,0,10,10]; % in order lv, rv, lvmy, rvmy
+simParams.Tarrival = [7,0,10,14]; % in order lv, rv, lvmy, rvmy
 simParams.Tbolus = 1;
 simParams.TR = 3; % changes over time, but this seems like a pretty good estimate
 % TR = 3 * 60/heart_rates(I_subject);
