@@ -1,4 +1,4 @@
-function [Image_cc,Smap] = RefPeak_cc(Image_mc)
+function [Image_cc,Smap] = RefPeak_cc(Image_mc,varargin)
 % Reference Peak method for image combination
 % Reference:
 %   Hall, Emma L., et al. "Methodology for improved detection of low 
@@ -23,7 +23,13 @@ function [Image_cc,Smap] = RefPeak_cc(Image_mc)
 % sum up data
 Image_t = sum(Image_mc,7);
 Spectrum_t = squeeze(sum(sum(sum(sum(Image_t,1),2),3),4));
-[~,peak_pos] = max(squeeze(abs(Spectrum_t)));
+if nargin > 1
+    peak_pos = varargin{1};
+    fprintf('Manual select metabolite # %d to for RefPeak combination. \n',peak_pos);
+else
+    [~,peak_pos] = max(squeeze(abs(Spectrum_t)));
+    fprintf('Auto select metabolite # %d to for RefPeak combination. \n',peak_pos);
+end
 Image_ref = Image_t(:,:,:,:,1,peak_pos);
 
 Image_sos = sqrt(abs(sum(Image_ref.*conj(Image_ref),4)));
