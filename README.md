@@ -74,6 +74,8 @@ While this toolbox focuses on prototyping new methods, leveraging the flexibilit
 
 The UCSF Hyperpolarized MRI Technology Resource Center (https://hyperpolarizedmri.ucsf.edu/, NIH Grant P41-EB013598) has specialized hyperpolarized 13C pulse sequences available, including Metabolite-specific EPI (GE), Metabolite-specific Spirals with real-time calibration (RTHawk) as well as several for Bruker and Varian small animal systems.  Please reach out through the center for more information.
 
+Many of these are distributed through the UCSF-HMTRC GitHub organization, https://github.com/UCSF-HMTRC.
+
 
 ### Spectral-Spatial-RF-Pulse-Design toolbox
 
