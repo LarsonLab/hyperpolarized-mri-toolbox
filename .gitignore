@@ -3,3 +3,4 @@
 .DS_Store
 __pycache__
 simulations/anatomical_phantoms/util/_src_cardiac/create_cardiac_masks/UKBRVLV_All.h5
+*.dcm
