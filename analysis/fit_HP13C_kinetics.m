@@ -394,7 +394,7 @@ for It=Istart:N-1
     
     % estimate input, assuming this is constant during TR interval
     % This calculation could be improved for noise stability?
-    u(It) = ( Mz_substrate(It+1) - Mz_init(1)*exp(A(1,1)*TR(It+1)) ) * -A(1,1) / (1 - exp(A(1,1))*TR(It+1));
+    u(It) = ( Mz_substrate(It+1) - Mz_init(1)*exp(A(1,1)*TR(It+1)) ) * -A(1,1) / (1 - exp(A(1,1)*TR(It+1)));
     
     xstar = - inv(A)*[u(It),zeros(1,Nmets-1)].';
     
