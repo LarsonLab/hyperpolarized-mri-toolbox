@@ -74,6 +74,7 @@ R1P_est = 1/25; R1L_est = 1/25; R1B_est = 1/15; R1A_est = 1/25;
 kPL_est = .02; kPB_est = .02; kPA_est = .02;
 plot_fits = 1;
 fit_function = @fit_pyr_kinetics;
+fit_function = @fit_HP13C_kinetics;  fitting_options.plot_flag = plot_fits;
 
 %% Test fitting - 2-site
 disp('2-site model: pyruvate -> lactate')
@@ -84,6 +85,9 @@ clear params_fixed params_est params_fit params_fitn_complex params_fitn_mag
 clear Sfit Snfit_complex Snfit_mag
 params_fixed.R1P = R1P_est; params_fixed.R1L = R1L_est; params_fixed.R1B = R1B_est; params_fixed.R1A = R1A_est;
 params_est.kPL = kPL_est; params_est.kPB = kPB_est; params_est.kPA = kPA_est;  
+
+params_fixed.R1 = [R1P_est, R1L_est];
+params_est.k = [kPL_est];
 
 for Iflips = 1:N_flip_schemes
     % no noise

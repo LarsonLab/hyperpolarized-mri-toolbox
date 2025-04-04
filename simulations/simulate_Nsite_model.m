@@ -9,7 +9,7 @@ function [Mxy, Mz] = simulate_Nsite_model(Tin, R1, k, flips, TR, input_function)
 % INPUTS:
 %   Mz0 [1xN] -  model starts from this  magnetization distribution
 %       (If a single value is specified for Mz0, then this value is a time (s) for which the model will evolve prior to playing flips.  Magnetization is assumed to start all in substrate (e.g. pyruvate)
-%   R1 - relaxation times for N sites (1/s)
+%   R1 [1xN] - relaxation times for N sites (1/s)
 %   k [Nx2] - conversion rates between sites (1/s), first column is forward
 %   rate, second column is reverse rate
 %   flips - flip angles (radians)
