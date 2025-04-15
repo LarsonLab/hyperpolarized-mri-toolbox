@@ -136,7 +136,6 @@ if ~isfield(fitting_options, 'plot_flag')
 end
 if ~isfield(fitting_options,'fit_method')
     fitting_options.fit_method = 'ls';
-    noise_level = 0;
 end
 
 if fitting_options.plot_flag
@@ -191,7 +190,7 @@ for i=1:size(Sreshape, 1)
                     err(i,:) = CI(:,2)-CI(:,1);
                 end
             case 'ml'
-                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, noise_level.*(Sscale).^2, Istart, Nmets);
+                obj = @(var) negative_log_likelihood_rician_inputless(var, params_fixed, TR, Mzscale, Mz, fitting_options.noise_level.*(Sscale).^2, Istart, Nmets);
                 [params_fit_vec(i,:), objective_val(i)] = fminunc(obj, params_est_vec, options);
         end
         
