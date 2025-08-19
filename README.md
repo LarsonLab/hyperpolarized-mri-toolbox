@@ -11,6 +11,7 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 ```
 Hyperpolarized-MRI-Toolbox.
 Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox
+doi: 10.5281/zenodo.1198915
 https://dx.doi.org/10.5281/zenodo.1198915
 ```
 
