@@ -1,161 +1,370 @@
-function [kTRANS, kMaps, Mz0Maps, metImages] = cardiac_metabolic_phantom(kineticRates, ktransScales, Mz0_constants, matSize, simParams, heart_idx)
+function [kinetic_maps, kTRANS_map, Mz0_maps, input_function_map, met_images_multires] = cardiac_metabolic_phantom(kinetic_rates, kTRANS_scales, Mz0, input_functions, sample_size, output_size, sim_params, heart_idx)
 % CARDIAC_METABOLIC_PHANTOM generates standardized 3-dimensional perfusion
 %   and metabolism maps for simulated experiments. Supports 3 chemical pool
 %   kinetic rate mapping.
 %
 %   Toolboxes required: Image Processing
 %
-%   Parameters:
-%       kineticRates    = the kinetic rates to simulate, [(# of chemical
-%                         pools) - 1, 4 (tissue types: LV, RV, LV Myocardium, RV Myocardium)]
-%       ktransScales    = volume transfer constants for different tissue
-%                         compartments [LV, RV, LV Myocardium, Rv Myocardium]
-%       Mz0_constants   = Initial magnetization constants per metabolite per compartment,
-%                         size [Nmets 3] in order LV, RV, LV Myocardium, RV Myocardium
-%       matSize         = 1x3 vector for desired matrix size of each
-%                         dimension 
-%                         [met dim(nx,ny,nz)], default = [32 32 5]
-%       simParams       = parameters used for the kinetic simulations: 
-%                         Tarrival, Tbolus, TR, Nt, R1, flips; if empty won't
-%                         generate metImages, default = empty struct
-%       inputFunction   = [1 Nt] vector as input into each voxel
+%   Arguments:
+%       kinetic_rates   = kinetic rates to simulate. size = [n_mets - 1, n_tissues]
+%       kTRANS_scales   = volume transfer constants for different tissues.
+%                         Tissues are, in order, (LV, RV, LV Myocardium, RV
+%                         Myocardium). size = [1, n_tissues] or [2, n_tissues]. 
+%                         If 2 rows are provided, the generated kTRANS map 
+%                         will have a linear gradient.
+%       Mz0             = initial magnetization per metabolite per
+%                         compartment. size = [n_mets, n_tissues]
+%       input_functions = additional input of substrate per tissue per
+%                         time point. size = [n_tissues, n_time_pts]
+%       sample_size     = desired sampling ("aquisition") matrix size per
+%                         metabolite. size = [1,3] or [n_mets,3].
+%                         Columns are, in order, (row, col, slice). If only
+%                         one row is provided, all metabolites will have
+%                         the same sample size.
+%       output_size     = desired output matrix size. size = [1,3]
+%       sim_params      = parameters used for the kinetic simulations
+%                         (struct). Required parameters are:
+%                           - TR    = repetition time (s) (scalar).
+%                           - R1    = relaxation rates for each metabolite (1/s).
+%                                     size = [1, n_mets]
+%                           - flips = flip angles per RF pulse per
+%                                     metabolite (rad). size = [n_mets, Nt]
+%                           - SNR   = signal-to-noise ratio per metabolite.
+%                                     size = [1, n_mets]
 %
-%   Optional Parameters:
-%       heart_idx       = heart mask used for (1-20). default = random mask
+%   Optional Arguments:
+%       heart_idx       = heart mask used (1-20). default = 1;
 %
 %   Outputs:
-%       kTRANS      = generated perfusion map
-%       kMaps       = generated rate maps for 1->2 and 1->3
-%       Mz0Maps     = generated Mz0 maps
-%       metImages   = simulated metabolite dynamic images
+%       kinetic_maps        = kinetic rate maps of met1->met2 and met1->met3.
+%                             size = [row, col, slice, reaction]
+%       kTRANS_map          = perfusion map. size = [row, col, slice]
+%       Mz0_maps            = initial magnetization maps. size = [row, col, 
+%                             slice, metabolite]
+%       input_function_map  = map of additional input of substrate over
+%                             time. size = [row, col, slice, time_pt]
 %
-% Copyright, 2024
+% Copyright, 2025
 
     % parse input arguments
-    arguments % !! some may not be robust enough after changes !!
-        kineticRates (:,4) double {mustBeNumeric} = [0.1, 0.2, 0.3; 0, 0, 0]
-        ktransScales (:,4) double {mustBeNumeric} = [1, 0.3, 0.3]
-        Mz0_constants (:,4) double {mustBeNumeric} = [0, 0, 0]
-        matSize (:,3) double {mustBeInteger} = [32, 32, 5]
-        simParams struct = struct([])
-        heart_idx {mustBeInteger, mustBePositive, mustBeNonzero} = []
+    arguments
+        kinetic_rates (2,4) {mustBeNumeric}
+        kTRANS_scales (:,4) {mustBeNumeric}
+        Mz0 (3,4) {mustBeNumeric}
+        input_functions (4,:) {mustBeNumeric}
+        sample_size (:,3) {mustBeInteger, mustBePositive}
+        output_size (1,3) {mustBeInteger, mustBePositive}
+        sim_params struct
+        heart_idx {mustBeInteger, mustBePositive} = 1
     end
-
-    nMets = size(kineticRates,1) + 1;
 
     % load masks
-    if isempty(heart_idx)
-        heart_idx = randi(20);
-    end
     current_path = pwd;
-    mask_path = fullfile(current_path,'util/_src_cardiac',num2str(heart_idx), 'cardiac_masks.mat');   
+    mask_path = fullfile(current_path,'util/_src_cardiac', num2str(heart_idx), 'cardiac_masks.mat');   
     load(mask_path,'im_mask'); 
 
-    nTissues = 4;
-    if size(im_mask,4) ~= nTissues
-        error('Unexpected number of tissues present in the imported masks, ask for help, idk.');
+    if size(im_mask, 4) ~= 4
+        error('Unexpected number of tissues present in the imported masks');
+    end
+
+    % find n_mets and max_sample_size
+    n_mets = size(Mz0, 1);
+    if size(sample_size, 1) == 1
+        max_sample_size = sample_size;
+        sample_size = repmat(sample_size, n_mets, 1);
+    else
+        [~, max_sample_size_row] = max(sample_size(:,1));
+        max_sample_size = sample_size(max_sample_size_row, :);
     end
     
-    % parameters for output map generation
-    permuted_mask = double(permute(im_mask,[4 1 2 3]));
-    sumWeights = sum(im_mask,4);
 
-    kTRANS = create_map(permuted_mask, ktransScales, sumWeights);
+    % GENERATE MAPS
+    [kinetic_maps, kTRANS_map, Mz0_maps, input_function_map] = generate_maps(im_mask, max_sample_size, kinetic_rates, kTRANS_scales, Mz0, input_functions);
+    
+    % SIMULATE METABOLITE DYNAMIC IMAGES
+    met_images = simulate_metabolite_dynamic_images(kinetic_maps, kTRANS_map, Mz0_maps, input_function_map, sim_params.R1, sim_params.flips, sim_params.TR);
 
-    % generate Tarrival maps
-    Tarrival_MAP = create_map(permuted_mask, simParams.Tarrival, sumWeights);
-    Tarrival_MAP(sumWeights == 0) = (simParams.Tarrival(3)+simParams.Tarrival(4)) / 2;
-    Tarrival_MAP = squeeze(Tarrival_MAP);
+    % MULTIRESOLUTION
+    met_images_multires = make_met_images_multires(met_images, sample_size);
+    % add rician noise
+    met_images_multires = add_rician_noise(met_images_multires, sim_params.SNR);
 
-    % generate Mz0
-    % this is kinda awkward because you need to regenerate the input
-    % functions later
-    Mz0 = zeros(nMets, nTissues);
-    for tissue = 1:nTissues
-        input_function = realistic_input_function(simParams.Nt, simParams.TR, simParams.Tarrival(tissue), simParams.Tbolus);
-        Mz0(:,tissue) = input_function(1) .* Mz0_constants(:,tissue);
+    % resize to output size
+    kTRANS_map = imresize3(kTRANS_map, output_size, 'lanczos3');
+    new_kinetic_maps = zeros(cat(2, output_size, size(kinetic_maps, 4)));
+    for i_met = 1:size(kinetic_maps, 4)
+        new_kinetic_maps(:,:,:,i_met) = imresize3(kinetic_maps(:,:,:,i_met), output_size, 'lanczos3');
     end
+    kinetic_maps = new_kinetic_maps;
+
+    new_Mz0_maps = zeros(cat(2, output_size, size(Mz0_maps, 4)));
+    for i_met = 1:size(Mz0_maps, 4)
+        new_Mz0_maps(:,:,:,i_met) = imresize3(Mz0_maps(:,:,:,i_met), output_size, 'lanczos3');
+    end
+    Mz0_maps = new_Mz0_maps;
+end
+
+
+
+
+function [kinetic_maps, kTRANS_map, Mz0_maps, input_function_map] = generate_maps(im_mask, max_sample_size, kinetic_rates, kTRANS_scales, Mz0, input_functions)
+    % generates kTRANS, kinetic, Mz0, and input function maps
+    % Arguments:
+    %   im_mask         = tissue masks. [row, col, slice, tissue]
+    %   max_sample_size = desired maximum matrix size (maybe that's a
+    %                     little unclear). [1, dim]
+    %   kinetic_rates   = kinetic rates to simulate. (# of chemical pools
+    %                     - 1)x(# of tissues)
+    %   kTRANS_scales   = volume transfer constants for different tissues.
+    %                     2x(n_tissues) where row=1 is min and row=2 is max. 
+    %                     If only 1 row is provided, no kTRANS_map will not
+    %                     have a gradient
+    %   Mz0             = initial magnetization per metabolite per tissue.
+    %                     [metabolite, tissue]
+    %   input_functions = additional input of substrate per tissue per
+    %                     time point. [tissue, time point]
+    %
+    % Outputs
+    %   kinetic_maps    = kinetic rate maps of met1->met2 and met1->met3.
+    %                     [row, col, slice, reaction]
+    %   kTRANS_map      = perfusion map. [row, col, slice]
+    %   Mz0_maps        = initial magnetization maps. [row, col, slice,
+    %                     metabolite]
+    %   input_function_map = map of additional input of substrate over
+    %                        time. [row, col, slice, time_pt]
+
+    % verify arguments
+    % right now, this isn't very flexible, which I do want to change
+    arguments
+        im_mask (:,:,:,4) {mustBeNumericOrLogical}
+        max_sample_size (1,3) {mustBeInteger, mustBePositive}
+        kinetic_rates (2,4) {mustBeNumeric}
+        kTRANS_scales (:,4) {mustBeNumeric}
+        Mz0 (3,4) {mustBeNumeric}
+        input_functions (4,:) {mustBeNumeric}
+    end
+
+    if size(kTRANS_scales, 1) > 2
+        error('kTRANS_scales must have either 1 row (for no linear kTRANS gradient) or 2 rows (for linear kTRANS gradient');
+    end
+
+    % constants
+    LV = 1;  % left ventricle idx
+    RV = 2;  % right ventricle idx
+    LMY = 3; % left myocardium idx
+    RMY = 4; % right myocardium idx
+
+    % downsample masks to sample_size
+    new_im_mask = zeros(cat(2, max_sample_size, size(im_mask, 4)));
+    for tissue = 1:size(im_mask, 4)
+        new_im_mask(:,:,:,tissue) = imresize3(im_mask(:,:,:,tissue), max_sample_size, "cubic"); 
+    end
+    new_im_mask(new_im_mask > 1) = 1;
+    new_im_mask(new_im_mask < 0) = 0;
+    im_mask = new_im_mask;
+    clear new_im_mask;
+
+    % parameters for output map generation
+    permuted_mask = double(permute(im_mask, [4 1 2 3]));
+    sum_weights = sum(im_mask, 4);
+    sum_weights(sum_weights < 1) = 1;
+    mask_size = size(im_mask, 1:3);
+
+    % generate kTRANS maps
+    if size(kTRANS_scales, 1) == 2
+        kTRANS_grad_lv = generate_linear_gradient(mask_size, kTRANS_scales(1,LV), kTRANS_scales(2,LV));
+        kTRANS_grad_rv = generate_linear_gradient(mask_size, kTRANS_scales(1,RV), kTRANS_scales(2,RV));
+        kTRANS_grad_lmy = generate_linear_gradient(mask_size, kTRANS_scales(1,LMY), kTRANS_scales(2,LMY));
+        kTRANS_grad_rmy = generate_linear_gradient(mask_size, kTRANS_scales(1,RMY), kTRANS_scales(2,RMY));
         
-    % generate the kinetic rate maps
-    k_1_2_MAP = create_map(permuted_mask, kineticRates(1,:), sumWeights);
-    k_1_3_MAP = create_map(permuted_mask, kineticRates(2,:), sumWeights);
+        kTRANS_lv = squeeze(permuted_mask(LV,:,:,:)) .* kTRANS_grad_lv;
+        kTRANS_rv = squeeze(permuted_mask(RV,:,:,:)) .* kTRANS_grad_rv;
+        kTRANS_lmy = squeeze(permuted_mask(LMY,:,:,:)) .* kTRANS_grad_lmy;
+        kTRANS_rmy = squeeze(permuted_mask(RMY,:,:,:)) .* kTRANS_grad_rmy;
+    
+        kTRANS_map = (kTRANS_lv + kTRANS_rv + kTRANS_lmy + kTRANS_rmy) ./ sum_weights;
+    else
+        kTRANS_map = create_map(permuted_mask, kTRANS_scales, sum_weights);
+    end
+
+    % generate kinetic maps
+    kinetic_1_2_map = create_map(permuted_mask, kinetic_rates(1,:), sum_weights);
+    kinetic_1_3_map = create_map(permuted_mask, kinetic_rates(2,:), sum_weights);
 
     % generate Mz0 maps
-    Mz0P_MAP = create_map(permuted_mask, Mz0(1,:), sumWeights);
-    Mz0L_MAP = create_map(permuted_mask, Mz0(2,:), sumWeights);
-    Mz0B_MAP = create_map(permuted_mask, Mz0(3,:), sumWeights);
-    
-    small_matSize = [matSize(1)/2, matSize(2)/2, matSize(3)];
+    Mz0_1_map = create_map(permuted_mask, Mz0(1,:), sum_weights);
+    Mz0_2_map = create_map(permuted_mask, Mz0(2,:), sum_weights);
+    Mz0_3_map = create_map(permuted_mask, Mz0(3,:), sum_weights);
 
-    % resample/downsample maps to desired matrix size
-    kTRANS = imresize3(kTRANS, small_matSize);
-    k_1_2_MAP = imresize3(k_1_2_MAP, small_matSize);
-    k_1_3_MAP = imresize3(k_1_3_MAP, small_matSize);
-    Mz0P_MAP = imresize3(Mz0P_MAP, small_matSize);
-    Mz0L_MAP = imresize3(Mz0L_MAP, small_matSize);
-    Mz0B_MAP = imresize3(Mz0B_MAP, small_matSize);
-    Tarrival_MAP = imresize3(Tarrival_MAP, small_matSize, "linear");
-    
-    % upsample maps for blur
-    kTRANS = imresize3(kTRANS, matSize);
-    k_1_2_MAP = imresize3(k_1_2_MAP, matSize);
-    k_1_3_MAP = imresize3(k_1_3_MAP, matSize);
-    Mz0P_MAP = imresize3(Mz0P_MAP, matSize);
-    Mz0L_MAP = imresize3(Mz0L_MAP, matSize);
-    Mz0B_MAP = imresize3(Mz0B_MAP, matSize);
-    Tarrival_MAP = imresize3(Tarrival_MAP, matSize, "linear");
-    
-    % account for downsampling changing kinetic rates
-    % TODO: not a perfect solution, areas that should have lower rates go higher
-    k_1_2_resize_error = max(kineticRates(1,:),[],'all') / max(k_1_2_MAP,[],'all');
-    k_1_3_resize_error = max(kineticRates(2,:),[],'all') / max(k_1_3_MAP,[],'all');
-    kTRANS_resize_error = max(ktransScales,[],'all') / max(kTRANS,[],'all');
-    k_1_2_MAP = k_1_2_MAP .* k_1_2_resize_error;
-    k_1_3_MAP = k_1_3_MAP .* k_1_3_resize_error;
-    kTRANS = kTRANS .* kTRANS_resize_error;
+    % generate input function maps
+    input_function_LV_map = squeeze(permuted_mask(LV,:,:,:)) ...
+        .* reshape(input_functions(LV,:), 1, 1, 1, []);
+    input_function_RV_map = squeeze(permuted_mask(RV,:,:,:)) ...
+        .* reshape(input_functions(RV,:), 1, 1, 1, []);
+    input_function_LMY_map = squeeze(permuted_mask(LMY,:,:,:)) ...
+        .* reshape(input_functions(LMY,:), 1, 1, 1, []);
+    input_function_RMY_map = squeeze(permuted_mask(RMY,:,:,:)) ...
+        .* reshape(input_functions(RMY,:), 1, 1, 1, []);
+
+    % consolidate maps
+    kinetic_maps = cat(4, kinetic_1_2_map, kinetic_1_3_map);
+    Mz0_maps = cat(4, Mz0_1_map, Mz0_2_map, Mz0_3_map);
+    input_function_map = input_function_LV_map + input_function_RV_map + input_function_LMY_map + input_function_RMY_map;
+end
 
 
-    kMaps = cat(4,k_1_2_MAP,k_1_3_MAP); 
-    Mz0Maps = cat(4,Mz0P_MAP,Mz0L_MAP, Mz0B_MAP);
+function [met_images_sp] = simulate_metabolite_dynamic_images(kinetic_maps, kTRANS_map, Mz0_maps, input_function_map, R1, flips, TR)
+    % simulates metabolite dynamic images
+    % Arguments:
+    %   kinetic_maps          = kinetic rates per voxel per metabolite. [row, col,
+    %                           slice, reaction] where reaction = n_mets - 1
+    %   kTRANS_map            = volume transfer rate per voxel. [row, col, slice]
+    %   Mz0_maps              = Mz0 values per voxel per metabolite. [row, col, slice,
+    %                           metabolite]
+    %   R1                    = relaxation times per metabolite. [1, metabolite]
+    %   flips                 = flip angles per metabolite per RF pulse. [metabolite,
+    %                           time_pt]
+    %   TR                    = repetition time (s)
+    %   input_function_map    = additional input of substrate per voxel per
+    %                           timepoint. [row, col, slice, time_pt]
+    %
+    % Outputs:
+    %   met_images_sp         = simulated metabolite dynamic images.
+    %                           [row, col, slice, metabolite, time_pt]
 
-    if ~isempty(simParams) % output simulated metabolite dynamic images
-        % simulate signals
-        % store simulation parameters a in a struct,
-        
-        % generate voxelwise dynamics
-        metImages = zeros(cat(2,matSize,[nMets, simParams.Nt]));
-        for Ix = 1:matSize(1)
-            for Iy = 1:matSize(2)
-                for Iz = 1:matSize(3)
-                    % generate input_function
-                    Tarrival_vx = Tarrival_MAP(Ix, Iy, Iz);
-                    input_function_vx = realistic_input_function(simParams.Nt, simParams.TR, Tarrival_vx, simParams.Tbolus);
-                    Mz0_vx = [Mz0Maps(Ix, Iy, Iz, 1) Mz0Maps(Ix, Iy, Iz, 2) Mz0Maps(Ix, Iy, Iz, 3)];
-                    [metImages(Ix,Iy,Iz,:,:), ~] = simulate_Nsite_model(Mz0_vx, simParams.R1, [kMaps(Ix,Iy,Iz,1) 0; kMaps(Ix,Iy,Iz,2) 0], simParams.flips, simParams.TR, input_function_vx*kTRANS(Ix,Iy,Iz) );
-                end
+
+    % validate arguments
+    arguments
+        kinetic_maps (:,:,:,2) {mustBeNumeric}
+        kTRANS_map (:,:,:) {mustBeNumeric}
+        Mz0_maps (:,:,:,3) {mustBeNumeric}
+        input_function_map (:,:,:,:) {mustBeNumeric}
+        R1 (1,3) {mustBeNumeric}
+        flips (3,:) {mustBeNumeric}
+        TR (1,1) {mustBeNumeric}
+    end
+
+    if ~isequal(size(Mz0_maps, 1:3), size(kinetic_maps, 1:3)) | ...
+            ~isequal(size(Mz0_maps, 1:3), size(kTRANS_map)) | ...
+            ~isequal(size(Mz0_maps, 1:3), size(input_function_map, 1:3))
+        error("Mismatched array sizes. First 3 dimensions of Mz0_maps, kinetic_maps, kTRANS_map, and input_function_map must be consistent, representing (row, col, slice).");
+    end
+
+    if size(input_function_map, 4) ~= size(flips, 2)
+        error("Mismatched array sizes. 2nd dimension of flips and 4th dimension of input_function_map must both have length=Nt.")
+    end
+
+
+    % simulate metabolite images
+    Nt = size(flips, 2);
+    n_mets = size(Mz0_maps, 4);
+    sample_size = size(kTRANS_map);
+    met_images_sp = zeros(cat(2, sample_size, [n_mets, Nt]));
+
+    for Ix = 1:size(met_images_sp, 1)
+        for Iy = 1:size(met_images_sp, 2)
+            for Iz = 1:size(met_images_sp, 3)
+                Mz0_voxel = squeeze(Mz0_maps(Ix, Iy, Iz, :)) .';
+                kinetic_rates_voxel = [kinetic_maps(Ix, Iy, Iz, 1) 0;
+                                       kinetic_maps(Ix, Iy, Iz, 2) 0];
+                kTRANS_voxel = kTRANS_map(Ix, Iy, Iz);
+                input_function_voxel = (squeeze(input_function_map(Ix, Iy, Iz, :)) .') ...
+                    .* kTRANS_voxel;
+
+                [met_images_sp(Ix, Iy, Iz, :, :), ~] = simulate_Nsite_model(Mz0_voxel, R1, kinetic_rates_voxel, flips, TR, input_function_voxel);
             end
         end
-    end     
-    
-    % add rician noise
-    metImages_w_noise = zeros(size(metImages));
-    for Imet=1:nMets
-        ImetImage = squeeze(metImages(:,:,:,Imet,:));
-        std_noise = max(sum(ImetImage,4),[],'all') ./ (simParams.SNR(Imet) * sqrt(simParams.Nt));
-        noise_R = randn(cat(2,matSize,[simParams.Nt]))* std_noise;
-        noise_I = randn(cat(2,matSize,[simParams.Nt]))* std_noise;
-        metImages_w_noise(:,:,:,Imet,:) = sqrt((ImetImage+ noise_R).^2 + noise_I.^2);
     end
-    
-    metImages = metImages_w_noise;
+end
 
+function [met_images_multires] = make_met_images_multires(met_images, sample_size)
+    % converts single-resolution dynamic metabolite images to multiresolution
+    % Arguments:
+    %   met_images      = single-resolution dynamic metabolite images. 
+    %                     [row, col, slice, metabolite, time_pt]
+    %   sample_size     = desired matrix sizes for each metabolite.
+    %                     [metabolite, dim]
+    %
+    % Outputs:
+    %   met_images_multires = multiresolution dynamic metabolite images.
+    %                         (n_mets)x1 cell array, where size of each 
+    %                         cell = [row, col, slice, time_pt]
+    arguments
+        met_images (:,:,:,:,:) {mustBeNumeric}
+        sample_size (:,3) {mustBeInteger, mustBePositive}
+    end
+
+    if size(met_images, 4) ~= size(sample_size, 1)
+        error("Mismatched array sizes. 4th dimension of met_images and 1st dimension of sample_size must be equal and have length=n_mets")
+    end
+
+
+    n_mets = size(met_images, 4);
+    n_time_pts = size(met_images, 5);
+    met_images_multires = cell(n_mets, 1);
+
+    for Imet = 1:n_mets
+        met_images_multires{Imet} = zeros( ...
+            cat(2, sample_size(Imet, :), n_time_pts) ...
+        );
+        for time_pt = 1:n_time_pts
+            met_images_multires{Imet}(:, :, :, time_pt) = ...
+                imresize3(squeeze(met_images(:, :, :, Imet, time_pt)), sample_size(Imet, :), 'box'); % box averages surrounding voxels
+        end
+    end
+end
+
+function [met_images_w_noise] = add_rician_noise(met_images_multires, SNR)
+    % adds rician noise to multiresolution dynamic metabolite images
+    % Parameters:
+    %   met_images_multires = multiresolution dynamic metabolite images. 
+    %                         (n_mets)x1 cell array, where size of each 
+    %                         cell = [row, col, slice, time_pt]
+    %   SNR                 = signal-to-noise ratio per metabolite. [1,
+    %                         metabolite]
+    %
+    % Outputs:
+    %   met_images_w_noise  = metabolite images with rician noise. 
+    %                         (n_mets)x1 cell array, where size of each 
+    %                         cell = [row, col, slice, time_pt]
+
+    % argument validation
+    arguments
+        met_images_multires cell
+        SNR (1,:) {mustBeNumeric}
+    end
+
+    if numel(met_images_multires) ~= size(SNR, 2)
+        error("Mismatched array sizes. met_images_multires and SNR must be equal in length. Each element represents a metabolite");
+    end
+
+
+    met_images_w_noise = met_images_multires;
+    n_mets = size(met_images_multires, 1);
+    for Imet = 1:n_mets
+        Nt = size(met_images_multires{Imet}, 4);
+        sample_size = size(met_images_multires{Imet}, 1:3);
+
+        std_noise = max(sum(met_images_multires{Imet}, 4), [], 'all') ./ (SNR(Imet) * sqrt(Nt));
+        noise_R = randn(cat(2, sample_size, Nt)) * std_noise; 
+        noise_I = randn(cat(2, sample_size, Nt)) * std_noise;
+
+        met_images_w_noise{Imet} = sqrt((met_images_multires{Imet} + noise_R).^2 + noise_I.^2);
+    end
 end
 
 
 function [map] = create_map(mask, rates, sumWeights)
-    % apply rates over masks
     map_wSum = pagemtimes(rates,mask);
     map = squeeze(map_wSum)./sumWeights;
     map(isnan(map)) = 0; 
 end
 
+
+function [grad] = generate_linear_gradient(mask_size, kTRANS_low, kTRANS_high)
+    x = linspace(-1, 1, mask_size(1));
+    y = linspace(-1, 1, mask_size(2));
+    z = linspace(-1, 1, mask_size(3));
+    [~, Y, ~] = meshgrid(x, y, z);
+    grad = 0.5*(kTRANS_high - kTRANS_low)*Y + 0.5*(kTRANS_low + kTRANS_high);
+end

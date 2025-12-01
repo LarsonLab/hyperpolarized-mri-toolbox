@@ -1,109 +1,110 @@
-% Quick testing script for the cardiac metabolic phantom 
-clear; close all;
-% 
-% kineticRates = [0.0075, 0.0045, 0.0264, 0.0179;
-%                 0.0011, 0.0005, 0.0100, 0.0017]; % in order [lv, rv, lv_mc, rv_mc].
+% quick testing script for cardiac_metabolic_phantom
+clear; 
+close all;
+
+%% Arguments
+kTRANS_scales = [1 1 -0.5 -0.5]; 
+sample_size = [32 32 11; 
+               16 16 11; 
+               24 24 11];
+output_size = [64 64 11];
+kinetic_rates = [0.0075, 0.0045, 0.06, 0.02;
+                0.0011, 0.0005, 0.0400, 0.01];
+
+sim_params.Tarrivals = [7 0 10 14];
+sim_params.Tbolus = 1;
+sim_params.TR = 3.6;
+sim_params.Nt = 30;
+sim_params.R1 = [1/30 1/25 1/25];
+sim_params.flips = repmat([20; 30; 30],[1 sim_params.Nt])*pi/180;
+sim_params.SNR = [150 40 20]; 
+sim_params.coil_lim = [0.4 1.2];
+
+[input_functions, Mz0] = generate_input_functions(sim_params, 4);
 
 
-kineticRates = [0.0075, 0.0045, 0.06, 0.02;
-                0.0011, 0.0005, 0.0400, 0.01]; % in order [lv, rv, lv_mc, rv_mc].
-%ktransScales = [1.2, 1, 0.2, 0.2]; 
-ktransScales = [1, 1, -0.5, -0.5]; 
+function [input_functions, Mz0] = generate_input_functions(sim_params, n_tissues)
+    input_functions = zeros(4, sim_params.Nt);
+    for i = 1:n_tissues
+        input_functions(i,:) = realistic_input_function(sim_params.Nt, sim_params.TR, sim_params.Tarrivals(i), sim_params.Tbolus);
+    end
 
-matSize = [32,32,5];
+    Mz0 = [input_functions(1,1), input_functions(2,1), input_functions(3,1)*.5, input_functions(4,1)*.5;
+           0, 0, input_functions(3,1)*.01, input_functions(4,1)*.01;
+           0, 0, input_functions(3,1)*.005, input_functions(4,1)*.005;];
+end
 
-heart_idx = 1;
 
-% define simulation parameters: Tarrival, Tbolus, TR, Nt, R1, flips,
-% std_noise
-simParams.Tarrival = [7,0,10,14]; % in order lv, rv, lvmy, rvmy
-simParams.Tbolus = 1;
-simParams.TR = 3; % changes over time, but this seems like a pretty good estimate
-% TR = 3 * 60/heart_rates(I_subject);
-% subject_ids = [6  7  8  9  10 11 13 18];
-% heart_rates = [76 80 69 64 50 77 61 57];
-simParams.Nt = 20;
-simParams.R1 = [1/30 1/25 1/25];
-simParams.flips = repmat([20; 30; 30],[1 simParams.Nt])*pi/180; 
-simParams.SNR = [150 40 20];
-simParams.coil_lim = [0.4 1.2]; % TODO: account for coil sensitivity
 
-Mz0_constants = [1, 1, 0.5, 0.5;
-                0, 0, 0.01, 0.01;
-                0, 0, 0.005, 0.005];
 
-[k_trans, k_maps, Mz0_maps, metImages] = cardiac_metabolic_phantom(kineticRates, ktransScales, Mz0_constants, matSize, simParams, heart_idx);
+% Phantom
+[kinetic_maps, kTRANS, Mz0_maps, input_function_map, met_images] ...
+= cardiac_metabolic_phantom(kinetic_rates, kTRANS_scales, Mz0, input_functions, sample_size, output_size, sim_params);
 
-slices = 1:size(k_trans,3);
-tpts = 1:simParams.Nt;
+%% Displaying
+slices = 1:size(kTRANS,3);
 
-%% visualize kTRANS and k maps
-
-% visualize kTRANS
+%% kTRANS
 figure("Name","kTRANS")
-imagescn(k_trans(:,:,slices),[0 max(k_trans(:,:,slices),[],'all')], [1 numel(slices)]); colormap hot;
+imagescn(kTRANS(:,:,slices), ...
+    [0 max(kTRANS(:,:,slices), [], 'all')], ...
+    [1 numel(slices)]); 
+colormap hot;
 
-% visualize kinetic rates
-figure("Name","kPL");
-imagescn(k_maps(:,:,slices,1),[0 max(k_maps(:,:,slices,1),[],'all')], [1 numel(slices)]); colormap hot;
+%% Kinetic maps
+figure("Name","kinetic 1->2")
+imagescn(kinetic_maps(:,:,slices,1), ...
+    [0 max(kinetic_maps(:,:,slices,1), [], 'all')], ...
+    [1 numel(slices)]); 
+colormap hot;
 
-figure("Name","kPB");
-imagescn(k_maps(:,:,slices,2),[0 max(k_maps(:,:,slices,2),[],'all')], [1 numel(slices)]); colormap hot;
+figure("Name","kinetic 1->3")
+imagescn(kinetic_maps(:,:,slices,2), ...
+    [0 max(kinetic_maps(:,:,slices,2), [], 'all')], ...
+    [1 numel(slices)]); 
+colormap hot;
 
-
-%% visualize Mz0 maps
-figure("Name","Mz0 maps Pyruvate");
-scale = [0 max(Mz0_maps(:,:,slices,1),[],'all')];
-if scale(2) == 0
-    scale(2) = 1;
+%% Mz0 maps
+figure("Name","Mz0 Pyruvate")
+if (max(Mz0_maps(:,:,slices,1), [], 'all')) > 0
+    imagescn(Mz0_maps(:,:,slices,1), ...
+        [0 max(Mz0_maps(:,:,slices,1), [], 'all')], ...
+        [1 numel(slices)]); 
+    colormap hot;
 end
-imagescn(Mz0_maps(:,:,slices,1), scale, [1 numel(slices)]); colormap hot;
 
-figure("Name","Mz0 maps Lactate");
-scale = [0 max(Mz0_maps(:,:,slices,2),[],'all')];
-if scale(2) == 0
-    scale(2) = 1;
+if (max(Mz0_maps(:,:,slices,2), [], 'all')) > 0
+    figure("Name","Mz0 Lactate")
+    imagescn(Mz0_maps(:,:,slices,2), ...
+        [0 max(Mz0_maps(:,:,slices,2), [], 'all')], ...
+        [1 numel(slices)]); 
+    colormap hot;
 end
-imagescn(Mz0_maps(:,:,slices,3), scale, [1 numel(slices)]); colormap hot;
 
-
-figure("Name","Mz0 maps Bicarb");
-scale = [0 max(Mz0_maps(:,:,slices,3),[],'all')];
-if scale(2) == 0
-    scale(2) = 1;
+if (max(Mz0_maps(:,:,slices,3), [], 'all')) > 0
+    figure("Name","Mz0 Bicarb")
+    imagescn(Mz0_maps(:,:,slices,3), ...
+        [0 max(Mz0_maps(:,:,slices,3), [], 'all')], ...
+        [1 numel(slices)]); 
+    colormap hot;
 end
-imagescn(Mz0_maps(:,:,slices,3), scale, [1 numel(slices)]); colormap hot;
 
+%% met images
+time_pts = 1:20;
+figure("Name", "Pyruvate")
+imagescn(met_images{1}(:,:,5,time_pts), ...
+    [0 max(met_images{1}(:,:,5,time_pts), [], 'all') / 3] ...
+    );
+colormap hot;
 
-%% visualize metImages
-%pyruvate
-figure("Name","Pyruvate Met Images");
-imagescn(squeeze(metImages(:,:,slices,1,tpts)),[0 max(squeeze(metImages(:,:,slices,1,tpts)),[],'all')], [numel(slices) numel(tpts)]); colormap hot;
+figure("Name", "Lactate")
+imagescn(met_images{2}(:,:,5,time_pts), ...
+    [0 max(met_images{1}(:,:,5,time_pts), [], 'all') / 3] ...
+    );
+colormap hot;
 
-%lactate
-figure("Name","Lactate Met Images");
-imagescn(squeeze(metImages(:,:,slices,2,tpts)),[0 max(squeeze(metImages(:,:,slices,2,tpts)),[],'all')], [numel(slices) numel(tpts)]); colormap hot;
-
-%bicarb
-figure("Name","Bicarb Met Images");
-imagescn(squeeze(metImages(:,:,slices,3,tpts)),[0 max(squeeze(metImages(:,:,slices,3,tpts)),[],'all')], [numel(slices) numel(tpts)]); colormap hot;
-
-
-%% visualize AUCs
-
-%pyruvate
-pyrAUC = sum(squeeze(metImages(:,:,:,1,:)),length(size(squeeze(metImages(:,:,:,1,:)))));
-figure("Name","Pyruvate AUC");
-imagescn(pyrAUC,[0 max(pyrAUC,[],'all')], [1 numel(slices)]); colormap hot;
-
-
-%lactate
-lacAUC = sum(squeeze(metImages(:,:,:,2,:)),length(size(squeeze(metImages(:,:,:,2,:)))));
-figure("Name","Lactate AUC");
-imagescn(lacAUC,[0 max(lacAUC,[],'all')], [1 numel(slices)]); colormap hot;
-
-
-%bicarb
-bicAUC = sum(squeeze(metImages(:,:,:,3,:)),length(size(squeeze(metImages(:,:,:,3,:)))));
-figure("Name","Bicarb AUC");
-imagescn(bicAUC,[0 max(bicAUC,[],'all')], [1 numel(slices)]); colormap hot;
+figure("Name", "Bicarb")
+imagescn(met_images{3}(:,:,5,time_pts), ...
+    [0 max(met_images{1}(:,:,5,time_pts), [], 'all') / 3] ...
+    );
+colormap hot;
