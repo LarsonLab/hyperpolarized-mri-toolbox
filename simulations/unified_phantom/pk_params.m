@@ -4,6 +4,7 @@ classdef pk_params
         Products (1,2) metabolite 
         TR (1,1) {mustBeNumeric}
         InputFunction (1,:) {mustBeNumeric}
+        Flips (:,:) {mustBeNumeric}
     end
     methods
         function obj = pk_params(args)
@@ -11,16 +12,32 @@ classdef pk_params
             % products = vector of product metabolites (1, nmets - 1)
             % TR = repetition time
             % input_function = vector of additional input of substrate (1,nt)
+            % flips = [n_mets, time_pts] of flips
+            
+            % argument validation
             arguments
                 args.substrate (1,1) metabolite
                 args.products (1,2) metabolite
                 args.TR (1,1) {mustBeNumeric}
                 args.input_function (1,:) {mustBeNumeric}
+                args.flips (:,:) {mustBeNumeric}
             end
+
+            n_mets = numel(args.substrate) + numel(args.products);
+            if size(args.flips, 1) ~= n_mets
+                error("Mismatched number of metabolites (substrate + number of products) and rows in `flips`");
+            end
+
+            nt = numel(args.input_function);
+            if size(args.flips, 2) ~= nt
+                error("mismatched number of time points in `input_function` and `flips`");
+            end
+
             obj.Substrate = args.substrate;
             obj.Products = args.products;
             obj.TR = args.TR;
             obj.InputFunction = args.input_function;
+            obj.Flips = args.flips;
         end
 
         % various getters
@@ -42,10 +59,7 @@ classdef pk_params
 
         function flips = get_flips(pk_params)
             % returns flips = (met, time_pt)
-            flips = pk_params.Substrate.Flips;
-            for met = 1:numel(pk_params.Products)
-                flips = cat(1, flips, pk_params.Products(met).Flips);
-            end
+            flips = pk_params.Flips;
         end
 
         function k = get_kinetic_rates(pk_params)

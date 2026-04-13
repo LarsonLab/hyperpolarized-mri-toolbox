@@ -1,5 +1,15 @@
 classdef mri_system
-    methods (Static)         
+    methods (Static)
+        function met_images_mres = run_mri_system(met_images, sample_size, snr)
+            % wrapper
+            % args:
+            %   met_images = [row, col, slice, met, tpt]
+            %   sample_size = [met, dim]
+            %   snr = [1, met]
+            met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
+            met_images_mres = mri_system.add_rician_noise(met_images_mres, snr);
+        end
+
         function met_images_multires = make_met_images_multires(met_images, sample_size)
             % converts single-resolution dynamic metabolite images to multiresolution
             % Arguments:
@@ -37,41 +47,76 @@ classdef mri_system
         end
         
 
-        function met_images_w_noise = add_rician_noise(met_images_mres, SNR)
+        function met_images_w_noise = add_rician_noise(met_images, snr)
             % Parameters:
-            %   met_images_multires = multiresolution dynamic metabolite images. 
-            %                         (n_mets)x1 cell array, where size of each 
-            %                         cell = [row, col, slice, time_pt]
-            %   SNR                 = signal-to-noise ratio per metabolite. [1,
-            %                         metabolite]
+            %   met_images = dynamic metabolite images. either:
+            %                   [1,nmets] cell array, where each cell = [row, col, slice, time_pt], or
+            %                   [nmets, row, col, slice, time_pt]
+            %   snr        = signal-to-noise ratio per metabolite. [1,
+            %                metabolite]
             %
             % Outputs:
             %   met_images_w_noise  = metabolite images with rician noise. 
             %                         (n_mets)x1 cell array, where size of each 
             %                         cell = [row, col, slice, time_pt]
         
-            % argument validation
+            % argument validation/input parsing
             arguments
-                met_images_mres cell
-                SNR (1,:) {mustBeNumeric}
+                met_images
+                snr (1,:) {mustBeNumeric}
+            end
+
+            % convert to cell array if not already a cell array
+            if isnumeric(met_images) 
+                if numel(size(met_images)) ~= 5
+                    error("met_images must either be a numeric array with size = [nmets, row, col, slice, time_pt] OR be a [1, nmets] cell array where each cell = [row, col, slice, time_pt],");
+                end
+
+                n_mets = size(met_images, 1);
+                cell_met_images = cell(1, n_mets);
+                for imet = 1:n_mets
+                    single_met_image = met_images(imet,:,:,:,:);
+                    single_met_image = reshape(single_met_image, size(single_met_image, 2:numel(size(single_met_image)))); % remove first dimension (without squeeze() lest another dim = 1)
+
+                    cell_met_images{imet} = single_met_image;
+                end
+
+                met_images = cell_met_images;
+            end
+
+            if numel(met_images) ~= size(snr, 2)
+                error("Mismatched array sizes. met_images_multires and SNR must both have length = n_mets");
             end
         
-            if numel(met_images_mres) ~= size(SNR, 2)
-                error("Mismatched array sizes. met_images_multires and SNR must be equal in length. Each element represents a metabolite");
+            met_images_w_noise = met_images;
+            n_mets = size(met_images, 1);
+            for imet = 1:n_mets
+                met_images_w_noise{imet} = mri_system.add_rician_noise_image(met_images{imet}, snr(1));
             end
-        
-            met_images_w_noise = met_images_mres;
-            n_mets = size(met_images_mres, 1);
-            for Imet = 1:n_mets
-                Nt = size(met_images_mres{Imet}, 4);
-                sample_size = size(met_images_mres{Imet}, 1:3);
-        
-                std_noise = max(sum(met_images_mres{Imet}, 4), [], 'all') ./ (SNR(Imet) * sqrt(Nt));
-                noise_R = randn(cat(2, sample_size, Nt)) * std_noise; 
-                noise_I = randn(cat(2, sample_size, Nt)) * std_noise;
-        
-                met_images_w_noise{Imet} = sqrt((met_images_mres{Imet} + noise_R).^2 + noise_I.^2);
+        end
+    end
+
+    methods (Static, Access = private)
+        function met_image_w_noise = add_rician_noise_image(met_image, snr)
+            % Parameters:
+            %   met_image = single met image [row, col, slice, time_pt]
+            %   snr = signal-to-noise ratio
+            % Outputs:
+            %   met_image_w_noise = met image with noise
+
+            arguments
+                met_image (:,:,:,:) {mustBeNumeric}
+                snr (1,1) {mustBeNumeric}
             end
+
+            nt = size(met_image, 4);
+            sample_size = size(met_image, 1:3);
+    
+            std_noise = max(sum(met_image, 4), [], 'all') ./ (snr * sqrt(nt));
+            noise_R = randn(cat(2, sample_size, nt)) * std_noise; 
+            noise_I = randn(cat(2, sample_size, nt)) * std_noise;
+    
+            met_image_w_noise = sqrt((met_image + noise_R).^2 + noise_I.^2);
         end
     end
 end
