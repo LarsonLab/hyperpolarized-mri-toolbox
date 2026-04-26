@@ -30,7 +30,7 @@ for i_cmp = 1:n_compartments
 end
 
 % RUN PK MODEL
-dynamics = pk_model.run_pk_model(mz0, r1, k, t_arrival, t_bolus, input_function, flips, tr);
+dynamics = pk_model.run_pk_model(mz0, r1, k, flips, tr, input_function);
 
 images = pk_model.generate_met_images(heart, dynamics);
 
@@ -40,6 +40,7 @@ SNR = [150 40 20];
 
 met_images_mres = mri_system.run_mri_system(images, sample_size, SNR);
 
+%% DISPLAY
 figure;
 imagescn(met_images_mres{1}(:,:,5,:), [0, max(met_images_mres{1}(:,:,5,:), [], 'all')])
 

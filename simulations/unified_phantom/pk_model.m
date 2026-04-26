@@ -1,29 +1,54 @@
 classdef pk_model
     methods (Static)
-        function met_dynamics = run_pk_model(mz0, r1, k, t_arrival, t_bolus, input_function, flips, tr)
-            % arguments:
-            %   mz0 = [met, tissue]
-            %   r1 = [1, met]
-            %   k = [met-1, tissue]
-            %   t_arrival = [1, tissue]
-            %   t_bolus 
-            %   input_function = [tissue, tpt]
-            %   flips = [met, tpt]
-            %   tr
+        function met_dynamics = run_pk_model(mz0, r1, k, flips, tr, input_function, t_bolus)
+            % Wrapper for easy use of pk model. Accepts either input_function OR t_arrival and t_bolus
+            % Parameters:
+            %   mz0             = initial magnetization of each metabolite in each tissue. size = (met, tissue)
+            %   r1              = relaxation rates. size = (1, met)
+            %   k               = forward kinetic rates of product metabolites. size = (met-1, tissue)
+            %   flips           = flip angles (rad). size = (met, time_pt)
+            %   tr              = temporal resolution. size = (1,1)
+            %   input_function  = additional input for substrate per tissue per time point. size = (tissue, tpt)
+            %                     if t_bolus is provided, input_function acts as t_arrival.
+            %                     t_arrival = arrival time of substrate. size = (1, tissue)
+            %   t_bolus         = (optional) time it takes for bolus to enter. size = (1,1)
+            % Outputs:
+            %   met_dynamics    = metabolite dynamics. size = (tissue, met, time_pt)
 
             % argument validation
             arguments
                 mz0 (:,:) {mustBeNumeric}
                 r1 (1,:) {mustBeNumeric}
                 k (:,:) {mustBeNumeric}
-                t_arrival (1,:) {mustBeNumeric}
-                t_bolus (1,1) {mustBeNumeric}
-                input_function (:,:) {mustBeNumeric}
                 flips (:,:) {mustBeNumeric}
-                tr (1,1)
+                tr (1,1) {mustBeNumeric}
+                input_function (:,:) {mustBeNumeric}
+                t_bolus (1,1) {mustBeNumeric} = NaN
             end
 
-            [n_mets, n_tissues, n_tpts] = pk_model.validate_pk_args(mz0, r1, k, t_arrival, input_function, flips);
+            % case if t_arrival and t_bolus are provided
+            if ~isnan(t_bolus)
+                t_arrival = input_function; % just for readability
+
+                % verify t_arrival and t_bolus
+                n_tissues = size(mz0, 2);
+                if size(t_arrival, 1) ~= 1
+                    error("`t_arrival` must have a size = (1, tissue)");
+                end
+                if size(t_arrival, 2) ~= n_tissues
+                    error("mismatched number of tissues in `Mz0` and `t_arrival`");
+                end
+
+                % create input_function
+                n_tpts = size(flips, 2);
+                input_function = zeros(n_tissues, n_tpts);
+                for i_tissue = 1:n_tissues
+                    input_function(i_tissue, :) = realistic_input_function(n_tpts, tr, t_arrival(i_tissue), t_bolus);
+                end
+            end
+            
+            % validate the rest of the arguments
+            [n_mets, n_tissues, n_tpts] = pk_model.validate_pk_args(mz0, r1, k, flips, input_function);
 
             % migrate everything over to compartment-specific pk params
              met_dynamics = zeros(n_tissues, n_mets, n_tpts);
@@ -58,10 +83,11 @@ classdef pk_model
 
 
         function met_dynamics = generate_met_dynamics(params)
-            % arguments:
-            %   params = pk_params
-            % outputs
-            %   met_dynamics = [met, tpt]
+            % Generates metabolite dynamics from PK parameters
+            % Parameters:
+            %   params          = pk parameters. size = (1,1), type = pk_params
+            % Outputs:
+            %   met_dynamics    = metabolite dynamics. size = (met, tpt)
             arguments
                 params pk_params
             end
@@ -79,11 +105,12 @@ classdef pk_model
 
 
         function met_images = generate_met_images(tissue_struct, met_dynamics)
-            % parameters:
-            %   met_dynamics = numeric (tissue, met, time_pt)
-            %   tissue_struct = tissue_structure
-            % outputs:
-            %   met_images = (row, col, slice, tissue, met, time_pt)
+            % Parameters:
+            %   met_dynamics    = metabolite dynamics. size = (tissue, met, time_pt)
+            %   tissue_struct   = tissue_structure. size = (1,1), type = tissue_structure
+            % Outputs:
+            %   met_images      = dynamic metabolite images. 
+            %                     size = (row, col, slice, tissue, met, time_pt)
             arguments
                 tissue_struct (1,1) tissue_structure
                 met_dynamics {mustBeNumeric}
@@ -115,7 +142,7 @@ classdef pk_model
 
 
     methods (Static, Access = private)
-        function [n_mets, n_tissues, n_tpts] = validate_pk_args(mz0, r1, k, t_arrival, input_function, flips)
+        function [n_mets, n_tissues, n_tpts] = validate_pk_args(mz0, r1, k, flips, input_function, t_arrival)
             % validates arguments for `run_pk_model`
             n_mets = size(mz0, 1);
             if size(r1, 2) ~= n_mets
@@ -131,9 +158,6 @@ classdef pk_model
             n_tissues = size(mz0, 2);
             if size(k, 2) ~= n_tissues
                 error("mismatched number of tissues in `Mz0` and `k`");
-            end
-            if size(t_arrival, 2) ~= n_tissues
-                error("mismatched number of tissues in `Mz0` and `t_arrival`");
             end
             if size(input_function, 1) ~= n_tissues
                 error("mismatched number of tissues in `Mz0` and `input_function`");

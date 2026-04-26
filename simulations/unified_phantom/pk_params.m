@@ -8,11 +8,12 @@ classdef pk_params
     end
     methods
         function obj = pk_params(args)
-            % substrate = substrate metabolite
-            % products = vector of product metabolites (1, nmets - 1)
-            % TR = repetition time
-            % input_function = vector of additional input of substrate (1,nt)
-            % flips = [n_mets, time_pts] of flips
+            % Parameters:
+            %   substrate       = substrate metabolite. size = (1,1), type = metabolite
+            %   products        = product metabolites. size = (1, n_mets - 1), type = metabolite
+            %   TR              = repetition time. size = (1,1)
+            %   input_function  = additional input of substrate. size = (1, time_pt)
+            %   flips           = flip angles (rad). size = (met, time_pt)
             
             % argument validation
             arguments
@@ -42,7 +43,7 @@ classdef pk_params
 
         % various getters
         function Mz0 = get_Mz0(pk_params)
-            % returns Mz0 = (1, met)
+            % Outputs: Mz0 = (1, met)
             Mz0 = pk_params.Substrate.Mz0;
             for met = 1:numel(pk_params.Products)
                 Mz0 = cat(2, Mz0, pk_params.Products(met).Mz0);
@@ -50,7 +51,7 @@ classdef pk_params
         end
     
         function R1 = get_R1(pk_params)
-            % returns R1 = (1, met)
+            % Outputs: R1 = (1, met)
             R1 = pk_params.Substrate.R1;
             for met = 1:numel(pk_params.Products)
                 R1 = cat(2, R1, pk_params.Products(met).R1);
@@ -58,12 +59,12 @@ classdef pk_params
         end
 
         function flips = get_flips(pk_params)
-            % returns flips = (met, time_pt)
+            % Outputs: flips = (met, time_pt)
             flips = pk_params.Flips;
         end
 
         function k = get_kinetic_rates(pk_params)
-            % returns kinetic rates = (met, fw/rv)
+            % Outputs: kinetic rates = (met, fw/rv)
             k = zeros(0,2);
             for met = 1:numel(pk_params.Products)
                 k = cat(1, k, pk_params.Products(met).K);

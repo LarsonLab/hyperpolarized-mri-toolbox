@@ -1,9 +1,10 @@
 clear; close all;
 mask = load('util/mask.mat').masks;
 
+create_graphs = false;
+
 % tissue_structure
 heart = tissue_structure("heart", mask, ["lv" "rv" "lvmy" "rvmy"]);
-
 
 % GLOBAL PK PARAMS
 TR = 3.6;
@@ -21,12 +22,12 @@ pyr = metabolite( ...
 lac = metabolite( ...
     Mz0=0, ...
     R1=1/25, ...
-    k=[0.0075,0]);
+    k=0.0075);
 
 bic = metabolite( ...
     Mz0=0, ...
     R1=1/25, ...
-    k=[0.0011,0]);
+    k=0.0011);
 
 % - input function
 Tarrival = 7;
@@ -45,12 +46,14 @@ lv_pk_params = pk_params(...
 lv_met_dynamics = pk_model.generate_met_dynamics(lv_pk_params);
 
 % plotting
-tpts = 1:30;
-figure; plot(tpts, lv_met_dynamics(1,:))
-hold on
-plot(tpts, lv_met_dynamics(2,:))
-plot(tpts, lv_met_dynamics(3,:))
-hold off
+if create_graphs
+    tpts = 1:30;
+    figure; plot(tpts, lv_met_dynamics(1,:))
+    hold on
+    plot(tpts, lv_met_dynamics(2,:))
+    plot(tpts, lv_met_dynamics(3,:))
+    hold off
+end
 
 
 
@@ -90,12 +93,14 @@ rv_pk_params = pk_params(...
 rv_met_dynamics = pk_model.generate_met_dynamics(rv_pk_params);
 
 % plotting
-tpts = 1:30;
-figure; plot(tpts, rv_met_dynamics(1,:))
-hold on
-plot(tpts, rv_met_dynamics(2,:))
-plot(tpts, rv_met_dynamics(3,:))
-hold off
+if create_graphs
+    tpts = 1:30;
+    figure; plot(tpts, rv_met_dynamics(1,:))
+    hold on
+    plot(tpts, rv_met_dynamics(2,:))
+    plot(tpts, rv_met_dynamics(3,:))
+    hold off
+end
 
 
 
@@ -136,12 +141,14 @@ lvmy_pk_params = pk_params(...
 lvmy_met_dynamics = pk_model.generate_met_dynamics(lvmy_pk_params);
 
 % plotting
-tpts = 1:30;
-figure; plot(tpts, lvmy_met_dynamics(1,:))
-hold on
-plot(tpts, lvmy_met_dynamics(2,:))
-plot(tpts, lvmy_met_dynamics(3,:))
-hold off
+if create_graphs
+    tpts = 1:30;
+    figure; plot(tpts, lvmy_met_dynamics(1,:))
+    hold on
+    plot(tpts, lvmy_met_dynamics(2,:))
+    plot(tpts, lvmy_met_dynamics(3,:))
+    hold off
+end
 
 
 
@@ -181,12 +188,15 @@ rvmy_pk_params = pk_params(...
 rvmy_met_dynamics = pk_model.generate_met_dynamics(rvmy_pk_params);
 
 % plotting
-tpts = 1:30;
-figure; plot(tpts, rvmy_met_dynamics(1,:))
-hold on
-plot(tpts, rvmy_met_dynamics(2,:))
-plot(tpts, rvmy_met_dynamics(3,:))
-hold off
+if create_graphs
+    tpts = 1:30;
+    figure; plot(tpts, rvmy_met_dynamics(1,:))
+    hold on
+    plot(tpts, rvmy_met_dynamics(2,:))
+    plot(tpts, rvmy_met_dynamics(3,:))
+    hold off
+end
+
 
 % PK MODEL ------------------
 disp("pk model time")
@@ -203,6 +213,8 @@ met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
 SNR = [150 40 20];
 met_images_mres = mri_system.add_rician_noise(met_images_mres, SNR);
 
+
+%% DISPLAY 
 figure;
 imagescn(met_images_mres{1}(:,:,5,:), [0, max(met_images_mres{1}(:,:,5,:), [], 'all')])
 
