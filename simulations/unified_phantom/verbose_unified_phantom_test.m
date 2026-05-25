@@ -208,10 +208,23 @@ met_images = pk_model.generate_met_images(heart, met_dynamics);
 % MRI SYSTEM ----------------
 disp("mri time")
 sample_size = [32 32 11; 16 16 11; 24 24 11];
-met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
 
+augmentation_params = struct(...
+    "XTranslation", [-1,1], ...
+    "YTranslation", [-1,1], ...
+    "Scale", [0.95,1.1], ...
+    "XReflection", true, ...
+    "Rotation", [-5,5]);
+augmentation_params = namedargs2cell(augmentation_params);
+coil_lim = [0.4, 1.2];
 SNR = [150 40 20];
+output_size = [32 32 11; 32 32 11; 32 32 11];
+
+met_images = mri_system.augment(met_images, augmentation_params{:});
+met_images = mri_system.apply_coil_lim(met_images, coil_lim, heart.Mask);
+met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
 met_images_mres = mri_system.add_rician_noise(met_images_mres, SNR);
+met_images_mres = mri_system.upsample_to_output_size(met_images_mres, output_size);
 
 
 %% DISPLAY 

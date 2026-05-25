@@ -3,6 +3,8 @@ clear; close all;
 % TISSUE STRUCTURE
 mask = load('util/mask.mat').masks;
 heart = tissue_structure("heart", mask, ["lv" "rv" "lvmy" "rvmy"]);
+k_trans = [1, 1, 0.2, 0.4]; 
+heart = heart.create_k_trans_map(k_trans);
 
 % PK MODEL PARAMETERS
 tr = 3.6;
@@ -24,21 +26,23 @@ k = [0.0075, 0.0045, 0.06, 0.02; % lac
 t_arrival = [7, 0, 10, 14]; % lv, rv, lvmy, rvmy
 t_bolus = 10;
 
-input_function = zeros(n_compartments, n_t);
-for i_cmp = 1:n_compartments
-    input_function(i_cmp, :) = realistic_input_function(n_t, tr, t_arrival(i_cmp), t_bolus);
-end
 
 % RUN PK MODEL
-dynamics = pk_model.run_pk_model(mz0, r1, k, flips, tr, input_function);
-
-images = pk_model.generate_met_images(heart, dynamics);
+images = pk_model.run_pk_model(mz0, r1, k, flips, tr, heart, t_arrival=t_arrival, t_bolus=t_bolus);
 
 % RUN MRI SYSTEM
 sample_size = [32 32 11; 16 16 11; 24 24 11];
 SNR = [150 40 20];
+coil_lim = [0.4 1.2];
+output_size = [32 32 11; 32 32 11; 32 32 11];
+augmentation_params = struct(...
+    "XTranslation", [-1,1], ...
+    "YTranslation", [-1,1], ...
+    "Scale", [0.95,1.1], ...
+    "XReflection", true, ...
+    "Rotation", [-5,5]);
 
-met_images_mres = mri_system.run_mri_system(images, sample_size, SNR);
+met_images_mres = mri_system.run_mri_system(images, sample_size, SNR, coil_lim, heart.Mask, output_size, augmentation_params);
 
 %% DISPLAY
 figure;

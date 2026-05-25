@@ -26,8 +26,9 @@ classdef pk_model
                 opts.t_arrival (1,:) {mustBeNumeric} = NaN
                 opts.t_bolus (1,1) {mustBeNumeric} = NaN
             end
-            dynamics_low_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, [0,0,0], flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
-            dynamics_high_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, [1,1,1], flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
+            n_tissues = size(mz0, 2);
+            dynamics_low_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, zeros(1, n_tissues), flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
+            dynamics_high_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, ones(1, n_tissues), flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
 
             low_ktrans_images = pk_model.generate_met_images(tissue_struct, dynamics_low_ktrans);
             high_ktrans_images = pk_model.generate_met_images(tissue_struct, dynamics_high_ktrans);
@@ -65,12 +66,6 @@ classdef pk_model
                 opts.t_bolus (1,1) {mustBeNumeric} = NaN
             end
 
-            % must be one of the following:
-            % yes input function, no t arrival and t bolus
-            % no input function, yes t arrival and t bolus
-            % no input function t arrival and t bolus
-
-
             provided_opts = [~any(isnan(opts.input_function), 'all'), ~any(isnan(opts.t_arrival), 'all'), ~isnan(opts.t_bolus)]; % e.g. if only input function is provided, this is [1,0,0]
 
             if provided_opts == [1,0,0] % case when only input_function is provided
@@ -97,28 +92,6 @@ classdef pk_model
             else
                 error("Provide EITHER `input_function` OR both `t_arrival` and `t_bolus`")
             end
-
-            %%%
-            % % case if t_arrival and t_bolus are provided
-            % if ~isnan(t_bolus)
-            %     t_arrival = input_function; % just for readability
-
-            %     % verify t_arrival and t_bolus
-            %     n_tissues = size(mz0, 2);
-            %     if size(t_arrival, 1) ~= 1
-            %         error("`t_arrival` must have a size = (1, tissue)");
-            %     end
-            %     if size(t_arrival, 2) ~= n_tissues
-            %         error("mismatched number of tissues in `Mz0` and `t_arrival`");
-            %     end
-
-            %     % create input_function
-            %     n_tpts = size(flips, 2);
-            %     input_function = zeros(n_tissues, n_tpts);
-            %     for i_tissue = 1:n_tissues
-            %         input_function(i_tissue, :) = realistic_input_function(n_tpts, tr, t_arrival(i_tissue), t_bolus);
-            %     end
-            % end
             
             % validate the rest of the arguments
             [n_mets, n_tissues, n_tpts] = pk_model.validate_pk_args(mz0, r1, k, k_trans, flips, input_function);
