@@ -1,7 +1,7 @@
 classdef pk_params
     properties
         Substrate (1,1) metabolite
-        Products (1,2) metabolite 
+        Products (1,:) metabolite 
         TR (1,1) {mustBeNumeric}
         InputFunction (1,:) {mustBeNumeric}
         Flips (:,:) {mustBeNumeric}
@@ -18,7 +18,7 @@ classdef pk_params
             % argument validation
             arguments
                 args.substrate (1,1) metabolite
-                args.products (1,2) metabolite
+                args.products (1,:) metabolite
                 args.TR (1,1) {mustBeNumeric}
                 args.input_function (1,:) {mustBeNumeric}
                 args.flips (:,:) {mustBeNumeric}
@@ -44,17 +44,19 @@ classdef pk_params
         % various getters
         function Mz0 = get_Mz0(pk_params)
             % Outputs: Mz0 = (1, met)
-            Mz0 = pk_params.Substrate.Mz0;
+            Mz0 = zeros(1, numel(pk_params.Products) + 1);
+            Mz0(1) = pk_params.Substrate.Mz0;
             for met = 1:numel(pk_params.Products)
-                Mz0 = cat(2, Mz0, pk_params.Products(met).Mz0);
+                Mz0(met + 1) = pk_params.Products(met).Mz0;
             end
         end
     
         function R1 = get_R1(pk_params)
             % Outputs: R1 = (1, met)
-            R1 = pk_params.Substrate.R1;
+            R1 = zeros(1, numel(pk_params.Products) + 1);
+            R1(1) = pk_params.Substrate.R1;
             for met = 1:numel(pk_params.Products)
-                R1 = cat(2, R1, pk_params.Products(met).R1);
+                R1(met + 1) = pk_params.Products(met).R1;
             end
         end
 
@@ -65,9 +67,9 @@ classdef pk_params
 
         function k = get_kinetic_rates(pk_params)
             % Outputs: kinetic rates = (met, fw/rv)
-            k = zeros(0,2);
+            k = zeros(numel(pk_params.Products), 2);
             for met = 1:numel(pk_params.Products)
-                k = cat(1, k, pk_params.Products(met).K);
+                k(met, :) = pk_params.Products(met).K;
             end
         end
     end

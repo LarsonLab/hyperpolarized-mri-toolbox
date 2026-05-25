@@ -1,16 +1,53 @@
 classdef mri_system
     methods (Static)
-        function met_images_mres = run_mri_system(met_images, sample_size, snr)
+        function met_images_mres = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_mask, output_size, augment_params)
             % Wrapper for easy use of mri system model
             % Parameters:
             %   met_images      = single-resolution metabolite images. size = (row, col, slice, met, tpt)
             %   sample_size     = desired size of multires images. size = (met, dim)
             %   snr             = signal-to-noise ratio. size = (1, met)
+            %   coil_lim        = coil limits. [min, max]
+            %   tissue_mask     = tissue mask. size = (row, col, slice, tissue)
+            %   output_size     = desired output_size. size = (met, dim)
+            %   augment_params  = augmentation parameters. struct
             % Outputs:
             %   met_images_mres = multiresolution metabolite images. 
-            %   size = [1, met] cell array. size of each cell = (row, col, slice, time_pt)
+            %                     size = (1, met) cell array. size of each cell = (row, col, slice, time_pt)
+
+            % argument validation
+            arguments
+                met_images (:,:,:,:,:) {mustBeNumeric}
+                sample_size (:,3) {mustBeNumeric}
+                snr (1,:) {mustBeNumeric}
+                coil_lim (1,2) {mustBeNumeric}
+                tissue_mask (:,:,:,:) {mustBeNumeric}
+                output_size (:,3) {mustBeNumeric} = NaN
+                augment_params struct = struct()
+            end
+
+            n_mets = size(met_images, 4);
+            if size(sample_size, 1) ~= n_mets
+                error('mismatched array sizes: the 1st dimension of `sample_size` must equal n_mets');
+            end
+            if size(snr, 2) ~= n_mets
+                error('mismatched array sizes: the 2nd dimension of `snr` must equal n_mets');
+            end
+            if (size(output_size, 1) ~= n_mets) && (all(~isnan(output_size), 'all'))
+                error('mismatched array sizes: the 1st dimension of `output_size` must equal n_mets');
+            end
+
+            % run the system
+            if ~isempty(fieldnames(augment_params))
+                cell_augment_params = namedargs2cell(augment_params); % unpack the augmentation parameters
+                met_images = mri_system.augment(met_images, cell_augment_params{:});
+            end
+            met_images = mri_system.apply_coil_lim(met_images, coil_lim, tissue_mask);
             met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
             met_images_mres = mri_system.add_rician_noise(met_images_mres, snr);
+
+            if all(~isnan(output_size), 'all')
+                met_images_mres = mri_system.upsample_to_output_size(met_images_mres, output_size);
+            end
         end
 
         function met_images_multires = make_met_images_multires(met_images, sample_size)
@@ -91,14 +128,119 @@ classdef mri_system
 
             % error if number of metabolites don't match in met_images and snr
             if numel(met_images) ~= size(snr, 2)
-                error("Mismatched array sizes. met_images_multires and SNR must both have length = n_mets");
+                error("mismatched array sizes. met_images_multires and SNR must both have length = n_mets");
             end
         
             met_images_w_noise = met_images;
-            n_mets = size(met_images, 1);
+            n_mets = numel(met_images);
             for imet = 1:n_mets
-                met_images_w_noise{imet} = mri_system.add_rician_noise_image(met_images{imet}, snr(1));
+                met_images_w_noise{imet} = mri_system.add_rician_noise_image(met_images{imet}, snr(imet));
             end
+        end
+
+        function output_met_images = upsample_to_output_size(met_images_lowres, output_size)
+            % Upsamples dynamic metabolite images to output size
+            % Parameters:
+            %   met_images_lowres   = un-resized metabolite images. 
+            %                         size = (1, met) cell array, where each cell = (row, col, slice, time_pt)
+            %   output_size         = desired output matrix size. size = (met, dim)
+            % Outputs:
+            %   output_met_images   = upsampled met images
+            arguments
+                met_images_lowres
+                output_size (:,3) {mustBeNumeric}
+            end
+
+            n_mets = numel(met_images_lowres);
+            if size(output_size, 1) ~= n_mets
+                error("mismatched array sizes. 2nd dimension of `met_images_lowres` and 1st dimension of `output_size` should both equal n_mets");
+            end
+
+            % upsample
+            output_met_images = cell(1, n_mets);
+            for i_met = 1:n_mets
+                n_tpts = size(met_images_lowres{i_met}, 4);
+                met_output_size = output_size(i_met, :);
+                output_met_images{i_met} = zeros(cat(2, met_output_size, n_tpts));
+                for i_tpt = 1:n_tpts
+                    output_met_images{i_met}(:,:,:,i_tpt) = imresize3(met_images_lowres{i_met}(:,:,:,i_tpt), met_output_size);
+                end
+            end
+        end
+
+        function augmented_met_images = augment(met_images, augs)
+            % Augments image
+            % Positional Parameters:
+            %   met_images      = metabolite images. size = (row, col, slice, met, tpt)
+            % Positional Parameters: see randomAffine2d
+            arguments
+                met_images (:,:,:,:,:) {mustBeNumeric}
+                augs.XTranslation (1,2) {mustBeNumeric} = [0,0]
+                augs.YTranslation (1,2) {mustBeNumeric} = [0,0]
+                augs.Rotation (1,2) {mustBeNumeric} = [0,0]
+                augs.Scale (1,2) {mustBeNumeric} = [1,1]
+                augs.XReflection (1,1) {mustBeNumericOrLogical} = false
+                augs.YReflection (1,1) {mustBeNumericOrLogical} = false
+                augs.XShear (1,2) {mustBeNumeric} = [0,0]
+                augs.YShear (1,2) {mustBeNumeric} = [0,0]
+                augs.Seed (1,1) {mustBeNumeric} = NaN
+            end
+
+            % initialize rng
+            if ~isnan(augs.Seed)
+                rng(augs.Seed);
+            else
+                rng("shuffle");
+            end
+
+            tform = randomAffine2d(...
+                XTranslation=augs.XTranslation, ...
+                YTranslation=augs.YTranslation, ...
+                Rotation=augs.Rotation, ...
+                Scale=augs.Scale, ...
+                XReflection=augs.XReflection, ...
+                YReflection=augs.YReflection, ...
+                XShear=augs.XShear, ...
+                YShear=augs.YShear ...
+            );
+
+            output_view = affineOutputView(size(met_images, [1,2]), tform, BoundsStyle="CenterOutput");
+            augmented_met_images = zeros(size(met_images));
+            % shoot this is gonna take forever
+            for i_met = 1:size(met_images, 4)
+                for i_tpt = 1:size(met_images, 5)
+                    augmented_met_images(:,:,:,i_met,i_tpt) = imwarp(met_images(:,:,:,i_met,i_tpt), tform, OutputView=output_view);
+                end
+            end
+        end
+
+        function met_images_w_coil_lim = apply_coil_lim(met_images, coil_lim, tissue_mask)
+            % Parameters:
+            %   met_images  = metabolite images. size = (row, col, slice, met, time_pt)
+            %   coil_lim    = coil limits. [min, max]
+            %   tissue_mask = tissue mask. size = (row, col, slice, tissue)
+            % Outputs:
+            %   met_images_w_coil_lim   metabolite images with coil limits. size = (row, col, slice, met, time_pt)
+
+            % argument validation
+            arguments
+                met_images (:,:,:,:,:) {mustBeNumeric}
+                coil_lim (1,2) {mustBeNumeric}
+                tissue_mask (:,:,:,:) {mustBeNumeric}
+            end
+
+            if any(size(met_images, 1:3) ~= size(tissue_mask, 1:3))
+                error("mismatched array sizes. `met_images` and `tissue_mask` must have the same number of rows, cols, and slices");
+            end
+
+            mask = sum(tissue_mask, 4);
+            coil_sens_weights = mri_system.coil_dist_map(mask, coil_lim);
+
+            n_mets = size(met_images, 4);
+            n_tpts = size(met_images, 5);
+            expanded_coil_sens_weights = repmat(coil_sens_weights, [1, 1, 1, n_mets, n_tpts]);
+            
+            met_images_w_coil_lim = met_images .* expanded_coil_sens_weights;
         end
     end
 
@@ -122,8 +264,50 @@ classdef mri_system
             std_noise = max(sum(met_image, 4), [], 'all') ./ (snr * sqrt(nt));
             noise_R = randn(cat(2, sample_size, nt)) * std_noise; 
             noise_I = randn(cat(2, sample_size, nt)) * std_noise;
-    
+
             met_image_w_noise = sqrt((met_image + noise_R).^2 + noise_I.^2);
+        end
+
+        % taken from brainweb
+        function [weights] = coil_dist_map(mask, lim)
+            maskSize = size(mask);
+            weights = zeros(maskSize); 
+
+            % create y gradient
+            x = linspace(-1, 1, maskSize(1));
+            y = linspace(-1, 1, maskSize(2));
+            z = linspace(-1, 1, maskSize(3));
+            [~, Y, Z] = meshgrid(x, y, z);
+
+            % y gradient
+            %lim = [0.6, 1.2];
+            grady = 0.5*(lim(2) - lim(1))*Y + 0.5*(lim(1) + lim(2));
+
+            % z gradient
+            gradz = (1 - abs(Z).^2) + 0.6;
+            gradz = gradz ./ max(gradz, [], 'all');
+
+            grad = grady .* gradz;
+            
+            for z=1:maskSize(3)
+                mask_sl = squeeze(mask(:,:,z));
+                
+                % get outline/perim of mask
+                mask_sl = imfill(bwmorph(bwareaopen(mask_sl,300),"fill"),"holes");
+                %figure, imagesc(mask); axis off square;
+                bw2 = bwperim(mask_sl);
+                %figure, imagesc(bw2)
+
+                %reverse_mask
+                mask_rev = imcomplement(mask_sl);
+                
+                % calculate weights based on distance from mask perim
+                w = bwdist(bw2) .^0.5;
+                weights(:,:,z) = ((1 - (w ./max(w(:)))) .* grad(:,:,z) .* mask_sl) + mask_rev;
+                %figure, imagesc(weights)
+            end
+
+            weights(isnan(weights)) = 0;
         end
     end
 end
