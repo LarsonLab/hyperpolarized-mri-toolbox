@@ -3,7 +3,7 @@ addpath('../');
 
 %% PARAMETERS
 % tissue
-mask = load('brainweb.mat').im_mask;
+mask = load('brainweb_fuzzy.mat').im_mask;
 
 newmask = zeros(100, 100, 50, 3);
 for i = 1:3
@@ -43,7 +43,7 @@ augmentation_params = struct(...
     "XReflection", true, ...
     "Rotation", [-5,5]);
 
-sample_size = [16 16 16; 16 16 16; 8 8 8];
+sample_size = [16 16 8; 16 16 8; 16 16 8];
 SNR = [150 40 20];
 output_size = [32 32 8; 32 32 8; 32 32 8];
 
@@ -60,14 +60,44 @@ images = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=inpu
 met_images_mres = mri_system.run_mri_system(images, sample_size, SNR, coil_lim, brain.Mask, output_size, augmentation_params);
 
 %% DISPLAY ---------------------------------------------------------------------
-figure;
-imagescn(met_images_mres{1}(:,:,5,:), [0, max(met_images_mres{1}(:,:,5,:), [], 'all')]);
+slices = 10:5:40;
+figure(Name='kTRANS');
+imagescn(brain.K_trans_map(:,:,slices), [0 max(brain.K_trans_map(:,:,slices), [], 'all')], [1 numel(slices)]);
 colormap fire;
 
-figure;
-imagescn(met_images_mres{2}(:,:,5,:), [0, max(met_images_mres{2}(:,:,5,:), [], 'all')]);
+k_trans_dwnszd = imresize3(imresize3(brain.K_trans_map, [16 16 8]), [32 32 8]);
+slices = 1:size(k_trans_dwnszd, 3);
+figure(Name='kTRANS downsized');
+imagescn(k_trans_dwnszd(:,:,slices), [0 max(k_trans_dwnszd(:,:,slices), [], 'all')], [1 numel(slices)]);
 colormap fire;
 
-figure;
-imagescn(met_images_mres{3}(:,:,5,:), [0, max(met_images_mres{3}(:,:,5,:), [], 'all')]);
+slices = 1:size(met_images_mres{1}, 3);
+time_pts = 1:3:n_t;
+figure(Name='Pyruvate (unified)')
+imagescn(met_images_mres{1}(:,:,slices,time_pts), [0, max(met_images_mres{1}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
+colormap fire;
+
+figure(Name='Lactate (unified)')
+imagescn(met_images_mres{2}(:,:,slices,time_pts), [0, max(met_images_mres{2}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
+colormap fire;
+
+figure(Name='Bicarb (unified)')
+imagescn(met_images_mres{3}(:,:,slices,time_pts), [0, max(met_images_mres{3}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
+colormap fire;
+
+% AUCs
+pyrAUC = sum(met_images_mres{1}, 4);
+figure(Name='Pyr AUC (unified)');
+imagescn(pyrAUC, [0 max(pyrAUC, [], 'all')], [1 numel(slices)]);
+colormap fire;
+
+
+lacAUC = sum(met_images_mres{2}, 4);
+figure(Name='Lac AUC (unified)');
+imagescn(lacAUC, [0 max(lacAUC, [], 'all')], [1 numel(slices)]);
+colormap fire;
+
+bicAUC = sum(met_images_mres{3}, 4);
+figure(Name='Bic AUC (unified)');
+imagescn(bicAUC, [0 max(bicAUC, [], 'all')], [1 numel(slices)]);
 colormap fire;

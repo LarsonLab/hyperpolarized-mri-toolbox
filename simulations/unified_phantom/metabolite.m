@@ -26,7 +26,7 @@ classdef metabolite
             elseif size(args.k, 2) == 2
                 obj.K = args.k;
             else
-                error("size of `k` must be either (1,1) (forward rate only) or (1,2) (both forward and reverse rates)");
+                error("size of `k` must have size of either (1,1) (forward rate only) or (1,2) (both forward and reverse rates)");
             end
 
         end
