@@ -206,7 +206,6 @@ classdef mri_system
 
             output_view = affineOutputView(size(met_images, [1,2]), tform, BoundsStyle="CenterOutput");
             augmented_met_images = zeros(size(met_images));
-            % shoot this is gonna take forever
             for i_met = 1:size(met_images, 4)
                 for i_tpt = 1:size(met_images, 5)
                     augmented_met_images(:,:,:,i_met,i_tpt) = imwarp(met_images(:,:,:,i_met,i_tpt), tform, OutputView=output_view);

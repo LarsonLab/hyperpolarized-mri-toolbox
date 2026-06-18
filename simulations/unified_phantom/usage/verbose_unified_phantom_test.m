@@ -1,7 +1,8 @@
 clear; close all;
+addpath('../');
 mask = load('util/mask.mat').masks;
 
-create_graphs = false;
+create_graphs = true;
 
 % tissue_structure
 heart = tissue_structure("heart", mask, ["lv" "rv" "lvmy" "rvmy"]);

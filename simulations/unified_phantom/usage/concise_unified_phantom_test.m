@@ -1,4 +1,5 @@
 clear; close all;
+addpath('../')
 
 % TISSUE STRUCTURE
 mask = load('util/mask.mat').masks;

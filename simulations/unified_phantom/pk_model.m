@@ -1,6 +1,6 @@
 classdef pk_model
     methods (Static)
-        function met_images = run_pk_model(mz0, r1, k, flips, tr, tissue_struct, opts)
+        function [met_images, dynamics_low_ktrans, dynamics_high_ktrans, images_low_ktrans, images_high_ktrans] = run_pk_model(mz0, r1, k, flips, tr, tissue_struct, opts)
             % Wrapper for easy use of pk model.
             % Parameters:
             %   mz0             = initial magnetization of each metabolite in each tissue. size = (met, tissue)
@@ -13,8 +13,14 @@ classdef pk_model
             %   input_function  = additional input for substrate per tissue per time point. size = (tissue, tpt). may not be provided if `t_arrival` and `t_bolus` are provided.
             %   t_arrival       = arrival time of substrate. size = (1, tissue). must be provided with `t_bolus`.
             %   t_bolus         = time it takes for bolus to enter. size = (1,1). must be provided with `t_arrival`
+            %   plot            = boolean flag to create plots at each step
+            %   met_names       = list of met names. only used for plotting. size = (1,met).
             % Outputs:
             %   met_images      = dynamic metabolite images. size = (row, col, slice, tissue, met, time_pt)
+            %   dynamics_low_ktrans     = metabolite dynamices with k_trans = 0. size = (tissue, met, time_pt)
+            %   dynamics_high_ktrans    = metabolite dynamices with k_trans = 1. size = (tissue, met, time_pt)
+            %   images_low_ktrans       = metabolite images with k_trans = 0. size = (row, col, slice, tissue, met, time_pt)
+            %   images_high_ktrans      = metabolite images with k_trans = 1. size = (row, col, slice, tissue, met, time_pt)
             arguments
                 mz0 (:,:) {mustBeNumeric}
                 r1 (1,:) {mustBeNumeric}
@@ -25,15 +31,19 @@ classdef pk_model
                 opts.input_function (:,:) {mustBeNumeric} = NaN
                 opts.t_arrival (1,:) {mustBeNumeric} = NaN
                 opts.t_bolus (1,1) {mustBeNumeric} = NaN
+                opts.plot (1,1) {mustBeNumericOrLogical} = false
+                opts.met_names (1,:) string = []
             end
             n_tissues = size(mz0, 2);
-            dynamics_low_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, zeros(1, n_tissues), flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
-            dynamics_high_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, ones(1, n_tissues), flips, tr, input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus);
+            dynamics_low_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, zeros(1, n_tissues), flips, tr, ...
+                input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus, plot=opts.plot, tissue_names=tissue_struct.Tissues, met_names=opts.met_names);
+            dynamics_high_ktrans = pk_model.generate_all_met_dynamics(mz0, r1, k, ones(1, n_tissues), flips, tr, ...
+                input_function=opts.input_function, t_arrival=opts.t_arrival, t_bolus=opts.t_bolus, plot=opts.plot, tissue_names=tissue_struct.Tissues, met_names=opts.met_names);
 
-            low_ktrans_images = pk_model.generate_met_images(tissue_struct, dynamics_low_ktrans);
-            high_ktrans_images = pk_model.generate_met_images(tissue_struct, dynamics_high_ktrans);
+            images_low_ktrans = pk_model.generate_met_images(tissue_struct, dynamics_low_ktrans);
+            images_high_ktrans = pk_model.generate_met_images(tissue_struct, dynamics_high_ktrans);
 
-            met_images = pk_model.apply_k_trans(low_ktrans_images, high_ktrans_images, tissue_struct.K_trans_map);
+            met_images = pk_model.apply_k_trans(images_low_ktrans, images_high_ktrans, tissue_struct.K_trans_map);
         end
 
 
@@ -50,6 +60,9 @@ classdef pk_model
             %   input_function  = additional input for substrate per tissue per time point. size = (tissue, tpt). may not be provided if `t_arrival` and `t_bolus` are provided.
             %   t_arrival       = arrival time of substrate. size = (1, tissue). must be provided with `t_bolus`.
             %   t_bolus         = time it takes for bolus to enter. size = (1,1). must be provided with `t_arrival`
+            %   plot            = boolean flag to create plots at each step
+            %   tissue_names    = list of tissue names. only used for plotting. size = (1,tissue).
+            %   met_names       = list of met names. only used for plotting. size = (1,met).
             % Outputs:
             %   met_dynamics    = metabolite dynamics. size = (tissue, met, time_pt)
 
@@ -64,8 +77,12 @@ classdef pk_model
                 opts.input_function (:,:) {mustBeNumeric} = NaN
                 opts.t_arrival (1,:) {mustBeNumeric} = NaN
                 opts.t_bolus (1,1) {mustBeNumeric} = NaN
+                opts.plot (1,1) {mustBeNumericOrLogical} = false
+                opts.tissue_names (1,:) = []
+                opts.met_names (1,:) = []
             end
 
+            % input function, t_arrival, t_bolus parsing
             provided_opts = [~any(isnan(opts.input_function), 'all'), ~any(isnan(opts.t_arrival), 'all'), ~isnan(opts.t_bolus)]; % e.g. if only input function is provided, this is [1,0,0]
 
             if provided_opts == [1,0,0] % case when only input_function is provided
@@ -96,6 +113,22 @@ classdef pk_model
             % validate the rest of the arguments
             [n_mets, n_tissues, n_tpts] = pk_model.validate_pk_args(mz0, r1, k, k_trans, flips, input_function);
 
+            % validate/make up tissue and met names
+            if isempty(opts.tissue_names)
+                opts.tissue_names = compose("Tissue %d", 1:n_tissues);
+            elseif numel(opts.tissue_names) ~= n_tissues
+                error("Unexpected number of tissue names provided");
+            end
+
+            if isempty(opts.met_names)
+                opts.met_names = compose("Met %d", 1:n_mets);
+            elseif numel(opts.met_names) ~= n_mets
+                n_mets
+                numel(opts.met_names)
+                error("Unexpected number of met names names provided");
+            end
+
+
             % migrate everything over to compartment-specific pk params
             met_dynamics = zeros(n_tissues, n_mets, n_tpts);
             for i_tissue = 1:n_tissues
@@ -124,6 +157,23 @@ classdef pk_model
          
                  % generate met dynamics
                  met_dynamics(i_tissue,:,:) = pk_model.generate_met_dynamics(tissue_pk_params, k_trans(i_tissue));
+            end
+
+            % plotting
+            % size(met_dynamics) = [tissue, met, time_pt]
+            if opts.plot
+                tpts = 1:n_tpts;
+                figure;
+                for i_tissue = 1:n_tissues
+                    subplot(n_tissues, 1, i_tissue);
+                    hold on;
+                    for i_met = 1:n_mets
+                        plot(tpts, squeeze(met_dynamics(i_tissue, i_met, :)));
+                    end
+                    hold off;
+                    title(opts.tissue_names(i_tissue));
+                    legend(opts.met_names);
+                end
             end
         end
 
