@@ -54,9 +54,9 @@ brain = tissue_structure("brain", mask, ["vasc", "gm", "wm"], [100,100,100]);
 brain = brain.create_k_trans_map(k_trans);
 disp(['took ', num2str(toc), 's', newline]);
 
-% pk model
+%% pk model
 disp('running pk model...'); tic;
-[met_images, ~, ~, ~, met_images_no_ktrans] = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function, plot=false, met_names=["pyr", "lac", "bic"]);
+[met_images, ~, met_dynamics, ~, met_images_no_ktrans] = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function);
 disp(['took ', num2str(toc), 's', newline]);
 
 % mri
@@ -71,8 +71,6 @@ met_images_upsampled = mri_system.upsample_to_output_size(met_images_mres_noise,
 disp(['took ', num2str(toc), 's', newline]);
 
 
-
-
 %% DISPLAY ---------------------------------------------------------------------
 disp('plotting...'); tic;
 
@@ -81,64 +79,102 @@ disp('plotting...'); tic;
 brain.plot_alpha_composite_image(slice=50, order=[2,3,1]); % plot vasculature last
 saveas(gcf, 'figures/alpha_composite.png');
 
-% kTRANS
+%% kTRANS
 slices = 10:10:100;
-display_tiled_images(brain.K_trans_map(:,:,slices), true, 'ktrans', []);
+f = display_tiled_images(brain.K_trans_map(:,:,slices), true, 'ktrans', []);
+f.Position = [0, 0, 1440, 185];
 saveas(gcf, 'figures/ktrans.png');
 
-%% met_images
-% no ktrans
+
+% pk -------------
+% met dynamics
+% size(met_dynamics) = [tissue, met, time_pt]
+time_pts = 1:size(met_dynamics, 3);
+
+f = figure(Name='met dynamics');
+set(gcf,'Color','white');
+
+% construction
+t = tiledlayout(size(met_dynamics, 1), 1);
+tissue_names = ["Vasculature", "Gray Matter", "White Matter"];
+for i_tissue = 1:size(met_dynamics, 1)
+    nexttile;
+    hold on;
+    for i_met = 1:size(met_dynamics, 2)
+        plot(time_pts, squeeze(met_dynamics(i_tissue, i_met, :)), LineWidth=1);
+    end
+    ax = gca;
+    ax.Color = 'white';
+    ax.XColor = 'black'; ax.YColor = 'black';
+    xlabel('time point');
+    ylabel('signal')
+    leg = legend(["Pyruvate", "Lactate", "Bicarbonate"], TextColor='black', Color='white', EdgeColor='black');
+    title(tissue_names(i_tissue), Color='black');
+    hold off;
+end
+f.Position = [0, 0, 1000, 600];
+saveas(f, 'figures/met_dynamics.png');
+
+
+% met images (no ktrans)
 slice = round(size(met_images_no_ktrans, 3) / 2);
 time_pts = 1:3:n_t;
-display_tiled_images(met_images_no_ktrans(:,:,slice,:,time_pts), true, 'met images no ktrans', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f = display_tiled_images(met_images_no_ktrans(:,:,slice,:,time_pts), true, 'met images no ktrans', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/1-met_img_no_ktrans.png');
 
-% ktrans
+% met images (ktrans)
 slice = round(size(met_images, 3) / 2);
 time_pts = 1:3:n_t;
-display_tiled_images(met_images(:,:,slice,:,time_pts), true, 'met images', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f = display_tiled_images(met_images(:,:,slice,:,time_pts), true, 'met images', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/2-met_img_w_ktrans.png');
 
 
-%% met images of various mri steps
+% met images of various mri steps --
 
 % augmentations
 slice = round(size(met_images_aug, 3) / 2);
 time_pts = 1:3:n_t;
-display_tiled_images(met_images_aug(:,:,slice,:,time_pts), true, 'met images (augmentations)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f = display_tiled_images(met_images_aug(:,:,slice,:,time_pts), true, 'met images (augmentations)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/3-met_img_w_augs.png');
 
 % coil limits
 slice = round(size(met_images_coil_lim, 3) / 2);
 time_pts = 1:3:n_t;
-display_tiled_images(met_images_coil_lim(:,:,slice,:,time_pts), true, 'met images (coil lim)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f = display_tiled_images(met_images_coil_lim(:,:,slice,:,time_pts), true, 'met images (coil lim)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/4-met_img_w_coil_lims.png');
 
 % coil limit maps
 slices = 1:10:100;
-display_tiled_images(coil_sens_weights(:,:,slices), true, 'Coil Sensitivity Map', []);
+f = display_tiled_images(coil_sens_weights(:,:,slices), true, 'Coil Sensitivity Map', []);
+f.Position = [0, 0, 1440, 185];
 saveas(gcf, 'figures/coil_sensitivity.png');
 
 %% multiresolution
 slice = round(size(met_images_mres{1}, 3) / 2);
 time_pts = 1:3:n_t;
-I = display_tiled_images(met_images_mres, true, 'met images multires', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+f = display_tiled_images(met_images_mres, true, 'met images multires', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/5-met_images_mres.png');
 
 % noise
 slice = round(size(met_images_mres_noise{1}, 3) / 2);
 time_pts = 1:3:n_t;
-display_tiled_images(met_images_mres_noise, true, 'met images noisy', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+f = display_tiled_images(met_images_mres_noise, true, 'met images noisy', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+f.Position = [0, 0, 1440, 475];
 saveas(gcf, 'figures/6-met_images_noise.png');
-
 
 
 %% final met images (after mri)
 
 slice = round(size(met_images_upsampled{1}, 3) / 2);
 time_pts = 1:3:n_t;
-I = display_tiled_images(met_images_upsampled, true, 'final met images!', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
-saveas(gcf, 'figures/met_images_upsampled.png');
+f = display_tiled_images(met_images_upsampled, true, 'final met images!', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+f.Position = [0, 0, 1440, 475];
+saveas(gcf, 'figures/7-met_images_upsampled.png');
 
 
 %% AUCs
@@ -151,7 +187,8 @@ for i = 1:3
     aucs{i} = reshape(aucs{i}, new_size);
 end
 
-I = display_tiled_images(aucs, true, 'aucs', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f = display_tiled_images(aucs, true, 'aucs', ["Pyruvate", "Lactate", "Bicarbonate"]);
+f.Position = [0, 0, 1440, 565];
 saveas(gcf, 'figures/aucs.png');
 
 disp(['took ', num2str(toc), 's', newline]);
@@ -159,7 +196,7 @@ disp('done! (plots might take a while to load)');
 disp(['took a total of ', num2str(toc(t_all)), 's']);
 
 
-function I = display_tiled_images(I, has_colorbar, figurename, labels, slice, time_pts)
+function [fig, I] = display_tiled_images(I, has_colorbar, figurename, labels, slice, time_pts)
     % I = (row, col, slice). 1 row, slice columns
     % I = (row, col, met, time). met rows, time columns
     % I = {met} --> (row, col, slice, time). met rows, time columns. assumes all have the same number of timesteps
@@ -204,7 +241,6 @@ function I = display_tiled_images(I, has_colorbar, figurename, labels, slice, ti
     end
 
 
-
     % setup
     fig = figure(Name=figurename);
     set(gcf,'Color','white');
@@ -223,9 +259,6 @@ function I = display_tiled_images(I, has_colorbar, figurename, labels, slice, ti
     for row = 1:numel(I)
         scale = [0, max(I{row}(:,:,:), [], 'all')];
         for col = 1:size(I{row}, 3)
-            %size(I{row}(:,:,col))
-            %row
-            %col
             nexttile;
             imshow(I{row}(:,:,col), scale);
             if col == 1 && ~isempty(labels)
@@ -244,5 +277,3 @@ function I = display_tiled_images(I, has_colorbar, figurename, labels, slice, ti
 
     colormap fire;
 end
-
-
