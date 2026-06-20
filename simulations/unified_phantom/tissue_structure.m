@@ -16,7 +16,7 @@ classdef tissue_structure
                 name (1,1) string
                 mask (:,:,:,:) {mustBeNumericOrLogical}
                 tissues (1,:) string
-                dims (1,3) {mustBeInteger} = NaN
+                dims (1,3) {mustBeInteger} = [0,0,0]
             end
 
             if numel(tissues) ~= size(mask, 4)
@@ -33,7 +33,7 @@ classdef tissue_structure
                 obj.Mask = mask;
             end
 
-            if ~any(isnan(dims))
+            if dims ~= [0,0,0]
                 obj = obj.downscale_mask(dims);
             end
 
@@ -119,7 +119,7 @@ classdef tissue_structure
         end
 
 
-        function [rgb, colors] = plot_alpha_composite_image(obj, opts)
+        function [rgb, colors, fig] = plot_alpha_composite_image(obj, opts)
             % plots color visualization of mask
             % Optional Parameters:
             %   slice   = slice to plot. size = (1,1)
@@ -127,6 +127,7 @@ classdef tissue_structure
             % Outputs:
             %   rgb     = rgb alpha-composited volume. size = (row, col, slice, 3)
             %   colors  = rgb triplets of each tissue. size = (tissue, 3)
+            %   fig     = the figure that this creates
 
             % https://en.wikipedia.org/wiki/Alpha_compositing
             % performs the 'over' operation (basically, laying transparent layers on top of each other): 
@@ -174,7 +175,7 @@ classdef tissue_structure
             end
 
             % plot
-            figure;
+            fig = figure;
             imshow(squeeze(rgb(:,:,opts.slice,:)));
 
             % legend for this

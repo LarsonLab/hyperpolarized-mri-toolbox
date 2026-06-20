@@ -4,6 +4,9 @@ addpath('../');
 addpath('../brainweb_clone');
 
 %% PARAMETERS
+disp('setting up...');
+t_all = tic;
+tic
 % tissue
 mask = double(load('brainweb_fuzzy.mat').im_mask);
 
@@ -42,165 +45,204 @@ augment_params = struct(...
 sample_size = [16 16 8; 16 16 8; 16 16 8];
 snr = [150 40 20];
 output_size = [32 32 8; 32 32 8; 32 32 8];
+disp(['took ', num2str(toc), 's', newline]);
 
 %% RUNNING THE MODEL -----------------------------------------------------------
 % tissue
+disp('creating tissue structure...'); tic;
 brain = tissue_structure("brain", mask, ["vasc", "gm", "wm"], [100,100,100]);
 brain = brain.create_k_trans_map(k_trans);
+disp(['took ', num2str(toc), 's', newline]);
 
 % pk model
-[met_images, ~, ~, ~, met_images_no_ktrans] = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function, plot=true, met_names=["pyr", "lac", "bic"]);
+disp('running pk model...'); tic;
+[met_images, ~, ~, ~, met_images_no_ktrans] = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function, plot=false, met_names=["pyr", "lac", "bic"]);
+disp(['took ', num2str(toc), 's', newline]);
 
 % mri
+disp('running mri system...'); tic;
 cell_augment_params = namedargs2cell(augment_params); % unpack the augmentation parameters
 met_images_aug = mri_system.augment(met_images, cell_augment_params{:});
-met_images_coil_lim = mri_system.apply_coil_lim(met_images_aug, coil_lim, brain.Mask);
+[met_images_coil_lim, coil_sens_weights] = mri_system.apply_coil_lim(met_images_aug, coil_lim, brain.Mask);
 met_images_mres = mri_system.make_met_images_multires(met_images_coil_lim, sample_size);
 met_images_mres_noise = mri_system.add_rician_noise(met_images_mres, snr);
 
 met_images_upsampled = mri_system.upsample_to_output_size(met_images_mres_noise, output_size);
+disp(['took ', num2str(toc), 's', newline]);
 
 
 
 
 %% DISPLAY ---------------------------------------------------------------------
+disp('plotting...'); tic;
 
-% tissue
+% tissue ----------
+% mask
 brain.plot_alpha_composite_image(slice=50, order=[2,3,1]); % plot vasculature last
+saveas(gcf, 'figures/alpha_composite.png');
 
-slices = 10:10:90;
-figure(Name='kTRANS');
-imagescn(brain.K_trans_map(:,:,slices), [0 max(brain.K_trans_map(:,:,slices), [], 'all')], [1 numel(slices)]);
-colormap fire;
-
-k_trans_dwnszd = imresize3(imresize3(brain.K_trans_map, [16 16 8]), [32 32 8]);
-slices = 1:size(k_trans_dwnszd, 3);
-figure(Name='kTRANS downsized');
-imagescn(k_trans_dwnszd(:,:,slices), [0 max(k_trans_dwnszd(:,:,slices), [], 'all')], [1 numel(slices)]);
-colormap fire;
+% kTRANS
+slices = 10:10:100;
+display_tiled_images(brain.K_trans_map(:,:,slices), true, 'ktrans', []);
+saveas(gcf, 'figures/ktrans.png');
 
 %% met_images
 % no ktrans
-slices = round(size(met_images_no_ktrans, 3) / 2);
+slice = round(size(met_images_no_ktrans, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (unprocessed)');
-imagescn(squeeze(met_images_no_ktrans(:,:,slices,1,time_pts)), [0, max(met_images_no_ktrans(:,:,slices,1,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Lactate (unprocessed)');
-imagescn(squeeze(met_images_no_ktrans(:,:,slices,2,time_pts)), [0, max(met_images_no_ktrans(:,:,slices,2,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Bicarb (unprocessed)');
-imagescn(squeeze(met_images_no_ktrans(:,:,slices,3,time_pts)), [0, max(met_images_no_ktrans(:,:,slices,3,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+display_tiled_images(met_images_no_ktrans(:,:,slice,:,time_pts), true, 'met images no ktrans', ["Pyruvate", "Lactate", "Bicarbonate"]);
+saveas(gcf, 'figures/1-met_img_no_ktrans.png');
 
 % ktrans
-slices = round(size(met_images, 3) / 2);
+slice = round(size(met_images, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (ktrans)');
-imagescn(squeeze(met_images(:,:,slices,1,time_pts)), [0, max(met_images(:,:,slices,1,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+display_tiled_images(met_images(:,:,slice,:,time_pts), true, 'met images', ["Pyruvate", "Lactate", "Bicarbonate"]);
+saveas(gcf, 'figures/2-met_img_w_ktrans.png');
 
-figure(Name='Lactate (ktrans)');
-imagescn(squeeze(met_images(:,:,slices,2,time_pts)), [0, max(met_images(:,:,slices,2,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Bicarb (ktrans)');
-imagescn(squeeze(met_images(:,:,slices,3,time_pts)), [0, max(met_images(:,:,slices,3,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
 
 %% met images of various mri steps
 
 % augmentations
-slices = round(size(met_images_aug, 3) / 2);
+slice = round(size(met_images_aug, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (aug)');
-imagescn(squeeze(met_images_aug(:,:,slices,1,time_pts)), [0, max(met_images_aug(:,:,slices,1,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Lactate (aug)');
-imagescn(squeeze(met_images_aug(:,:,slices,2,time_pts)), [0, max(met_images_aug(:,:,slices,2,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Bicarb (aug)');
-imagescn(squeeze(met_images_aug(:,:,slices,3,time_pts)), [0, max(met_images_aug(:,:,slices,3,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+display_tiled_images(met_images_aug(:,:,slice,:,time_pts), true, 'met images (augmentations)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+saveas(gcf, 'figures/3-met_img_w_augs.png');
 
 % coil limits
-slices = round(size(met_images_coil_lim, 3) / 2);
+slice = round(size(met_images_coil_lim, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (coil lim)');
-imagescn(squeeze(met_images_coil_lim(:,:,slices,1,time_pts)), [0, max(met_images_coil_lim(:,:,slices,1,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+display_tiled_images(met_images_coil_lim(:,:,slice,:,time_pts), true, 'met images (coil lim)', ["Pyruvate", "Lactate", "Bicarbonate"]);
+saveas(gcf, 'figures/4-met_img_w_coil_lims.png');
 
-figure(Name='Lactate (coil lim)');
-imagescn(squeeze(met_images_coil_lim(:,:,slices,2,time_pts)), [0, max(met_images_coil_lim(:,:,slices,2,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+% coil limit maps
+slices = 1:10:100;
+display_tiled_images(coil_sens_weights(:,:,slices), true, 'Coil Sensitivity Map', []);
+saveas(gcf, 'figures/coil_sensitivity.png');
 
-figure(Name='Bicarb (coil lim)');
-imagescn(squeeze(met_images_coil_lim(:,:,slices,3,time_pts)), [0, max(met_images_coil_lim(:,:,slices,3,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-% multiresolution
-slices = round(size(met_images_mres{1}, 3) / 2);
+%% multiresolution
+slice = round(size(met_images_mres{1}, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (multires)');
-imagescn(met_images_mres{1}(:,:,slices,time_pts), [0, max(met_images_mres{1}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Lactate (multires)');
-imagescn(met_images_mres{2}(:,:,slices,time_pts), [0, max(met_images_mres{2}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Bicarb (multires)');
-imagescn(met_images_mres{3}(:,:,slices,time_pts), [0, max(met_images_mres{3}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+I = display_tiled_images(met_images_mres, true, 'met images multires', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+saveas(gcf, 'figures/5-met_images_mres.png');
 
 % noise
-slices = round(size(met_images_mres_noise{1}, 3) / 2);
+slice = round(size(met_images_mres_noise{1}, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (noise)');
-imagescn(met_images_mres_noise{1}(:,:,slices,time_pts), [0, max(met_images_mres_noise{1}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Lactate (noise)');
-imagescn(met_images_mres_noise{2}(:,:,slices,time_pts), [0, max(met_images_mres_noise{2}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
-
-figure(Name='Bicarb (noise)');
-imagescn(met_images_mres_noise{3}(:,:,slices,time_pts), [0, max(met_images_mres_noise{3}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+display_tiled_images(met_images_mres_noise, true, 'met images noisy', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+saveas(gcf, 'figures/6-met_images_noise.png');
 
 
 
 %% final met images (after mri)
-slices = 1:size(met_images_upsampled{1}, 3);
+
+slice = round(size(met_images_upsampled{1}, 3) / 2);
 time_pts = 1:3:n_t;
-figure(Name='Pyruvate (unified)');
-imagescn(met_images_upsampled{1}(:,:,slices,time_pts), [0, max(met_images_upsampled{1}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+I = display_tiled_images(met_images_upsampled, true, 'final met images!', ["Pyruvate", "Lactate", "Bicarbonate"], slice, time_pts);
+saveas(gcf, 'figures/met_images_upsampled.png');
 
-figure(Name='Lactate (unified)');
-imagescn(met_images_upsampled{2}(:,:,slices,time_pts), [0, max(met_images_upsampled{2}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
 
-figure(Name='Bicarb (unified)');
-imagescn(met_images_upsampled{3}(:,:,slices,time_pts), [0, max(met_images_upsampled{3}(:,:,slices,time_pts), [], 'all')], [numel(slices) numel(time_pts)]);
-colormap fire;
+%% AUCs
+aucs = cell(1,3);
 
-% AUCs
-pyrAUC = sum(met_images_upsampled{1}, 4);
-figure(Name='Pyr AUC (unified)');
-imagescn(pyrAUC, [0 max(pyrAUC, [], 'all')], [1 numel(slices)]);
-colormap fire;
+for i = 1:3
+    aucs{i} = sum(met_images_upsampled{i}, 4);
+    % turn it into (row, col, 1, slice)
+    new_size = cat(2, size(aucs{i}, 1,2), 1, size(aucs{i}, 3));
+    aucs{i} = reshape(aucs{i}, new_size);
+end
 
-lacAUC = sum(met_images_upsampled{2}, 4);
-figure(Name='Lac AUC (unified)');
-imagescn(lacAUC, [0 max(lacAUC, [], 'all')], [1 numel(slices)]);
-colormap fire;
+I = display_tiled_images(aucs, true, 'aucs', ["Pyruvate", "Lactate", "Bicarbonate"]);
+saveas(gcf, 'figures/aucs.png');
 
-bicAUC = sum(met_images_upsampled{3}, 4);
-figure(Name='Bic AUC (unified)');
-imagescn(bicAUC, [0 max(bicAUC, [], 'all')], [1 numel(slices)]);
-colormap fire;
+disp(['took ', num2str(toc), 's', newline]);
+disp('done! (plots might take a while to load)');
+disp(['took a total of ', num2str(toc(t_all)), 's']);
+
+
+function I = display_tiled_images(I, has_colorbar, figurename, labels, slice, time_pts)
+    % I = (row, col, slice). 1 row, slice columns
+    % I = (row, col, met, time). met rows, time columns
+    % I = {met} --> (row, col, slice, time). met rows, time columns. assumes all have the same number of timesteps
+
+    % stored as:
+    % I = {met} --> (row, col, time/slice). met rows, time/slice columns. assumes all have the same number of timesteps
+
+    % slice and time_pts is only for the 3rd option because there's not a great way to just remove that dimension
+    
+    arguments
+        I
+        has_colorbar
+        figurename
+        labels
+        slice (1,1) = 1 % these two are optional, won't be used unless I is a cell
+        time_pts = NaN
+    end
+
+    % keep the dimensions consistent
+    % in the form {met} --> (row, col, time)
+    if iscell(I)
+        if any(isnan(time_pts))
+            time_pts = 1:size(I{1}, 4);
+        end
+        for row = 1:numel(I)
+            I{row} = squeeze(I{row}(:, :, slice, time_pts));
+        end
+    else
+        % convert (x,y,z) --> (x,y,1,z)
+        I = squeeze(I);
+        if numel(size(I)) == 3
+            new_shape = cat(2, size(I, 1:2), 1, size(I, 3));
+            I = reshape(I, new_shape);
+        end
+        % turn it into cell
+        cell_I = cell([1, size(I, 3)]);
+        for row = 1:size(I, 3)
+            cell_I{row} = squeeze(I(:,:,row,:));
+        end
+
+        I = cell_I;
+    end
+
+
+
+    % setup
+    fig = figure(Name=figurename);
+    set(gcf,'Color','white');
+
+    if has_colorbar
+        n_cols = size(I{1}, 3) + 1;
+    else
+        n_cols = size(I{1}, 3);
+    end
+
+
+    % construction
+    t = tiledlayout(numel(I), n_cols);
+    t.Padding = 'none';
+    t.TileSpacing = 'none';
+    for row = 1:numel(I)
+        scale = [0, max(I{row}(:,:,:), [], 'all')];
+        for col = 1:size(I{row}, 3)
+            %size(I{row}(:,:,col))
+            %row
+            %col
+            nexttile;
+            imshow(I{row}(:,:,col), scale);
+            if col == 1 && ~isempty(labels)
+                ylabel(labels(row), Color='black');
+            end
+        end
+
+        if has_colorbar
+            cb_ax = nexttile();
+            axis(cb_ax, 'off');
+            cb = colorbar('location','west');
+            clim(scale);
+            cb.Color = 'black';
+        end
+    end
+
+    colormap fire;
+end
+
+

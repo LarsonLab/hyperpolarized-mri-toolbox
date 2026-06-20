@@ -1,6 +1,6 @@
 classdef mri_system
     methods (Static)
-        function met_images_mres = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_mask, output_size, augment_params)
+        function [met_images_mres, coil_sens_weights] = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_mask, output_size, augment_params)
             % Wrapper for easy use of mri system model
             % Parameters:
             %   met_images      = single-resolution metabolite images. size = (row, col, slice, met, tpt)
@@ -13,6 +13,8 @@ classdef mri_system
             % Outputs:
             %   met_images_mres = multiresolution metabolite images. 
             %                     size = (1, met) cell array. size of each cell = (row, col, slice, time_pt)
+            %   coil_sens_weights   = coil sensitivity weights
+
 
             % argument validation
             arguments
@@ -26,14 +28,14 @@ classdef mri_system
             end
 
             n_mets = size(met_images, 4);
-            if size(sample_size, 1) ~= n_mets
-                error('mismatched array sizes: the 1st dimension of `sample_size` must equal n_mets');
+            if size(sample_size, 1) ~= n_mets && size(sample_size, 1) ~= 1
+                error('Mismatched array sizes: the 1st dimension of `sample_size` must equal n_mets OR 1');
             end
             if size(snr, 2) ~= n_mets
                 error('mismatched array sizes: the 2nd dimension of `snr` must equal n_mets');
             end
-            if (size(output_size, 1) ~= n_mets) && (all(~isnan(output_size), 'all'))
-                error('mismatched array sizes: the 1st dimension of `output_size` must equal n_mets');
+            if (size(output_size, 1) ~= n_mets) && (size(output_size, 1) ~= 1) && (all(~isnan(output_size), 'all'))
+                error('mismatched array sizes: the 1st dimension of `output_size` must equal n_mets OR 1');
             end
 
             % run the system
@@ -41,7 +43,7 @@ classdef mri_system
                 cell_augment_params = namedargs2cell(augment_params); % unpack the augmentation parameters
                 met_images = mri_system.augment(met_images, cell_augment_params{:});
             end
-            met_images = mri_system.apply_coil_lim(met_images, coil_lim, tissue_mask);
+            [met_images, coil_sens_weights] = mri_system.apply_coil_lim(met_images, coil_lim, tissue_mask);
             met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
             met_images_mres = mri_system.add_rician_noise(met_images_mres, snr);
 
@@ -56,7 +58,7 @@ classdef mri_system
             %   met_images      = single-resolution dynamic metabolite images. 
             %                     size = (row, col, slice, metabolite, time_pt)
             %   sample_size     = desired matrix sizes for each metabolite.
-            %                     size = (metabolite, dim)
+            %                     size = (metabolite, dim) OR (1, dim)
             %
             % Outputs:
             %   met_images_multires = multiresolution dynamic metabolite images.
@@ -65,9 +67,13 @@ classdef mri_system
                 met_images (:,:,:,:,:) {mustBeNumeric}
                 sample_size (:,3) {mustBeInteger, mustBePositive}
             end
-        
-            if size(met_images, 4) ~= size(sample_size, 1)
-                error("Mismatched array sizes. 4th dimension of met_images and 1st dimension of sample_size must be equal and have length=n_mets")
+
+            n_mets = size(met_images, 4);
+
+            if size(sample_size, 1) == 1
+                sample_size = repmat(sample_size, [n_mets, 1]);
+            elseif size(sample_size, 1) ~= n_mets
+                error('Mismatched array sizes: the 1st dimension of `sample_size` must equal n_mets OR 1');
             end
         
             n_mets = size(met_images, 4);
@@ -143,7 +149,7 @@ classdef mri_system
             % Parameters:
             %   met_images_lowres   = un-resized metabolite images. 
             %                         size = (1, met) cell array, where each cell = (row, col, slice, time_pt)
-            %   output_size         = desired output matrix size. size = (met, dim)
+            %   output_size         = desired output matrix size. size = (met, dim) OR (1, dim)
             % Outputs:
             %   output_met_images   = upsampled met images
             arguments
@@ -152,8 +158,10 @@ classdef mri_system
             end
 
             n_mets = numel(met_images_lowres);
-            if size(output_size, 1) ~= n_mets
-                error("mismatched array sizes. 2nd dimension of `met_images_lowres` and 1st dimension of `output_size` should both equal n_mets");
+            if size(output_size, 1) == 1
+                output_size = repmat(output_size, [n_mets, 1]);
+            elseif size(output_size, 1) ~= n_mets
+                error("mismatched array sizes. 1st dimension of `output_size` should both equal n_mets OR 1");
             end
 
             % upsample
@@ -172,11 +180,12 @@ classdef mri_system
             % Augments image
             % Positional Parameters:
             %   met_images      = metabolite images. size = (row, col, slice, met, tpt)
-            % Positional Parameters: see randomAffine2d
+            % Name-Value Parameters: see randomAffine2d
             arguments
                 met_images (:,:,:,:,:) {mustBeNumeric}
                 augs.XTranslation (1,2) {mustBeNumeric} = [0,0]
                 augs.YTranslation (1,2) {mustBeNumeric} = [0,0]
+                augs.ZTranslation (1,2) {mustBeNumeric} = [0,0]
                 augs.Rotation (1,2) {mustBeNumeric} = [0,0]
                 augs.Scale (1,2) {mustBeNumeric} = [1,1]
                 augs.XReflection (1,1) {mustBeNumericOrLogical} = false
@@ -211,15 +220,29 @@ classdef mri_system
                     augmented_met_images(:,:,:,i_met,i_tpt) = imwarp(met_images(:,:,:,i_met,i_tpt), tform, OutputView=output_view);
                 end
             end
+
+            % z translation
+            offset = randi(augs.ZTranslation);
+            aug_met_img_ztrans = zeros(size(augmented_met_images));
+            n_slices = size(met_images,3);
+            cutoff = n_slices - abs(offset);
+            if offset > 0
+                aug_met_img_ztrans(:,:, 1:cutoff, :,:) = augmented_met_images(:,:, (offset + 1):n_slices ,:,:);
+                augmented_met_images = aug_met_img_ztrans;
+            elseif offset < 0
+                aug_met_img_ztrans(:,:, (abs(offset) + 1):n_slices, :,:) = augmented_met_images(:,:, 1:cutoff, :,:);
+                augmented_met_images = aug_met_img_ztrans;
+            end
         end
 
-        function met_images_w_coil_lim = apply_coil_lim(met_images, coil_lim, tissue_mask)
+        function [met_images_w_coil_lim, coil_sens_weights] = apply_coil_lim(met_images, coil_lim, tissue_mask)
             % Parameters:
             %   met_images  = metabolite images. size = (row, col, slice, met, time_pt)
-            %   coil_lim    = coil limits. [min, max]
+            %   coil_lim    = coil sensitivity limits. [min, max]
             %   tissue_mask = tissue mask. size = (row, col, slice, tissue)
             % Outputs:
-            %   met_images_w_coil_lim   metabolite images with coil limits. size = (row, col, slice, met, time_pt)
+            %   met_images_w_coil_lim   = metabolite images with coil sensitivity. size = (row, col, slice, met, time_pt)
+            %   coil_sens_weights       = coil sensitivity weights
 
             % argument validation
             arguments
