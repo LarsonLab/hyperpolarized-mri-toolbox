@@ -11,6 +11,7 @@ It is hosted on this open-source, collaborative platform in order to encourage a
 ```
 Hyperpolarized-MRI-Toolbox.
 Available online at: https://github.com/LarsonLab/hyperpolarized-mri-toolbox
+doi: 10.5281/zenodo.1198915
 https://dx.doi.org/10.5281/zenodo.1198915
 ```
 
@@ -73,6 +74,8 @@ While this toolbox focuses on prototyping new methods, leveraging the flexibilit
 ### Pulse Sequences
 
 The UCSF Hyperpolarized MRI Technology Resource Center (https://hyperpolarizedmri.ucsf.edu/, NIH Grant P41-EB013598) has specialized hyperpolarized 13C pulse sequences available, including Metabolite-specific EPI (GE), Metabolite-specific Spirals with real-time calibration (RTHawk) as well as several for Bruker and Varian small animal systems.  Please reach out through the center for more information.
+
+Many of these are distributed through the UCSF-HMTRC GitHub organization, https://github.com/UCSF-HMTRC.
 
 
 ### Spectral-Spatial-RF-Pulse-Design toolbox
