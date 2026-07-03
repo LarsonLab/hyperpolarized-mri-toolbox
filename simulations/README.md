@@ -12,6 +12,10 @@ See [Kinetic Modeling Notebook](../demo_notebooks/Test_Kinetic_Modeling.ipynb) f
 
 ## Anatomical Phantoms
 
+This framework generates anatomically realistic hyperpolarized 13C MRI data by combining anatomical and PK models.  This was started with brain and heart phantoms, and built modularly to accomodate multiple anatomies and kinetic models.  It also includes experimental factors that incorporate the spatial resolution, SNR, and coil sensitivity profiles.
+
+<img src="anatomical_phantoms/examples_brainweb_phantom.png" alt="Brain phantoms" style="width: 400px;"/> <img src="anatomical_phantoms/examples_cardiac_phantom.png" alt="Heart phantoms" style="width: 600px;"/>
+
 ## Metabolic Shapes Phantom
 
 In `metabolic_shapes_phantom`, the file metabolic_phantom.m provides a matlab function for automatically generating standardized a geometric shape-based 3-dimensional perfusion and metabolism maps for simulated experiments. The script DEMO.m demonstrates the usage of this function. Examples of the resulting parameter maps are shown below. 
