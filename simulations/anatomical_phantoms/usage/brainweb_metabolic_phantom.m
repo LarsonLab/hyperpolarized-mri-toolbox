@@ -11,12 +11,12 @@ k_trans = [1, 0.2, 0.2;
            3, 0.4, 0.4];
 
 % pk model params
-tr = 4;
-n_t = 30;
+tr = 3;
+n_t = 20;
 flips = repmat([20; 30; 30;], 1, n_t) .* (pi/180);
-r1 = [1/30, 1/25, 1/25]; % pyr, lac, bic
-k = [0, 0.05, 0.03; % lac, in order [vasc, gm, wm]
-     0, 0.02, 0.01]; % bic
+r1 = [1/30, 1/25, 1/20]; % pyr, lac, bic
+k = [0, 0.03, 0.025; % lac, in order [vasc, gm, wm]
+     0, 0.01, 0.005]; % bic
 t_arrival = [0, 0, 0]; % vasc, gm, wm
 t_bolus = 8;
 
@@ -31,8 +31,8 @@ mz0 = [input_function(1), input_function(1)*.5, input_function(1)*.5;
        0, input_function(1)*.005, input_function(1)*.005];
 
 % mri
-coil_lim = [0.4, 1.2];
-augmentation_params = struct(...
+coil_lim = [0.2, 0.6];
+augment_params = struct(...
     "XTranslation", [-1,1], ...
     "YTranslation", [-1,1], ...
     "Scale", [0.95,1.1], ...
@@ -40,9 +40,9 @@ augmentation_params = struct(...
     "Rotation", [-5,5], ...
     "ZTranslation", [-20, 20]);
 
-sample_size = [16 16 8];
-SNR = [150 40 20];
-output_size = [32 32 8];
+sample_size = [32 32 8; 16 16 8; 16 16 8];
+snr = [150 40 20];
+output_size = [64 64 8];
 
 %% RUNNING THE MODEL -----------------------------------------------------------
 
@@ -54,7 +54,7 @@ brain = brain.create_k_trans_map(k_trans);
 images = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function);
 
 % mri
-met_images_mres = mri_system.run_mri_system(images, sample_size, SNR, coil_lim, brain.Mask, output_size, augmentation_params);
+met_images_mres = mri_system.run_mri_system(images, sample_size, snr, coil_lim, brain.Mask, output_size, augment_params);
 
 %% DISPLAY ---------------------------------------------------------------------
 slices = 10:5:40;

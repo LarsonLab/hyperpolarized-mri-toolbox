@@ -92,7 +92,7 @@ classdef mri_system
         end
         
 
-        function met_images_w_noise = add_rician_noise(met_images, snr)
+        function [met_images_w_noise, met_images_w_noise_no_bg] = add_rician_noise(met_images, snr)
             % Adds rician noise to dynamic metabolite images
             % Parameters:
             %   met_images = dynamic metabolite images. either:
@@ -102,6 +102,9 @@ classdef mri_system
             %
             % Outputs:
             %   met_images_w_noise  = metabolite images with rician noise. 
+            %                         size = (1, met) cell array, where size of each 
+            %                         cell = (row, col, slice, time_pt)
+            %   met_images_w_noise_no_bg = metabolite images with rician noise, without background noise
             %                         size = (1, met) cell array, where size of each 
             %                         cell = (row, col, slice, time_pt)
         
@@ -138,9 +141,12 @@ classdef mri_system
             end
         
             met_images_w_noise = met_images;
+            met_images_w_noise_no_bg = met_images;
             n_mets = numel(met_images);
             for imet = 1:n_mets
-                met_images_w_noise{imet} = mri_system.add_rician_noise_image(met_images{imet}, snr(imet));
+                [image_w_bg, image_w_out_bg] = mri_system.add_rician_noise_image(met_images{imet}, snr(imet));
+                met_images_w_noise{imet} = image_w_bg;
+                met_images_w_noise_no_bg{imet} = image_w_out_bg;
             end
         end
 
@@ -267,13 +273,14 @@ classdef mri_system
     end
 
     methods (Static, Access = private)
-        function met_image_w_noise = add_rician_noise_image(met_image, snr)
+        function [met_image_w_noise, met_image_w_noise_no_bg] = add_rician_noise_image(met_image, snr)
             % Adds rician noise to single dynamic metabolite image
             % Parameters:
             %   met_image = single met image. size = (row, col, slice, time_pt)
             %   snr = signal-to-noise ratio. size = (1,1)
             % Outputs:
             %   met_image_w_noise = metabolite image with noise. size = (row, col, slice, time_pt)
+            %   met_image_w_noise_no_bg = metabolite images with noise, without background noise. size = (row, col, slice, time_pt)
 
             arguments
                 met_image (:,:,:,:) {mustBeNumeric}
@@ -288,6 +295,9 @@ classdef mri_system
             noise_I = randn(cat(2, sample_size, nt)) * std_noise;
 
             met_image_w_noise = sqrt((met_image + noise_R).^2 + noise_I.^2);
+
+            met_image_w_noise_no_bg = met_image_w_noise;
+            met_image_w_noise_no_bg(met_image == 0) = 0;
         end
 
         % taken from brainweb
