@@ -50,7 +50,7 @@ heart = heart.create_k_trans_map(k_trans);
 images = pk_model.run_pk_model(mz0, r1, k, flips, tr, heart, input_function=input_function);
 
 % mri
-met_images_mres = mri_system.run_mri_system(images, sample_size, snr, coil_lim, heart.Mask, output_size);
+met_images_mres = mri_system.run_mri_system(images, sample_size, snr, coil_lim, heart, output_size);
 
 %% DISPLAY --------------------------------------------------------
 slices = 1:5:46;

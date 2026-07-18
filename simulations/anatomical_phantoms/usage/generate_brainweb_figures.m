@@ -5,7 +5,7 @@ addpath('../../pk_models/'); % realistic_input_function, simulate_Nsite_model
 addpath('../../../utilities/'); % fire
 
 %% settings for figure generation
-export_path = 'figures/test/brain/';
+export_path = '';
 
 to_export = ~isempty(export_path); % save a couple function calls
 if to_export
@@ -105,7 +105,8 @@ disp(['took ', num2str(toc), 's', newline]);
 % mri
 disp('running mri system...'); tic;
 cell_augment_params = namedargs2cell(augment_params); % unpack the augmentation parameters
-met_images_aug = mri_system.augment(met_images, cell_augment_params{:});
+[met_images_aug, transform] = mri_system.augment(met_images, cell_augment_params{:});
+brain = brain.apply_transforms(transform.tform2d, transform.z_translation);
 [met_images_coil_lim, coil_sens_weights] = mri_system.apply_coil_lim(met_images_aug, coil_lim, brain.Mask);
 met_images_mres = mri_system.make_met_images_multires(met_images_coil_lim, sample_size);
 [met_images_mres_noise, met_images_mres_no_bg] = mri_system.add_rician_noise(met_images_mres, snr);

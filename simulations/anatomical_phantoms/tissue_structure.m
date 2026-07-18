@@ -85,7 +85,7 @@ classdef tissue_structure
                 x = linspace(-1, 1, maskSize(1));
                 y = linspace(-1, 1, maskSize(2));
                 z = linspace(-1, 1, maskSize(3));
-                [X, Y, Z] = meshgrid(x, y, z);
+                [~, Y, ~] = meshgrid(x, y, z);
                 grad = 0.5*(kTRANS_high - kTRANS_low)*Y + 0.5*(kTRANS_low + kTRANS_high);
             end
         end
@@ -116,6 +116,37 @@ classdef tissue_structure
             norm_weights = sum(obj.Mask, 4);
             norm_weights(norm_weights < 1) = 1; % only normalize voxels with a sum > 1
             obj.Mask = obj.Mask ./ repmat(norm_weights, [1,1,1, size(obj.Mask,4)]);
+        end
+
+
+        function obj = apply_transforms(obj, tform2d, z_translation)
+            % applies transformations to obj.Mask
+            % Parameters:
+            %   tform2d         = transform to apply to each slice. type = affinetform2d 
+            %   z_translation   = z translation
+            arguments
+                obj
+                tform2d (1,1) affinetform2d
+                z_translation (1,1) {mustBeNumeric}
+            end
+            
+            output_view = affineOutputView(size(obj.Mask, [1,2]), tform2d, BoundsStyle="CenterOutput");
+            for i_tissue = 1:size(obj.Mask, 4)
+                obj.Mask(:,:,:,i_tissue) = imwarp(obj.Mask(:,:,:,i_tissue), tform2d, OutputView=output_view);
+            end
+
+            % z translation
+            mask_ztrans = zeros(size(obj.Mask));
+            n_slices = size(obj.Mask,3);
+            cutoff = n_slices - abs(z_translation);
+            if z_translation > 0
+                mask_ztrans(:,:, 1:cutoff, :,:) = obj.Mask(:,:, (z_translation + 1):n_slices ,:,:);
+                obj.Mask = mask_ztrans;
+            elseif z_translation < 0
+                mask_ztrans(:,:, (abs(z_translation) + 1):n_slices, :,:) = obj.Mask(:,:, 1:cutoff, :,:);
+                obj.Mask = mask_ztrans;
+            end
+
         end
 
 

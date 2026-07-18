@@ -1,13 +1,13 @@
 classdef mri_system
     methods (Static)
-        function [met_images_mres, coil_sens_weights] = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_mask, output_size, augment_params)
+        function [met_images_mres, coil_sens_weights] = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_struct, output_size, augment_params)
             % Wrapper for easy use of mri system model
             % Parameters:
             %   met_images      = single-resolution metabolite images. size = (row, col, slice, met, tpt)
             %   sample_size     = desired size of multires images. size = (met, dim)
             %   snr             = signal-to-noise ratio. size = (1, met)
             %   coil_lim        = coil limits. [min, max]
-            %   tissue_mask     = tissue mask. size = (row, col, slice, tissue)
+            %   tissue_struct   = tissue structure. size = (1,1). type = tissue_structure
             %   output_size     = desired output_size. size = (met, dim)
             %   augment_params  = augmentation parameters. struct
             % Outputs:
@@ -22,7 +22,7 @@ classdef mri_system
                 sample_size (:,3) {mustBeNumeric}
                 snr (1,:) {mustBeNumeric}
                 coil_lim (1,2) {mustBeNumeric}
-                tissue_mask (:,:,:,:) {mustBeNumeric}
+                tissue_struct (1,1) tissue_structure
                 output_size (:,3) {mustBeNumeric} = NaN
                 augment_params struct = struct()
             end
@@ -41,9 +41,10 @@ classdef mri_system
             % run the system
             if ~isempty(fieldnames(augment_params))
                 cell_augment_params = namedargs2cell(augment_params); % unpack the augmentation parameters
-                met_images = mri_system.augment(met_images, cell_augment_params{:});
+                [met_images, transform] = mri_system.augment(met_images, cell_augment_params{:});
+                tissue_struct = tissue_struct.apply_transforms(transform.tform2d, transform.z_translation);
             end
-            [met_images, coil_sens_weights] = mri_system.apply_coil_lim(met_images, coil_lim, tissue_mask);
+            [met_images, coil_sens_weights] = mri_system.apply_coil_lim(met_images, coil_lim, tissue_struct.Mask);
             met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
             met_images_mres = mri_system.add_rician_noise(met_images_mres, snr);
 
@@ -182,11 +183,16 @@ classdef mri_system
             end
         end
 
-        function augmented_met_images = augment(met_images, augs)
+        function [augmented_met_images, transform] = augment(met_images, augs)
             % Augments image
             % Positional Parameters:
             %   met_images      = metabolite images. size = (row, col, slice, met, tpt)
             % Name-Value Parameters: see randomAffine2d
+            % Outputs:
+            %   augmented_met_images    = augmented metabolite images. size = (row, col, slice, met, tpt)
+            %   transform               = transformation applied to images
+            %       transform.tform2d       = transform applied to images. type = affinetform2d
+            %       transform.z_translation = z translation applied to images. size = (1,1)
             arguments
                 met_images (:,:,:,:,:) {mustBeNumeric}
                 augs.XTranslation (1,2) {mustBeNumeric} = [0,0]
@@ -239,6 +245,9 @@ classdef mri_system
                 aug_met_img_ztrans(:,:, (abs(offset) + 1):n_slices, :,:) = augmented_met_images(:,:, 1:cutoff, :,:);
                 augmented_met_images = aug_met_img_ztrans;
             end
+
+            transform.tform2d = tform;
+            transform.z_translation = offset;
         end
 
         function [met_images_w_coil_lim, coil_sens_weights] = apply_coil_lim(met_images, coil_lim, tissue_mask)
