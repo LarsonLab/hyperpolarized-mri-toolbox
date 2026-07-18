@@ -1,6 +1,6 @@
 classdef mri_system
     methods (Static)
-        function [met_images_mres, coil_sens_weights] = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_struct, output_size, augment_params)
+        function [met_images_mres, coil_sens_weights] = run_mri_system(met_images, sample_size, snr, coil_lim, tissue_struct, output_size, augment_params, opts)
             % Wrapper for easy use of mri system model
             % Parameters:
             %   met_images      = single-resolution metabolite images. size = (row, col, slice, met, tpt)
@@ -10,6 +10,8 @@ classdef mri_system
             %   tissue_struct   = tissue structure. size = (1,1). type = tissue_structure
             %   output_size     = desired output_size. size = (met, dim)
             %   augment_params  = augmentation parameters. struct
+            % Options:
+            %   include_bg_noise = boolean flag to include background noise
             % Outputs:
             %   met_images_mres = multiresolution metabolite images. 
             %                     size = (1, met) cell array. size of each cell = (row, col, slice, time_pt)
@@ -25,6 +27,7 @@ classdef mri_system
                 tissue_struct (1,1) tissue_structure
                 output_size (:,3) {mustBeNumeric} = NaN
                 augment_params struct = struct()
+                opts.include_bg_noise (1,1) logical = true
             end
 
             n_mets = size(met_images, 4);
@@ -46,7 +49,11 @@ classdef mri_system
             end
             [met_images, coil_sens_weights] = mri_system.apply_coil_lim(met_images, coil_lim, tissue_struct.Mask);
             met_images_mres = mri_system.make_met_images_multires(met_images, sample_size);
-            met_images_mres = mri_system.add_rician_noise(met_images_mres, snr);
+            if opts.include_bg_noise
+                [met_images_mres, ~] = mri_system.add_rician_noise(met_images_mres, snr);
+            else
+                [~, met_images_mres] = mri_system.add_rician_noise(met_images_mres, snr);
+            end
 
             if all(~isnan(output_size), 'all')
                 met_images_mres = mri_system.upsample_to_output_size(met_images_mres, output_size);

@@ -54,7 +54,7 @@ brain = brain.create_k_trans_map(k_trans);
 images = pk_model.run_pk_model(mz0, r1, k, flips, tr, brain, input_function=input_function);
 
 % mri
-met_images_mres = mri_system.run_mri_system(images, sample_size, snr, coil_lim, brain, output_size, augment_params);
+met_images_mres = mri_system.run_mri_system(images, sample_size, snr, coil_lim, brain, output_size, augment_params, include_bg_noise=false);
 
 %% DISPLAY ---------------------------------------------------------------------
 slices = 10:5:40;
